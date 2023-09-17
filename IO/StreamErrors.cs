@@ -9,6 +9,11 @@ namespace IngameScript.IO
             throw new Exception($"Stream length is out of range: {length}");
         }
 
+        public static void EndOfStream()
+        {
+            throw new Exception("Failed to read past end of stream.");
+        }
+
         public static void StreamIsClosed()
         {
             throw new Exception("Cannot use closed stream.");

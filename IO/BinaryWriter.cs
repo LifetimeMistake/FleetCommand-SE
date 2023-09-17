@@ -37,16 +37,17 @@ namespace IngameScript.IO
         {
             if (disposing)
             {
-                if (_stream == null)
-                    return;
-
-                if (_leaveOpen)
+                if (_stream != null)
                 {
                     _stream.Flush();
-                    return;
+
+                    if (!_leaveOpen)
+                    {
+                        _stream.Close();
+                    }
                 }
 
-                _stream.Close();
+                _stream = null;
                 _buffer = null;
                 _encoding = null;
             }

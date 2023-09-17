@@ -23,6 +23,7 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <LangVersion>6</LangVersion>
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="netstandard" />
@@ -40,6 +41,7 @@
   <ItemGroup>
     <Compile Include="Cryptography\ICryptoProvider.cs" />
     <Compile Include="Cryptography\XORCryptoProvider.cs" />
+    <Compile Include="IO\BinaryReader.cs" />
     <Compile Include="IO\BinaryWriter.cs" />
     <Compile Include="Network\NetInvocationContext.cs" />
     <Compile Include="Network\ISerializable.cs" />
