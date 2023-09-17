@@ -1,4 +1,6 @@
 ﻿using IngameScript.IO;
+using System;
+using System.Linq;
 using System.Text;
 
 namespace IngameScript.Network
@@ -13,11 +15,21 @@ namespace IngameScript.Network
         public long? DestinationNetworkId;
         public bool HasData;
 
+        public NetMessageHeader(ushort tag, long sourceId, long? destinationId, long? sourceNetworkId, long? destinationNetworkId, bool hasData)
+        {
+            Tag = tag;
+            SourceId = sourceId;
+            DestinationId = destinationId;
+            SourceNetworkId = sourceNetworkId;
+            DestinationNetworkId = destinationNetworkId;
+            HasData = hasData;
+        }
+
         public void Serialize(BinaryWriter writer)
         {
             writer.Write(HEADER_ID);
-            writer.Write(SourceId);
             writer.Write(Tag);
+            writer.Write(SourceId);
 
             writer.Write(DestinationId.HasValue);
             if (DestinationId.HasValue)
@@ -32,6 +44,22 @@ namespace IngameScript.Network
                 writer.Write(DestinationNetworkId.Value);
 
             writer.Write(HasData);
+        }
+
+        public static NetMessageHeader Deserialize(BinaryReader reader)
+        {
+            byte[] headerID = reader.ReadBytes(HEADER_ID.Length);
+            if (!headerID.SequenceEqual(HEADER_ID))
+                throw new Exception("Data is not a valid network message header");
+
+            ushort tag = reader.ReadUInt16();
+            long sourceId = reader.ReadInt64();
+            long? destinationId = (reader.ReadBoolean() ? (long?)reader.ReadInt64() : null);
+            long? sourceNetworkId = (reader.ReadBoolean() ? (long?)reader.ReadInt64() : null);
+            long? destinatioNnetworkId = (reader.ReadBoolean() ? (long?)reader.ReadInt64() : null);
+            bool hasData = reader.ReadBoolean();
+
+            return new NetMessageHeader(tag, sourceId, destinationId, sourceNetworkId, destinatioNnetworkId, hasData);
         }
     }
 }
