@@ -45,6 +45,8 @@
     <Compile Include="IO\BinaryWriter.cs" />
     <Compile Include="Network\NetInvocationContext.cs" />
     <Compile Include="Network\ISerializable.cs" />
+    <Compile Include="Network\NetMessageHandler.cs" />
+    <Compile Include="Network\NetMessageHandlerOptions.cs" />
     <Compile Include="Network\NetMessageHeader.cs" />
     <Compile Include="Network\NetPeerLocation.cs" />
     <Compile Include="Cryptography\EncryptedStream.cs" />
@@ -56,6 +58,7 @@
     <AdditionalFiles Include="MDK\MDK.paths.props">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
+    <Compile Include="Network\NetworkLink.cs" />
     <Compile Include="Program.cs" />
     <AdditionalFiles Include="Instructions.readme" />
     <AdditionalFiles Include="thumb.png" />

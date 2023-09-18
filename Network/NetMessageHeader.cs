@@ -5,7 +5,7 @@ using System.Text;
 
 namespace IngameScript.Network
 {
-    public struct NetMessageHeader : ISerializable
+    public class NetMessageHeader : ISerializable
     {
         public static byte[] HEADER_ID = Encoding.ASCII.GetBytes("FCNET");
         public ushort Tag;
@@ -14,6 +14,38 @@ namespace IngameScript.Network
         public long? SourceNetworkId;
         public long? DestinationNetworkId;
         public bool HasData;
+
+        public bool IsBroadcast
+        {
+            get
+            {
+                return !DestinationId.HasValue;
+            }
+        }
+
+        public bool IsUnicast
+        {
+            get
+            {
+                return DestinationId.HasValue;
+            }
+        }
+
+        public bool IsPublic
+        {
+            get
+            {
+                return !DestinationNetworkId.HasValue;
+            }
+        }
+
+        public bool IsPrivate
+        {
+            get
+            {
+                return DestinationNetworkId.HasValue;
+            }
+        }
 
         public NetMessageHeader(ushort tag, long sourceId, long? destinationId, long? sourceNetworkId, long? destinationNetworkId, bool hasData)
         {
@@ -24,6 +56,9 @@ namespace IngameScript.Network
             DestinationNetworkId = destinationNetworkId;
             HasData = hasData;
         }
+
+        public NetMessageHeader()
+        { }
 
         public void Serialize(BinaryWriter writer)
         {
