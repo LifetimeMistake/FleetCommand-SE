@@ -131,7 +131,6 @@ namespace IngameScript.Network
                     header.DestinationNetworkId == OwnNetworkId &&
                     !options.AcceptForeignBroadcasts)
                 {
-                    Log("Foreign broadcast");
                     return false;
                 }
 
@@ -145,7 +144,6 @@ namespace IngameScript.Network
                     header.DestinationNetworkId == OwnNetworkId &&
                     !options.AcceptOwnBroadcasts)
                 {
-                    Log("Own broadcast");
                     return false;
                 }
 
@@ -155,7 +153,6 @@ namespace IngameScript.Network
                     header.IsPublic &&
                     !options.AcceptPublicBroadcasts)
                 {
-                    Log("Public broadcast");
                     return false;
                 }
 
@@ -170,7 +167,6 @@ namespace IngameScript.Network
                     header.DestinationNetworkId == OwnNetworkId &&
                     !options.AcceptForeignBroadcasts)
                 {
-                    Log("Foreign unicast");
                     return false;
                 }
 
@@ -186,7 +182,6 @@ namespace IngameScript.Network
                     header.DestinationNetworkId == OwnNetworkId &&
                     !options.AcceptOwnUnicasts)
                 {
-                    Log("Own unicast");
                     return false;
                 }
 
@@ -197,7 +192,6 @@ namespace IngameScript.Network
                     header.DestinationId == OwnId &&
                     !options.AcceptPublicUnicasts)
                 {
-                    Log("Public unicast");
                     return false;
                 }
 
