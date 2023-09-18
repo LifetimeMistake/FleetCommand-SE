@@ -1,5 +1,7 @@
 # FleetCommand
-A system for networking space engineers vessels together. The fleet command protocol will automatically discover other crafts and negotiate how to link up with them. 
+A system for networking space engineers vessels together. 
+
+The fleet command protocol will automatically discover other crafts and negotiate how to link up with them. 
 By default all vessels will eventually form one large network. If two ship networks become visible to eachother, the default behaviour is to merge those two networks (and their information) into one.
 The networking layer running fleet command supports serialization/deserialization of any data type that implements ISerializable. Encryption or compression is also supported via streams.
 While the fleet command usually only handles network management and a couple of built-in features, custom extension modules can be baked in to allow user defined code totap into the network.
