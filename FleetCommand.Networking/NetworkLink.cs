@@ -1,14 +1,10 @@
-﻿using IngameScript.IO;
+﻿using FleetCommand.IO;
 using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VRage.Scripting;
 
-namespace IngameScript.Network
+namespace FleetCommand.Networking
 {
     public class NetworkLink : IDisposable
     {
@@ -199,7 +195,7 @@ namespace IngameScript.Network
                 handler.Callback(_context, _packetReader);
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log($"Aborting packet read: {ex}");
                 return false;

@@ -1,4 +1,4 @@
-﻿namespace IngameScript.Cryptography
+﻿namespace FleetCommand.Cryptography
 {
     public interface ICryptoProvider
     {

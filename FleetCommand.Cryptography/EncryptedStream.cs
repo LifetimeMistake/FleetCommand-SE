@@ -1,8 +1,7 @@
-﻿using IngameScript.Cryptography;
-using IngameScript.IO;
+﻿using FleetCommand.Cryptography;
 using System;
 
-namespace IngameScript
+namespace FleetCommand.IO
 {
     public class EncryptedStream : Stream
     {

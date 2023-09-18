@@ -1,4 +1,4 @@
-﻿namespace IngameScript.Network
+﻿namespace FleetCommand.Networking
 {
     public class NetInvocationContext
     {

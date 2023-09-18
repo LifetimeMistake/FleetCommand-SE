@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{2A9D3AF4-AFF7-4F45-8762-7C087EC79911}</ProjectGuid>
+    <ProjectGuid>{D60FC94F-713E-4931-970B-BF6604E319D2}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>IngameScript</RootNamespace>
     <AssemblyName>FleetCommand</AssemblyName>
@@ -23,7 +23,6 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
     <LangVersion>6</LangVersion>
-    <Optimize>false</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="netstandard" />
@@ -39,18 +38,6 @@
   <Import Project="MDK/MDK.options.props" />
   <Import Project="MDK/MDK.paths.props" Condition="exists('MDK/MDK.paths.props')" />
   <ItemGroup>
-    <Compile Include="Cryptography\ICryptoProvider.cs" />
-    <Compile Include="Cryptography\XORCryptoProvider.cs" />
-    <Compile Include="IO\BinaryReader.cs" />
-    <Compile Include="IO\BinaryWriter.cs" />
-    <Compile Include="Network\NetInvocationContext.cs" />
-    <Compile Include="Network\ISerializable.cs" />
-    <Compile Include="Network\NetMessageHandler.cs" />
-    <Compile Include="Network\NetMessageHandlerOptions.cs" />
-    <Compile Include="Network\NetMessageHeader.cs" />
-    <Compile Include="Network\NetPeerLocation.cs" />
-    <Compile Include="Cryptography\EncryptedStream.cs" />
-    <Compile Include="IO\MemoryStream.cs" />
     <Compile Include="MDK\Bootstrapper.cs" />
     <AdditionalFiles Include="MDK\MDK.options.props">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -58,14 +45,14 @@
     <AdditionalFiles Include="MDK\MDK.paths.props">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
-    <Compile Include="Network\NetworkLink.cs" />
     <Compile Include="Program.cs" />
     <AdditionalFiles Include="Instructions.readme" />
     <AdditionalFiles Include="thumb.png" />
     <AdditionalFiles Include="MDK\whitelist.cache" />
-    <Compile Include="IO\Stream.cs" />
-    <Compile Include="IO\StreamErrors.cs" />
   </ItemGroup>
+  <Import Project="..\FleetCommand.Cryptography\FleetCommand.Cryptography.projitems" Label="Shared" />
+  <Import Project="..\FleetCommand.IO\FleetCommand.IO.projitems" Label="Shared" />
+  <Import Project="..\FleetCommand.Networking\FleetCommand.Networking.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="AfterBuild">
     <Copy SourceFiles="MDK\MDK.options.props" DestinationFolder="$(TargetDir)\MDK" />

@@ -2,7 +2,7 @@
 using System.Text;
 using VRageMath;
 
-namespace IngameScript.IO
+namespace FleetCommand.IO
 {
     public class BinaryWriter : IDisposable
     {

@@ -1,9 +1,9 @@
-﻿using IngameScript.IO;
+﻿using FleetCommand.IO;
 using System;
 using System.Linq;
 using System.Text;
 
-namespace IngameScript.Network
+namespace FleetCommand.Networking
 {
     public class NetMessageHeader : ISerializable
     {

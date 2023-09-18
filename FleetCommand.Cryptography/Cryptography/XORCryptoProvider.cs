@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace IngameScript.Cryptography
+namespace FleetCommand.Cryptography
 {
     public class XORCryptoProvider : ICryptoProvider
     {

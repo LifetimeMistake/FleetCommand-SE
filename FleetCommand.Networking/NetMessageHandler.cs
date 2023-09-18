@@ -1,11 +1,6 @@
-﻿using IngameScript.IO;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using FleetCommand.IO;
 
-namespace IngameScript.Network
+namespace FleetCommand.Networking
 {
     public struct NetMessageHandler
     {

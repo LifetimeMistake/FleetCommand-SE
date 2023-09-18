@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using VRage.Library.Collections;
 
-namespace IngameScript.IO
+namespace FleetCommand.IO
 {
     public class BinaryReader : IDisposable
     {
@@ -108,7 +104,7 @@ namespace IngameScript.IO
                 StreamErrors.StreamIsClosed();
 
             if (numBytes == 0)
-                return new byte[] {};
+                return new byte[] { };
 
             byte[] buffer = new byte[numBytes];
             int totalRead = 0;

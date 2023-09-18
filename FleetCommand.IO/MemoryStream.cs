@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace IngameScript.IO
+namespace FleetCommand.IO
 {
     public class MemoryStream : Stream
     {

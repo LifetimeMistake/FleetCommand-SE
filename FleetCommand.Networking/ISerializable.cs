@@ -1,6 +1,6 @@
-﻿using IngameScript.IO;
+﻿using FleetCommand.IO;
 
-namespace IngameScript.Network
+namespace FleetCommand.Networking
 {
     public interface ISerializable
     {
