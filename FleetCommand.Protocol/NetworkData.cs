@@ -9,17 +9,14 @@ namespace FleetCommand.Protocol
         public long Id;
         public long? OwnerId;
         public List<long> Members;
-        public DateTime LastSeen;
+        public int LastSeen;
         public int MemberCount { get { return Members.Count; } }
-        public NetworkData(long networkId, long? ownerId, DateTime lastSeen)
+        public NetworkData(long networkId, long? ownerId, int lastSeen)
         {
             Id = networkId;
             OwnerId = ownerId;
             Members = new List<long>();
             LastSeen = lastSeen;
         }
-
-        public NetworkData(long networkId, long? ownerId) : this(networkId, ownerId, DateTime.Now)
-        { }
     }
 }

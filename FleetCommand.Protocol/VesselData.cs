@@ -9,16 +9,13 @@ namespace FleetCommand.Protocol
         public long Id;
         public long? NetworkId;
         public bool Verified;
-        public DateTime LastSeen;
+        public int LastSeen;
 
-        public VesselData(long vesselId, long? networkId, DateTime lastSeen)
+        public VesselData(long vesselId, long? networkId, int lastSeen)
         {
             Id = vesselId;
             NetworkId = networkId;
             LastSeen = lastSeen;
         }
-
-        public VesselData(long vesselId, long? networkId) : (vesselId, networkId, DateTime.Now)
-        { }
     }
 }
