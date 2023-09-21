@@ -6,7 +6,7 @@
     <SharedGUID>61eba249-19f3-48b6-a25b-a4cee90168ba</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>IngameScript</Import_RootNamespace>
+    <Import_RootNamespace>FleetCommand.Protocol</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ISerializable.cs" />
@@ -14,7 +14,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)NetMessageHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NetMessageHandlerOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NetMessageHeader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetMessageRegistry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NetPeerLocation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)NetworkLink.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Range.cs" />
   </ItemGroup>
 </Project>

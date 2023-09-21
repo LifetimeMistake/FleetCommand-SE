@@ -11,6 +11,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "FleetCommand.IO", "FleetCom
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "FleetCommand.Networking", "FleetCommand.Networking\FleetCommand.Networking.shproj", "{61EBA249-19F3-48B6-A25B-A4CEE90168BA}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "FleetCommand.Protocol", "FleetCommand.Protocol\FleetCommand.Protocol.shproj", "{7F5E3EEE-ACC6-4B6F-94F0-9B0215FD517B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -28,9 +30,11 @@ Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		FleetCommand.IO\FleetCommand.IO.projitems*{520542ae-8d36-4e19-b38f-8bfb536d0578}*SharedItemsImports = 13
 		FleetCommand.Networking\FleetCommand.Networking.projitems*{61eba249-19f3-48b6-a25b-a4cee90168ba}*SharedItemsImports = 13
+		FleetCommand.Protocol\FleetCommand.Protocol.projitems*{7f5e3eee-acc6-4b6f-94f0-9b0215fd517b}*SharedItemsImports = 13
 		FleetCommand.Cryptography\FleetCommand.Cryptography.projitems*{b7be0dec-ff2a-4ae7-b6f6-b0eaba9b3d84}*SharedItemsImports = 13
 		FleetCommand.Cryptography\FleetCommand.Cryptography.projitems*{d60fc94f-713e-4931-970b-bf6604e319d2}*SharedItemsImports = 4
 		FleetCommand.IO\FleetCommand.IO.projitems*{d60fc94f-713e-4931-970b-bf6604e319d2}*SharedItemsImports = 4
 		FleetCommand.Networking\FleetCommand.Networking.projitems*{d60fc94f-713e-4931-970b-bf6604e319d2}*SharedItemsImports = 4
+		FleetCommand.Protocol\FleetCommand.Protocol.projitems*{d60fc94f-713e-4931-970b-bf6604e319d2}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

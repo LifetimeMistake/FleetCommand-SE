@@ -6,11 +6,12 @@
     <SharedGUID>61eba249-19f3-48b6-a25b-a4cee90168ba</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>FleetCommand.Cryptography</Import_RootNamespace>
+    <Import_RootNamespace>FleetCommand.Protocol</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)EncryptedStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Cryptography\ICryptoProvider.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Cryptography\XORCryptoProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SystemNetMessage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VesselDiscovery.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VesselBeacon.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VesselDiscoveryData.cs" />
   </ItemGroup>
 </Project>
