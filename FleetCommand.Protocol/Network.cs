@@ -4,14 +4,17 @@ using System.Text;
 
 namespace FleetCommand.Protocol
 {
-    public class NetworkData
+    public class Network
     {
         public long Id;
         public long? OwnerId;
         public List<long> Members;
         public int LastSeen;
+
         public int MemberCount { get { return Members.Count; } }
-        public NetworkData(long networkId, long? ownerId, int lastSeen)
+        public bool HasOwner { get { return OwnerId != null; } }
+
+        public Network(long networkId, long? ownerId, int lastSeen)
         {
             Id = networkId;
             OwnerId = ownerId;

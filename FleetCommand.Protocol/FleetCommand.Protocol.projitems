@@ -9,13 +9,16 @@
     <Import_RootNamespace>FleetCommand.Protocol</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)FleetCommandServer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)NetworkBeacon.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)NetworkData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Discovery\NetworkDiscovery.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Discovery\VesselDiscovery.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Discovery\NetworkBeacon.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Network.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Networks.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Vessel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ServerOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SystemNetMessage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Timekeeper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)VesselBeacon.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)VesselData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Discovery\VesselBeacon.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Vessels.cs" />
   </ItemGroup>
 </Project>
