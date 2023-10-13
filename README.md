@@ -16,8 +16,8 @@ Fleet command allows for exchange of meaningful data between vessels and can ope
 
 ## Progress
 ### FleetCommand.Protocol
-- Vessel announcement and discovery: ❌
-- Network announcement and discovery: ❌
+- Vessel announcement and discovery: ✔️
+- Network announcement and discovery: ✔️
 - Network join: ❌
 - Network leave: ❌
 - Network leader negotiation: ❌
