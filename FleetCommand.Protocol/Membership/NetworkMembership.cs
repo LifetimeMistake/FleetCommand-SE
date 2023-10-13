@@ -171,7 +171,7 @@ namespace FleetCommand.Protocol
                 return false;
 
             long netId = _localVessel.Id + DateTime.Now.Ticks;
-            Network network = new Network(netId, _localVessel.Id, _timekeeper.Now + _expirationTime);
+            Network network = new Network(netId, _localVessel.Id, _timekeeper.Now);
             _networks.Add(network);
 
             _localVessel.NetworkId = netId;
@@ -188,7 +188,7 @@ namespace FleetCommand.Protocol
             if (network == null || !network.HasOwner)
                 return false;
 
-            NetworkJoinInfo info = new NetworkJoinInfo(networkId, _timekeeper.Now);
+            NetworkJoinInfo info = new NetworkJoinInfo(networkId, _timekeeper.Now + _expirationTime);
             _pendingJoin = info;
             _link.SendPublicUnicast(network.OwnerId.Value, (ushort)SystemNetMessage.JoinNetwork, null);
             return true;
