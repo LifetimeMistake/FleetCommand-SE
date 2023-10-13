@@ -20,6 +20,9 @@ namespace FleetCommand.Protocol
             OwnerId = ownerId;
             Members = new List<long>();
             LastSeen = lastSeen;
+
+            if (ownerId.HasValue)
+                Members.Add(ownerId.Value);
         }
     }
 }

@@ -8,5 +8,11 @@ namespace FleetCommand.Protocol
     {
         AnnounceVessel = 0,
         AnnounceNetwork = 1,
+        ElevateOwner = 2,
+        JoinNetwork = 3,
+        NetworkJoinResponse = 4,
+        LeaveNetwork = 5,
+        MemberJoined = 6,
+        MemberKicked = 7
     }
 }

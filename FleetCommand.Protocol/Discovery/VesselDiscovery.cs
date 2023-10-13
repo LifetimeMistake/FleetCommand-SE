@@ -44,7 +44,7 @@ namespace FleetCommand.Protocol.Discovery
             if (!header.HasData)
                 return; // TODO: log error
 
-            VesselBeacon beacon = VesselBeacon.Deserialize(reader);
+            VesselBeacon beacon = VesselBeacon.Deserialize(reader); 
             if (beacon.VesselId == _localVessel.Id)
                 return; // do not update local vessel here
 

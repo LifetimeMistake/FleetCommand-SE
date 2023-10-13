@@ -12,8 +12,15 @@
     <Compile Include="$(MSBuildThisFileDirectory)Discovery\NetworkDiscovery.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Discovery\VesselDiscovery.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Discovery\NetworkBeacon.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Membership\JoinNetworkResponseData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Membership\JoinResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Membership\LeaveReason.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Membership\MemberUpdateData.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Membership\NetworkJoinInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Network.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Membership\NetworkMembership.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Networks.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Ownership\OwnerNegotiation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Vessel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ServerOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SystemNetMessage.cs" />
