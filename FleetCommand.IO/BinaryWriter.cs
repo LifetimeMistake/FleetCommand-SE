@@ -178,7 +178,22 @@ namespace FleetCommand.IO
             Write(vector.Z);
         }
 
-        public virtual void WriteQuaternion(Quaternion quaternion)
+        public virtual void Write(Quaternion quaternion)
+        {
+            Write(quaternion.X);
+            Write(quaternion.Y);
+            Write(quaternion.Z);
+            Write(quaternion.W);
+        }
+
+        public virtual void Write(Vector3D vector)
+        {
+            Write(vector.X);
+            Write(vector.Y);
+            Write(vector.Z);
+        }
+
+        public virtual void Write(QuaternionD quaternion)
         {
             Write(quaternion.X);
             Write(quaternion.Y);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using VRageMath;
 
 namespace FleetCommand.IO
 {
@@ -182,6 +183,40 @@ namespace FleetCommand.IO
             uint length = ReadUInt32();
             byte[] bytes = ReadBytes((int)length);
             return _encoding.GetString(bytes);
+        }
+
+        public virtual Vector3 ReadVector3()
+        {
+            float x = ReadSingle();
+            float y = ReadSingle();
+            float z = ReadSingle();
+            return new Vector3(x, y, z);
+        }
+
+        public virtual Quaternion ReadQuaternion()
+        {
+            float x = ReadSingle();
+            float y = ReadSingle();
+            float z = ReadSingle();
+            float w = ReadSingle();
+            return Quaternion.FromVector4(new Vector4(x, y, z, w));
+        }
+
+        public virtual Vector3D ReadVector3D()
+        {
+            double x = ReadDouble();
+            double y = ReadDouble();
+            double z = ReadDouble();
+            return new Vector3D(x, y, z);
+        }
+
+        public virtual QuaternionD ReadQuaternionD()
+        {
+            double x = ReadDouble();
+            double y = ReadDouble();
+            double z = ReadDouble();
+            double w = ReadDouble();
+            return new QuaternionD(x, y, z, w);
         }
     }
 }
