@@ -10,7 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)EncryptedStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Cryptography\ICryptoProvider.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Cryptography\XORCryptoProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\ICryptoProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\RC4CryptoProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Providers\XORCryptoProvider.cs" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace FleetCommand.Cryptography
+﻿namespace FleetCommand.Cryptography.Providers
 {
     public interface ICryptoProvider
     {

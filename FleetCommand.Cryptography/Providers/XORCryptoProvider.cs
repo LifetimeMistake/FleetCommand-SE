@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FleetCommand.Cryptography
+namespace FleetCommand.Cryptography.Providers
 {
     public class XORCryptoProvider : ICryptoProvider
     {
