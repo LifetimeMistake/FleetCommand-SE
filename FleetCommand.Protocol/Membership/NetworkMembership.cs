@@ -30,14 +30,14 @@ namespace FleetCommand.Protocol
         public event NetworkJoinFailedDelegate OnNetworkJoinFailed;
         public event NetworkLeaveDelegate OnNetworkLeave;
 
-        public NetworkMembership(NetworkLink link, Timekeeper timekeeper, Vessels vessels, Networks networks, int expirationTime)
+        public NetworkMembership(NetworkLink link, Timekeeper timekeeper, Vessels vessels, Networks networks, float joinTimeout)
         {
             _link = link;
             _timekeeper = timekeeper;
             _vessels = vessels;
             _networks = networks;
             _localVessel = _vessels.GetLocalVessel();
-            _expirationTime = expirationTime;
+            _expirationTime = timekeeper.SecondsToTicks(joinTimeout);
 
             if (!link.RegisterMessageHandler((ushort)SystemNetMessage.JoinNetwork, ReceiveJoinNetwork, NetMessageHandlerOptions.CreatePublicHandler(false, true)))
                 throw new Exception("Could not register a message handler for JoinNetwork");
@@ -165,7 +165,7 @@ namespace FleetCommand.Protocol
             OnNetworkJoinFailed?.Invoke(info.NetworkId, JoinResult.Timeout);
         }
 
-        public bool Create(long networkId)
+        public bool Create()
         {
             if (_localVessel.HasNetwork)
                 return false;

@@ -1,3 +1,4 @@
 {
-    "dotnet.defaultSolution": "FleetCommand.sln"
+    "dotnet.defaultSolution": "FleetCommand.sln",
+    "dotnet.preferCSharpExtension": true
 }
