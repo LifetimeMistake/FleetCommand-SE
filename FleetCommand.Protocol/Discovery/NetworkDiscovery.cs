@@ -84,6 +84,11 @@ namespace FleetCommand.Protocol.Discovery
 
             foreach (Network network in _networks)
             {
+                if (network.Id == _localVessel.NetworkId)
+                {
+                    network.LastSeen = now;
+                    continue;
+                }
                 if ((now - network.LastSeen) >= _networkTimeout)
                 {
                     _dropped.Add(network);

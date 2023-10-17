@@ -42,7 +42,7 @@ namespace FleetCommand.Protocol
             if (!link.RegisterMessageHandler((ushort)SystemNetMessage.JoinNetwork, ReceiveJoinNetwork, NetMessageHandlerOptions.CreatePublicHandler(false, true)))
                 throw new Exception("Could not register a message handler for JoinNetwork");
 
-            if (!link.RegisterMessageHandler((ushort)SystemNetMessage.NetworkJoinResponse, ReceiveNetworkJoinResponse, NetMessageHandlerOptions.CreateForeignHandler(false, true)))
+            if (!link.RegisterMessageHandler((ushort)SystemNetMessage.NetworkJoinResponse, ReceiveNetworkJoinResponse, NetMessageHandlerOptions.CreatePublicHandler(false, true)))
                 throw new Exception("Could not register a message handler for NetworkJoinResponse");
 
             if (!link.RegisterMessageHandler((ushort)SystemNetMessage.LeaveNetwork, ReceiveLeaveNetwork, NetMessageHandlerOptions.CreateOwnHandler(true, false)))

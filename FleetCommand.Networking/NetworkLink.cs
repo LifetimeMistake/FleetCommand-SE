@@ -104,6 +104,73 @@ namespace FleetCommand.Networking
             }
         }
 
+        private bool ShouldProcessPacket(NetMessageHeader header, NetMessageHandlerOptions options)
+        {
+            // Foreign broadcast: source network is not client network, dest network is client network, dest client is null
+            if (header.IsBroadcast && 
+                header.IsPrivate && 
+                header.SourceNetworkId.HasValue &&
+                header.SourceNetworkId != OwnNetworkId && 
+                header.DestinationNetworkId.HasValue && 
+                header.DestinationNetworkId == OwnNetworkId)
+            {
+                return options.AcceptForeignBroadcasts;
+            }
+
+            // Own broadcast: source network is client network, dest network is client network, dest client is null
+            if (header.IsBroadcast && 
+                header.IsPrivate && 
+                header.SourceNetworkId.HasValue &&
+                header.SourceNetworkId == OwnNetworkId && 
+                header.DestinationNetworkId.HasValue && 
+                header.DestinationNetworkId == OwnNetworkId)
+            {
+                return options.AcceptOwnBroadcasts;
+            }
+
+            // Public broadcast: dest network is null, dest client is null
+            if (header.IsBroadcast && 
+                header.IsPublic)
+            {
+                return options.AcceptPublicBroadcasts;
+            }
+
+            // Foreign unicast: source network is not client network, dest network is client network, dest client is local client
+            if (header.IsUnicast && 
+                header.IsPrivate && 
+                header.DestinationId == OwnId && 
+                header.SourceNetworkId.HasValue &&
+                header.SourceNetworkId != OwnNetworkId && 
+                header.DestinationNetworkId.HasValue && 
+                header.DestinationNetworkId == OwnNetworkId)
+            {
+                return options.AcceptForeignUnicasts;
+            }
+
+            // Own unicast: source network is client network, dest network is client network, dest client is local client
+            if (header.IsUnicast && 
+                header.IsPrivate && 
+                header.DestinationId == OwnId && 
+                header.SourceNetworkId.HasValue &&
+                header.SourceNetworkId == OwnNetworkId && 
+                header.DestinationNetworkId.HasValue && 
+                header.DestinationNetworkId == OwnNetworkId)
+            {
+                return options.AcceptOwnUnicasts;
+            }
+
+            // Public unicast: dest network is null, dest client is local client
+            if (header.IsUnicast && 
+                header.IsPublic && 
+                header.DestinationId == OwnId)
+            {
+                return options.AcceptPublicUnicasts;
+            }
+
+            // If none of the conditions are met, return false
+            return false;
+        }
+
         private bool ProcessPacket()
         {
             try
@@ -118,75 +185,7 @@ namespace FleetCommand.Networking
                 NetMessageHandler handler = _listeners[header.Tag];
                 NetMessageHandlerOptions options = handler.Options;
 
-                // Foreign broadcast: source network is not client network, dest network is client network, dest client is null
-                if (
-                    header.IsBroadcast &&
-                    header.IsPrivate &&
-                    header.SourceNetworkId != OwnNetworkId &&
-                    header.DestinationNetworkId.HasValue &&
-                    header.DestinationNetworkId == OwnNetworkId &&
-                    !options.AcceptForeignBroadcasts)
-                {
-                    return false;
-                }
-
-                // Own broadcast: source network is client network, dest network is client network, dest client is null
-                if (
-                    header.IsBroadcast &&
-                    header.IsPrivate &&
-                    header.SourceNetworkId.HasValue &&
-                    header.SourceNetworkId == OwnNetworkId &&
-                    header.DestinationNetworkId.HasValue &&
-                    header.DestinationNetworkId == OwnNetworkId &&
-                    !options.AcceptOwnBroadcasts)
-                {
-                    return false;
-                }
-
-                // Public broadcast: dest network is null, dest client is null
-                if (
-                    header.IsBroadcast &&
-                    header.IsPublic &&
-                    !options.AcceptPublicBroadcasts)
-                {
-                    return false;
-                }
-
-                // Foreign unicast: source network is not client network, dest network is client network, dest client is local client
-                if (
-                    header.IsUnicast &&
-                    header.IsPrivate &&
-                    header.DestinationId.HasValue &&
-                    header.DestinationId == OwnId &&
-                    header.SourceNetworkId != OwnNetworkId &&
-                    header.DestinationNetworkId.HasValue &&
-                    header.DestinationNetworkId == OwnNetworkId &&
-                    !options.AcceptForeignBroadcasts)
-                {
-                    return false;
-                }
-
-                // Own unicast: source network is client network, dest network is client network, dest client is local client
-                if (
-                    header.IsUnicast &&
-                    header.IsPrivate &&
-                    header.DestinationId.HasValue &&
-                    header.DestinationId == OwnId &&
-                    header.SourceNetworkId.HasValue &&
-                    header.SourceNetworkId == OwnNetworkId &&
-                    header.DestinationNetworkId.HasValue &&
-                    header.DestinationNetworkId == OwnNetworkId &&
-                    !options.AcceptOwnUnicasts)
-                {
-                    return false;
-                }
-
-                // Public unicast: dest network is null, dest client is local client
-                if (
-                    header.IsUnicast &&
-                    header.IsPublic &&
-                    header.DestinationId == OwnId &&
-                    !options.AcceptPublicUnicasts)
+                if (!ShouldProcessPacket(header, options))
                 {
                     return false;
                 }
