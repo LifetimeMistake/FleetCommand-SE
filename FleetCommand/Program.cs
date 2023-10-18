@@ -106,22 +106,26 @@ namespace FleetCommand
                 if (commands.Length >= 2)
                 {
                     string command = commands[0];
-                    long networkId;
-                    if (long.TryParse(commands[1], out networkId))
+                    long arg;
+                    if (long.TryParse(commands[1], out arg))
                     {
                         if (command == "join")
                         {
-                            _networkMembership.Join(networkId);
+                            _networkMembership.Join(arg);
                         }
-                        else if (command == "leave")
+                        else if (command == "kick")
                         {
-                            _networkMembership.Leave();
+                            _networkMembership.Kick(arg);
                         }
                     }
                 }
                 else if (commands.Length == 1 && commands[0] == "create")
                 {
                     _networkMembership.Create();
+                }
+                else if (commands.Length == 1 && commands[0] == "leave")
+                {
+                    _networkMembership.Leave();
                 }
             }
         }

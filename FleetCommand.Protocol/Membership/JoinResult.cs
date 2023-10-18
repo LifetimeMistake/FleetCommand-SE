@@ -7,7 +7,7 @@ namespace FleetCommand.Protocol.Membership
     public enum JoinResult : byte
     {
         OK = 0,
-        AlreadyJoined = 1,
+        AlreadyAuthenticated = 1,
         Timeout = 2,
         UnknownReject = 3
     }

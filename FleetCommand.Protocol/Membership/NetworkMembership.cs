@@ -65,22 +65,22 @@ namespace FleetCommand.Protocol
             JoinResult joinResult;
             if (network.Members.Contains(vesselId))
             {
-                joinResult = JoinResult.AlreadyJoined;
+                joinResult = JoinResult.AlreadyAuthenticated;
             }
             else
             {
                 joinResult = JoinResult.OK;
                 network.Members.Add(vesselId);
+                _link.SendNetworkBroadcast((ushort)SystemNetMessage.MemberJoined, new MemberUpdateData(vesselId));
                 OnMemberJoined?.Invoke(vesselId);
             }
 
-            JoinNetworkResponseData data = new JoinNetworkResponseData(network.Id, joinResult);
-            _link.SendPublicUnicast(vesselId, (ushort)SystemNetMessage.NetworkJoinResponse, data);
+            _link.SendPublicUnicast(vesselId, (ushort)SystemNetMessage.NetworkJoinResponse, new JoinNetworkResponseData(network.Id, joinResult));
         }
 
         private void ReceiveNetworkJoinResponse(NetInvocationContext context, BinaryReader reader)
         {
-            if (_localVessel.HasNetwork || !_pendingJoin.HasValue)
+            if (_localVessel.HasNetwork || !_pendingJoin.HasValue || !context.Metadata.HasData)
                 return;
 
             JoinNetworkResponseData response = JoinNetworkResponseData.Deserialize(reader);
@@ -92,7 +92,7 @@ namespace FleetCommand.Protocol
             if (context.Metadata.SourceId != network.OwnerId)
                 return;
 
-            if (response.Result == JoinResult.OK)
+            if (response.Result == JoinResult.OK || response.Result == JoinResult.AlreadyAuthenticated)
             {
                 network.Members.Add(_localVessel.Id);
                 _localVessel.NetworkId = info.NetworkId;
@@ -109,15 +109,15 @@ namespace FleetCommand.Protocol
 
         private void ReceiveLeaveNetwork(NetInvocationContext context, BinaryReader reader)
         {
-            if (!_localVessel.HasNetwork || !context.Metadata.HasData)
+            if (!_localVessel.HasNetwork)
                 return;
 
+            long memberId = context.Metadata.SourceId;
             Network network = _networks.GetLocalNetwork();
-            MemberUpdateData data = MemberUpdateData.Deserialize(reader);
-            if (!network.Members.Remove(data.MemberId))
+            if (!network.Members.Remove(memberId))
                 return;
 
-            OnMemberLeft?.Invoke(data.MemberId, LeaveReason.Normal);
+            OnMemberLeft?.Invoke(memberId, LeaveReason.Normal);
         }
 
         private void ReceiveMemberJoined(NetInvocationContext context, BinaryReader reader)
@@ -150,12 +150,21 @@ namespace FleetCommand.Protocol
             if (!network.Members.Remove(data.MemberId))
                 return;
 
-            OnMemberLeft?.Invoke(data.MemberId, LeaveReason.Kicked);
+            if (data.MemberId == _localVessel.Id)
+            {
+                _localVessel.NetworkId = null;
+                _link.OwnNetworkId = null;
+                OnNetworkLeave?.Invoke(network.Id, LeaveReason.Kicked);
+            }
+            else
+            {
+                OnMemberLeft?.Invoke(data.MemberId, LeaveReason.Kicked);
+            }
         }
 
         public void Update()
         {
-            if (!_pendingJoin.HasValue || (_pendingJoin.Value.ExpirationTime < _timekeeper.Now))
+            if (!_pendingJoin.HasValue || (_pendingJoin.Value.ExpirationTime > _timekeeper.Now))
                 return;
 
             NetworkJoinInfo info = _pendingJoin.Value;
@@ -173,6 +182,7 @@ namespace FleetCommand.Protocol
             _networks.Add(network);
 
             _localVessel.NetworkId = netId;
+            _link.OwnNetworkId = netId;
             return true;
         }
 
@@ -197,8 +207,8 @@ namespace FleetCommand.Protocol
                 return false;
 
             long networkId = _localVessel.NetworkId.Value;
-            _localVessel.NetworkId = null;
             _link.SendNetworkBroadcast((ushort)SystemNetMessage.LeaveNetwork, null);
+            _localVessel.NetworkId = null;
             _link.OwnNetworkId = null;
             OnNetworkLeave?.Invoke(networkId, reason);
             return true;
