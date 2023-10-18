@@ -104,7 +104,7 @@ namespace FleetCommand.Networking
             }
         }
 
-        private bool ShouldProcessPacket(NetMessageHeader header, NetMessageHandlerOptions options)
+        private bool ShouldProcessPacket(NetMessageHeader header, ref NetMessageHandlerOptions options)
         {
             // Foreign broadcast: source network is not client network, dest network is client network, dest client is null
             if (header.IsBroadcast && 
@@ -171,7 +171,7 @@ namespace FleetCommand.Networking
             return false;
         }
 
-        private bool ProcessPacket()
+        private void ProcessPacket()
         {
             try
             {
@@ -179,25 +179,23 @@ namespace FleetCommand.Networking
                 if (!_listeners.ContainsKey(header.Tag))
                 {
                     Log($"Skipping unknown packet {header.Tag}");
-                    return false; // Unknown packet
+                    return;
                 }
 
                 NetMessageHandler handler = _listeners[header.Tag];
                 NetMessageHandlerOptions options = handler.Options;
 
-                if (!ShouldProcessPacket(header, options))
+                if (!ShouldProcessPacket(header, ref options))
                 {
-                    return false;
+                    return;
                 }
 
                 _context.Metadata = header;
                 handler.Callback(_context, _packetReader);
-                return true;
             }
             catch (Exception ex)
             {
                 Log($"Aborting packet read: {ex}");
-                return false;
             }
         }
 
@@ -279,15 +277,12 @@ namespace FleetCommand.Networking
 
             while (_readBuffer.Position < _readBuffer.Length)
             {
-                int length = _packetReader.ReadInt32();
-                int skipLoc = _readBuffer.Position + length;
+                int packetLength = _packetReader.ReadInt32();
+                int nextPacketLoc = _readBuffer.Position + packetLength;
 
-                if (!ProcessPacket())
-                {
-                    // Skip packet
-                    _readBuffer.Seek(skipLoc);
-                }
-
+                ProcessPacket();
+                // Always align to packet boundaries in case the handler didn't read the entire data
+                _readBuffer.Seek(nextPacketLoc);
                 count++;
             }
 
