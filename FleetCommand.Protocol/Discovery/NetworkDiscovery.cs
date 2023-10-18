@@ -1,9 +1,11 @@
-﻿using FleetCommand.IO;
+﻿using EmptyKeys.UserInterface.Generated.DataTemplatesContracts_Bindings;
+using FleetCommand.IO;
 using FleetCommand.Networking;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace FleetCommand.Protocol.Discovery
 {
@@ -55,9 +57,7 @@ namespace FleetCommand.Protocol.Discovery
             if (!_networks.Contains(beacon.NetworkId))
             {
                 // Network just got discovered
-                Network network = new Network(beacon.NetworkId, beacon.OwnerId, _timekeeper.Now);
-                UpdateMembership(network, beacon.Members);
-                network.Members = beacon.Members;
+                Network network = new Network(beacon.NetworkId, beacon.OwnerId, _timekeeper.Now, beacon.Members);
 
                 _networks.Add(network);
                 OnNetworkDiscovered?.Invoke(network);
@@ -67,13 +67,7 @@ namespace FleetCommand.Protocol.Discovery
                 // Network is known already
                 Network network = _networks.Get(beacon.NetworkId);
                 network.OwnerId = beacon.OwnerId;
-
-                if (!network.Members.SequenceEqual(beacon.Members))
-                {
-                    UpdateMembership(network, beacon.Members);
-                    network.Members = beacon.Members;
-                }
-
+                network.Members = beacon.Members;
                 network.LastSeen = _timekeeper.Now;
             }
         }
@@ -84,11 +78,13 @@ namespace FleetCommand.Protocol.Discovery
 
             foreach (Network network in _networks)
             {
+                // Do not drop local network
                 if (network.Id == _localVessel.NetworkId)
                 {
                     network.LastSeen = now;
                     continue;
                 }
+
                 if ((now - network.LastSeen) >= _networkTimeout)
                 {
                     _dropped.Add(network);
@@ -99,7 +95,6 @@ namespace FleetCommand.Protocol.Discovery
             {
                 foreach(Network network in _dropped)
                 {
-                    UpdateMembership(network, _nullMembers);
                     _networks.Remove(network.Id);
                     OnNetworkLost?.Invoke(network);
                 }
@@ -107,31 +102,15 @@ namespace FleetCommand.Protocol.Discovery
                 _dropped.Clear();
             }
 
-            if ((now - _lastAnnounce) >= _announceInterval && _localVessel.OwnsNetwork && _localVessel.NetworkDataAvailable)
+            if ((now - _lastAnnounce) >= _announceInterval)
             {
-                Network network = _localVessel.NetworkData;
+                Network network = _networks.GetLocalNetwork();
+                if (network == null || _localVessel.Id != network.OwnerId)
+                    return;
+
                 NetworkBeacon beacon = new NetworkBeacon(network.Id, network.OwnerId, network.Members);
                 _link.SendPublicBroadcast((ushort)SystemNetMessage.AnnounceNetwork, beacon);
                 _lastAnnounce = now;
-            }
-        }
-
-        /// <summary>
-        /// Updates network data in member vessels
-        /// Does not update vessels that do not declare themselves as part of the network
-        /// even if the <paramref name="members"/> list contains the vessel.
-        /// This satisfies the mutual distrust of vessels and networks
-        /// </summary>
-        /// <param name="network">Target network</param>
-        /// <param name="members">Updated list of members</param>
-        private void UpdateMembership(Network network, List<long> members)
-        {
-            foreach(Vessel vessel in _vessels)
-            {
-                if (vessel.NetworkId != network.Id)
-                    continue;
-
-                vessel.NetworkData = members.Contains(vessel.Id) ? network : null;
             }
         }
     }

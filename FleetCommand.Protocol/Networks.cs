@@ -33,19 +33,6 @@ namespace FleetCommand.Protocol
             return _networks[id];
         }
 
-        public Network GetAuthenticated(Vessel vessel)
-        {
-            long id = vessel.NetworkId.Value;
-            if (!_networks.ContainsKey(id))
-                return null;
-
-            Network network = _networks[id];
-            if (!network.Members.Contains(vessel.Id))
-                return null;
-
-            return network;
-        }
-
         public IEnumerator<Network> GetEnumerator()
         {
             return _networks.Values.GetEnumerator();

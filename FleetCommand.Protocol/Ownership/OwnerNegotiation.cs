@@ -13,16 +13,18 @@ namespace FleetCommand.Protocol.Ownership
         private Timekeeper _timekeeper;
         private Vessel _localVessel;
         private Vessels _vessels;
+        private Networks _networks;
         private int _ownerTimeout;
 
         public delegate void OwnerUpdateDelegate(long ownerId);
         public event OwnerUpdateDelegate OnOwnerUpdated;
 
-        public OwnerNegotiation(NetworkLink link, Timekeeper timekeeper, Vessels vessels, float ownerTimeout)
+        public OwnerNegotiation(NetworkLink link, Timekeeper timekeeper, Vessels vessels, Networks networks, float ownerTimeout)
         {
             _link = link;
             _timekeeper = timekeeper;
             _vessels = vessels;
+            _networks = networks;
             _localVessel = _vessels.GetLocalVessel();
             _ownerTimeout = _timekeeper.SecondsToTicks(ownerTimeout);
 
@@ -32,10 +34,10 @@ namespace FleetCommand.Protocol.Ownership
 
         private void ReceiveElevateOwner(NetInvocationContext context, BinaryReader reader)
         {
-            if (!_localVessel.NetworkDataAvailable || _localVessel.OwnsNetwork)
+            Network network = _networks.GetLocalNetwork();
+            if (network == null || _localVessel.Id != network.OwnerId)
                 return;
 
-            Network network = _localVessel.NetworkData;
             long nextOwner;
 
             if (network.HasOwner)
@@ -60,10 +62,9 @@ namespace FleetCommand.Protocol.Ownership
 
         public void Update()
         {
-            if (!_localVessel.NetworkDataAvailable || _localVessel.OwnsNetwork)
+            Network network = _networks.GetLocalNetwork();
+            if (network == null || _localVessel.Id != network.OwnerId)
                 return;
-
-            Network network = _localVessel.NetworkData;
 
             long nextOwner;
             if (network.HasOwner)

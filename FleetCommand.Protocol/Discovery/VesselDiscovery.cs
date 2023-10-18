@@ -51,14 +51,7 @@ namespace FleetCommand.Protocol.Discovery
             if (!_vessels.Contains(beacon.VesselId))
             {
                 // Vessel just got discovered
-                Vessel vessel = new Vessel(beacon.VesselId, _timekeeper.Now);
-                if (beacon.NetworkId.HasValue)
-                {
-                    // Find network data
-                    vessel.NetworkId = beacon.NetworkId;
-                    vessel.NetworkData = _networks.GetAuthenticated(vessel);
-                }
-
+                Vessel vessel = new Vessel(beacon.VesselId, beacon.NetworkId, _timekeeper.Now);
                 _vessels.Add(vessel);
                 OnVesselDiscovered?.Invoke(vessel);
             }
@@ -66,18 +59,7 @@ namespace FleetCommand.Protocol.Discovery
             {
                 // Vessel is known already
                 Vessel vessel = _vessels.Get(beacon.VesselId);
-                if (vessel.NetworkId != beacon.NetworkId)
-                {
-                    vessel.NetworkId = beacon.NetworkId;
-                    vessel.NetworkData = null;
-
-                    // Do not update own network, we do not trust self-proclaimed network joins
-                    if (beacon.NetworkId.HasValue && beacon.NetworkId != _localVessel.NetworkId)
-                    {
-                        vessel.NetworkData = _networks.GetAuthenticated(vessel);
-                    }
-                }
-                
+                vessel.NetworkId = beacon.NetworkId;
                 vessel.LastSeen = _timekeeper.Now;
             }
         }
@@ -88,6 +70,7 @@ namespace FleetCommand.Protocol.Discovery
             
             foreach (Vessel vessel in _vessels)
             {
+                // Do not drop local vessel
                 if (vessel.Id == _localVessel.Id)
                 {
                     vessel.LastSeen = now;

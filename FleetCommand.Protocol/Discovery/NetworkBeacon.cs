@@ -11,10 +11,10 @@ namespace FleetCommand.Protocol
     {
         public long NetworkId;
         public long? OwnerId;
-        public List<long> Members;
+        public HashSet<long> Members;
         public int MemberCount { get {  return Members.Count; } }
 
-        public NetworkBeacon(long networkId, long? ownerId, List<long> members)
+        public NetworkBeacon(long networkId, long? ownerId, HashSet<long> members)
         {
             NetworkId = networkId;
             OwnerId = ownerId;
@@ -43,7 +43,7 @@ namespace FleetCommand.Protocol
 
             long? ownerId = (hasOwner ? (long?)reader.ReadInt64() : null);
 
-            List<long> members = new List<long>();
+            HashSet<long> members = new HashSet<long>();
             for (int i = 0; i < memberCount; i++)
                 members.Add(reader.ReadInt64());
 

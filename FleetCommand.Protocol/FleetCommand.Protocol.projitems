@@ -19,6 +19,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Membership\NetworkJoinInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Network.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Membership\NetworkMembership.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetworkRelationship.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Networks.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Ownership\OwnerNegotiation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Vessel.cs" />

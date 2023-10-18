@@ -20,6 +20,7 @@ namespace FleetCommand
         private NetworkDiscovery _networkDiscovery;
         private OwnerNegotiation _ownerNegotiation;
         private NetworkMembership _networkMembership;
+        private string netLog;
 
         public Program()
         {
@@ -30,34 +31,35 @@ namespace FleetCommand
             string senderTag = "FleetCommand";
             long? networkId = null;
             _networkLink = new NetworkLink(readBuffer, writeBuffer, leaveOpen, senderTag, IGC, networkId);
+            NetworkLink.Log = new Action<string>((msg) => netLog = msg);
 
             // Initialize vessels
-            Vessel localVessel = new Vessel(IGC.Me, 0); // Replace with your actual local vessel ID and last seen time
+            Vessel localVessel = new Vessel(IGC.Me, null, 0);
             _vessels = new Vessels(localVessel);
 
             // Initialize networks
             _networks = new Networks(_vessels.GetLocalVessel());
 
             // Initialize timekeeper
-            int ticksPerSecond = 60; // Replace with your desired ticks per second
-            int ticksPerUpdate = 1; // Replace with your desired ticks per update
+            int ticksPerSecond = 60;
+            int ticksPerUpdate = 1;
             _timekeeper = new Timekeeper(ticksPerSecond, ticksPerUpdate);
 
             // Initialize vessel discovery
-            float vesselTimeout = 2f; // Replace with your desired vessel timeout in seconds
-            float announceInterval = 1f; // Replace with your desired announce interval in seconds
+            float vesselTimeout = 2f;
+            float announceInterval = 1f;
             _vesselDiscovery = new VesselDiscovery(_networkLink, _vessels, _networks, _timekeeper, vesselTimeout, announceInterval);
 
             // Initialize network discovery
-            float networkTimeout = 5f; // Replace with your desired network timeout in seconds
+            float networkTimeout = 5f;
             _networkDiscovery = new NetworkDiscovery(_networkLink, _vessels, _networks, _timekeeper, networkTimeout, announceInterval);
 
             // Initialize owner negotiation
-            float ownerTimeout = 4f; // Replace with your desired owner timeout in seconds
-            _ownerNegotiation = new OwnerNegotiation(_networkLink, _timekeeper, _vessels, ownerTimeout);
+            float ownerTimeout = 4f;
+            _ownerNegotiation = new OwnerNegotiation(_networkLink, _timekeeper, _vessels, _networks, ownerTimeout);
 
             // Initialize network membership
-            float joinTimeout = 1f; // Replace with your desired expiration time in seconds
+            float joinTimeout = 1f;
             _networkMembership = new NetworkMembership(_networkLink, _timekeeper, _vessels, _networks, joinTimeout);
 
             Runtime.UpdateFrequency = UpdateFrequency.Update1;
@@ -67,6 +69,7 @@ namespace FleetCommand
         {
             if (updateSource == UpdateType.Update1)
             {
+                netLog = null;
                 // Process network packets
                 _networkLink.ProcessPackets();
                 // Update time
@@ -81,6 +84,8 @@ namespace FleetCommand
                 _networkMembership.Update();
 
                 StringBuilder sb = new StringBuilder();
+                if (netLog != null)
+                    sb.AppendLine($"NET: {netLog}");
                 sb.AppendLine("Known vessels:");
                 foreach (Vessel v in _vessels)
                 {
@@ -90,7 +95,7 @@ namespace FleetCommand
                 sb.AppendLine("Known networks:");
                 foreach (Network n in _networks)
                 {
-                    sb.AppendLine($"{n.Id}: Owner: {n.OwnerId}, Members: {n.MemberCount}, Last Seen: {n.LastSeen}");
+                    sb.AppendLine($"{n.Id}/{(n.OwnerId.HasValue ? n.OwnerId.Value.ToString() : "None")}/M:{n.MemberCount}");
                 }
 
                 Echo(sb.ToString());

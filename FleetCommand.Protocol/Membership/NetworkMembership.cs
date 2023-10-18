@@ -57,11 +57,11 @@ namespace FleetCommand.Protocol
 
         private void ReceiveJoinNetwork(NetInvocationContext context, BinaryReader reader)
         {
-            if (!_localVessel.OwnsNetwork)
+            Network network = _networks.GetLocalNetwork();
+            if (network == null || _localVessel.Id != network.OwnerId)
                 return;
 
             long vesselId = context.Metadata.SourceId;
-            Network network = _networks.GetLocalNetwork();
             JoinResult joinResult;
             if (network.Members.Contains(vesselId))
             {
@@ -83,7 +83,6 @@ namespace FleetCommand.Protocol
             if (_localVessel.HasNetwork || !_pendingJoin.HasValue)
                 return;
 
-
             JoinNetworkResponseData response = JoinNetworkResponseData.Deserialize(reader);
             NetworkJoinInfo info = _pendingJoin.Value;
             if (info.NetworkId != response.NetworkId)
@@ -97,7 +96,6 @@ namespace FleetCommand.Protocol
             {
                 network.Members.Add(_localVessel.Id);
                 _localVessel.NetworkId = info.NetworkId;
-                _localVessel.NetworkData = network;
                 _link.OwnNetworkId = info.NetworkId;
                 OnNetworkJoin?.Invoke(info.NetworkId);
             }
@@ -175,7 +173,6 @@ namespace FleetCommand.Protocol
             _networks.Add(network);
 
             _localVessel.NetworkId = netId;
-            _localVessel.NetworkData = network;
             return true;
         }
 
@@ -201,7 +198,6 @@ namespace FleetCommand.Protocol
 
             long networkId = _localVessel.NetworkId.Value;
             _localVessel.NetworkId = null;
-            _localVessel.NetworkData = null;
             _link.SendNetworkBroadcast((ushort)SystemNetMessage.LeaveNetwork, null);
             _link.OwnNetworkId = null;
             OnNetworkLeave?.Invoke(networkId, reason);
@@ -210,10 +206,10 @@ namespace FleetCommand.Protocol
 
         public bool Kick(long vesselId)
         {
-            if (!_localVessel.OwnsNetwork || _localVessel.Id == vesselId)
+            Network network = _networks.GetLocalNetwork();
+            if (network == null || _localVessel.Id != network.OwnerId)
                 return false;
 
-            Network network = _networks.GetLocalNetwork();
             if (!network.Members.Contains(vesselId))
                 return false;
 
