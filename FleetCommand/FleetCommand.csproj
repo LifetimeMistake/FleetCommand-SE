@@ -26,4 +26,5 @@
     <AdditionalFiles Include="Instructions.readme" />
     <AdditionalFiles Include="thumb.png" />
   </ItemGroup>
+	<Import Project="..\FleetCommand.Common\FleetCommand.Common.projitems" Label="Shared" />
   </Project>
