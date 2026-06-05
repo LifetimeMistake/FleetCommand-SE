@@ -3,11 +3,29 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34003.232
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FleetCommand", "FleetCommand\FleetCommand.csproj", "{6F58976F-AA57-44AC-8A0C-0C10C61CEBFE}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "FleetCommand.Common", "FleetCommand.Common\FleetCommand.Common.shproj", "{92DFDE40-C66B-4BF1-B618-B47561717921}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6F58976F-AA57-44AC-8A0C-0C10C61CEBFE}.Debug|x64.ActiveCfg = Debug|x64
+		{6F58976F-AA57-44AC-8A0C-0C10C61CEBFE}.Debug|x64.Build.0 = Debug|x64
+		{6F58976F-AA57-44AC-8A0C-0C10C61CEBFE}.Release|x64.ActiveCfg = Release|x64
+		{6F58976F-AA57-44AC-8A0C-0C10C61CEBFE}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AC640670-474A-4B5B-A88E-190882A4E0E3}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		FleetCommand.Common\FleetCommand.Common.projitems*{6f58976f-aa57-44ac-8a0c-0c10c61cebfe}*SharedItemsImports = 5
+		FleetCommand.Common\FleetCommand.Common.projitems*{92dfde40-c66b-4bf1-b618-b47561717921}*SharedItemsImports = 13
 	EndGlobalSection
 EndGlobal
