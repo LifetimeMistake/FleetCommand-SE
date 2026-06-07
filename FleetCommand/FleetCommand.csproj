@@ -6,6 +6,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Configurations>Release;Debug</Configurations>
     <Platforms>x64</Platforms>
+    <NoWarn>MDK03</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Mal.Mdk2.PbAnalyzers" Version="2.1.16">
