@@ -96,8 +96,8 @@ The autopilot follows a layered pipeline (documented in `autopilot_spec.md`):
 1. **Navigation** — Estimates craft state (position, velocity, angular velocity) and tracks external contacts via filtering
 2. **Guidance** — Active behavior emits desired world acceleration + attitude mask + time-to-go
 3. **Collision Avoidance** — Warps commanded acceleration against world model (external to allocation)
-4. **Control Allocation** — Resolves attitude and per-axis thrust via fixed priority (feasibility → mask → optimizer)
-5. **Control Loops** — Drive gyros and thrusters to hit setpoints
+4. **Control Allocation** — Resolves attitude and per-axis thrust via fixed priority (feasibility → mask → optimizer). When a demand is infeasible the controller produces the *closest achievable force* — the Euclidean projection of the demand onto the thrust box — rather than scaling magnitude alone. This is what keeps an underactuated craft firing through a turn rather than coasting to zero thrust.
+5. **Control Loops** — Drive gyros and thrusters to hit setpoints. The attitude loop emits a commanded angular velocity (not a position setpoint) carrying a demand-rate feedforward `ω_ff = d̂ × d̂_dot`, so the nose tracks a rotating demand without steady lag — the rotational counterpart of commanding acceleration rather than position. The translation loop realizes the closest achievable force at the craft's current attitude.
 6. **Inertia Observer** — Passive online identification of rotational inertia from saturated gyro ticks
 
 The key design contract between layers is **acceleration + attitude mask**, never waypoints. This decouples guidance from dynamics.
@@ -117,8 +117,8 @@ This enables underactuated craft (forward-only missiles) to properly prioritize:
 - `GetShipVelocities().AngularVelocity` — reported in **world frame**, must convert: `ω_B = Rᵀ · ω_W`
 - `GetNaturalGravity()` — world-frame acceleration pointing down; fold into force demand as F* = m(a_cmd - g)
 - Thruster capability is asymmetric — cache `MaxEffectiveThrust` sums per ±body axis as 6 numbers; represent as axis-aligned box F = [-Tx⁻, Tx⁺] × [-Ty⁻, Ty⁺] × [-Tz⁻, Tz⁺]
-- Gyro override is a rate controller — sets torque = desired_accel × J, clamped to gyro ceiling
-- Angular inertia J is NOT exposed by the API — must identify online from saturated gyro response
+- Gyro override is a rate controller — accepts a commanded angular velocity `ω_cmd` and closes the torque loop internally at the torque ceiling. The controller's rotational contract is a commanded `ω_cmd`, not an attitude setpoint to be servoed. The attitude loop adds a demand-rate feedforward `ω_ff = d̂ × d̂_dot` so the nose tracks a rotating demand without steady lag.
+- Angular inertia J is NOT exposed by the API — must identify online from saturated gyro response (section 9.3)
 
 ### Block Enumeration Discipline
 
