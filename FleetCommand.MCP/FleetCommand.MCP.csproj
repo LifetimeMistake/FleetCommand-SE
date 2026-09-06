@@ -3,7 +3,7 @@
     <TargetFramework>net48</TargetFramework>
     <RootNamespace>FleetCommand.MCP</RootNamespace>
     <AssemblyName>FleetCommand.MCP</AssemblyName>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <PlatformTarget>x64</PlatformTarget>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
@@ -21,6 +21,9 @@
       <HintPath>..\..\se\bin\NLog.dll</HintPath>
       <Private>true</Private>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.Core" Version="2.2.0" />
   </ItemGroup>
 
   <ItemGroup>
