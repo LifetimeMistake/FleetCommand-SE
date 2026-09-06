@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>FleetCommand.MCP</RootNamespace>
+    <AssemblyName>FleetCommand.MCP</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Torch">
+      <HintPath>..\..\se\bin\Torch.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Torch.API">
+      <HintPath>..\..\se\bin\Torch.API.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="NLog">
+      <HintPath>..\..\se\bin\NLog.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="manifest.xml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

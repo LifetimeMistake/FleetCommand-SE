@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PluginManifest>
+  <Name>FleetCommand MCP</Name>
+  <Guid>b804831a-3931-404e-923a-e6719d6dfa41</Guid>
+  <Version>0.1.0</Version>
+  <Dependencies />
+</PluginManifest>
