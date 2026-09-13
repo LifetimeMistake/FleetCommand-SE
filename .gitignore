@@ -363,3 +363,8 @@ MigrationBackup/
 FodyWeavers.xsd
 
 MDK.paths.props
+# Local decompiled game sources
+Decompiled/
+
+# Superpowers docs (generated locally)
+docs/superpowers/
