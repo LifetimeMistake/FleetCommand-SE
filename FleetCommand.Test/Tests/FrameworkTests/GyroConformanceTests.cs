@@ -217,6 +217,47 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "After one step the grid must still be well short of the target (the ramp is not an instant step).");
         }
 
+        [Test]
+        public void OverrideRamp_CountsDownAcrossTicks_ReArmsOnOverrideChange()
+        {
+            // The game's override ramp is stateful: armed once (on a new
+            // gyro-set / override change), it counts down across ticks, and
+            // is re-armed only when the gyro set changes
+            // (MyGridGyroSystem.cs:306-324 — RecomputeGyroParameters on
+            // m_gyrosChanged resets m_overrideAccelerationRampFrames; the
+            // per-tick decrement is the live countdown). Lock the
+            // cross-tick countdown and the re-arm-on-change, so a stable
+            // override ramps its proportional gain up over time rather than
+            // re-deriving 120 frames from the (shrinking) error every tick.
+            SimShip ship = Fc.Spawn(
+                HullPlusGyro("rampct", hullMass: 12000f, gyroForce: 2e6f),
+                SpawnState.At(Vector3D.Zero));
+            IMyGyro g = (IMyGyro)ship.TerminalSystem.GetBlockWithName("G");
+            GyroRateSystem sys = ship.Grid.GyroRateSystem;
+            g.GyroOverride = true;
+            g.Pitch = 6f; // |target|^2 = 36 > 2.467401 -> 120-frame (large) ramp
+
+            Fc.Step(); // arming step (Aggregate sees the gyro-set change)
+            Assert.That(sys.OverrideRampFrames, Is.EqualTo(120),
+                "A large rate error must arm the 120-frame ramp.");
+
+            Fc.Step(); // no config change
+            Assert.That(sys.OverrideRampFrames, Is.EqualTo(119),
+                "With a stable override the ramp must count down across ticks, not re-arm to 120 each tick.");
+
+            Fc.Step();
+            Assert.That(sys.OverrideRampFrames, Is.EqualTo(118),
+                "The cross-tick countdown must continue while the override is stable.");
+
+            // Changing the override re-arms the ramp (the game's
+            // SetGyroTorque -> MarkDirty -> RecomputeGyroParameters resets
+            // the ramp so the new command ramps from scratch).
+            g.Yaw = 3f; // marks the gyro set dirty
+            Fc.Step();
+            Assert.That(sys.OverrideRampFrames, Is.EqualTo(120),
+                "Changing the override must re-arm the 120-frame ramp (not continue the old countdown).");
+        }
+
         // — override drives rotation in the all-three-negated direction (end-to-end) —
 
         [Test]

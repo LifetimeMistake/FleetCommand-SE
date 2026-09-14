@@ -83,7 +83,16 @@ namespace FleetCommand.Test.SpaceEngineers
         public bool GyroOverride
         {
             get { return _gyroOverride; }
-            set { _gyroOverride = value; }
+            set
+            {
+                _gyroOverride = value;
+                // The game's SetGyroOverride marks the gyro system dirty
+                // (MyGyro.cs), which re-arms the override ramp.
+                if (Grid != null)
+                {
+                    Grid.GyroRateSystem.MarkDirty();
+                }
+            }
         }
 
         /// <inheritdoc />
@@ -95,6 +104,7 @@ namespace FleetCommand.Test.SpaceEngineers
                 if (_gyroOverride)
                 {
                     _overrideVelocity.Y = -ClampToMaxAngular(value);
+                    MarkOverrideChanged();
                 }
             }
         }
@@ -108,6 +118,7 @@ namespace FleetCommand.Test.SpaceEngineers
                 if (_gyroOverride)
                 {
                     _overrideVelocity.X = -ClampToMaxAngular(value);
+                    MarkOverrideChanged();
                 }
             }
         }
@@ -121,6 +132,7 @@ namespace FleetCommand.Test.SpaceEngineers
                 if (_gyroOverride)
                 {
                     _overrideVelocity.Z = -ClampToMaxAngular(value);
+                    MarkOverrideChanged();
                 }
             }
         }
@@ -199,6 +211,20 @@ namespace FleetCommand.Test.SpaceEngineers
                 return max;
             }
             return value;
+        }
+
+        /// <summary>
+        /// The game's <c>SetGyroTorque</c> marks the gyro system dirty
+        /// (MyGridGyroSystem.MarkDirty), which re-arms the override
+        /// acceleration ramp. Mirror that so an override-velocity change
+        /// mid-rotation re-arms the ramp like the game.
+        /// </summary>
+        private void MarkOverrideChanged()
+        {
+            if (Grid != null)
+            {
+                Grid.GyroRateSystem.MarkDirty();
+            }
         }
 
         private float MaxAngularGrid

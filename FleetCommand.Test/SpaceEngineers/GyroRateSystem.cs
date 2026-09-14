@@ -60,6 +60,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private float _maxOverrideForce;  // override pool (sum of MaxGyroForce)
         private Vector3 _overrideTargetVelocity; // force-weighted grid-frame target rate
         private int _overrideAccelerationRampFrames = -1; // -1 = unset (game: int?)
+        private bool _gyrosChanged = true; // re-arm the ramp on the first Aggregate (game: m_gyrosChanged)
         private Vector3 _controlTorque;
 
         private Vector3 _lastOverrideTarget;
@@ -98,6 +99,14 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>True when the last applied torque was clamped by the aggregate gyro-force sphere.</summary>
         public bool LastSaturated => _lastSaturated;
 
+        /// <summary>
+        /// The current override acceleration-ramp frame count (-1 = unset).
+        /// Observation surface () so conformance can lock the
+        /// game's cross-tick countdown (MyGridGyroSystem.cs:306-324): armed
+        /// once, counts down each tick, re-armed only on a gyro-set change.
+        /// </summary>
+        internal int OverrideRampFrames => _overrideAccelerationRampFrames;
+
         internal GyroRateSystem(SimCubeGrid grid)
         {
             if (grid == null)
@@ -115,20 +124,41 @@ namespace FleetCommand.Test.SpaceEngineers
                 throw new ArgumentNullException(nameof(gyro));
             }
             _gyros.Add(gyro);
+            _gyrosChanged = true;
+        }
+
+        /// <summary>
+        /// Marks the gyro set as changed so the next <see cref="Aggregate"/>
+        /// re-arms the override acceleration ramp (the game's
+        /// <c>MarkDirty()</c> → <c>RecomputeGyroParameters</c>, which resets
+        /// <c>m_overrideAccelerationRampFrames</c>). Called by <see cref="SimGyro"/>
+        /// when its override flag or override velocity changes.
+        /// </summary>
+        internal void MarkDirty()
+        {
+            _gyrosChanged = true;
         }
 
         /// <summary>
         /// Tick phase 5: aggregate the force-weighted override target rate
         /// from overridden gyros and the non-override authority pool sum
         /// ( step 2; the game's <c>RecomputeGyroParameters</c>,
-        /// MyGridGyroSystem.cs:447-476). Resets the acceleration ramp.
+        /// MyGridGyroSystem.cs:447-476). Re-arms the acceleration ramp
+        /// ONLY when the gyro set changed (the game resets
+        /// <c>m_overrideAccelerationRampFrames</c> only on
+        /// <c>RecomputeGyroParameters</c>, not every tick) — so the ramp's
+        /// cross-tick countdown persists while the configuration is stable.
         /// </summary>
         public void Aggregate()
         {
             _maxGyroForce = 0f;
             _maxOverrideForce = 0f;
             _overrideTargetVelocity = Vector3.Zero;
-            _overrideAccelerationRampFrames = -1;
+            if (_gyrosChanged)
+            {
+                _overrideAccelerationRampFrames = -1;
+                _gyrosChanged = false;
+            }
 
             for (int i = 0; i < _gyros.Count; i++)
             {
