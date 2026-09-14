@@ -78,10 +78,9 @@ namespace FleetCommand.Test.Framework
         /// Instantiates the simulator block matching a template block's kind.
         /// Stages 4–5 map the kinds onto the hierarchy bases: standard
         /// blocks become <see cref="SimTerminalBlock"/>; fixed thrusters
-        /// become <see cref="SimFunctionalBlock"/> (thrusters are functional
-        /// blocks in the game); the ship controller stack and the
-        /// programmable block / text panel become functional leaves in this
-        /// stage.
+        /// become <see cref="SimThrust"/> (functional blocks in the game,
+        /// ); the ship controller stack and the programmable
+        /// block / text panel become functional leaves.
         /// </summary>
         private static SimTerminalBlock CreateBlock(SimWorld world, TemplateBlock templateBlock, SimCubeGrid grid)
         {
@@ -89,7 +88,7 @@ namespace FleetCommand.Test.Framework
             switch (templateBlock.Kind)
             {
                 case BlockKind.FixedThruster:
-                    return new SimFunctionalBlock(blockId, templateBlock.Name, grid, templateBlock);
+                    return new SimThrust(blockId, templateBlock.Name, grid, templateBlock);
                 case BlockKind.ShipController:
                     return new SimShipController(blockId, templateBlock.Name, grid, templateBlock);
                 case BlockKind.RemoteControl:

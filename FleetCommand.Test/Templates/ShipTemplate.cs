@@ -104,6 +104,42 @@ namespace FleetCommand.Test.Templates
         public float InitialStoredPower { get; }
 
         /// <summary>
+        /// Thruster: the grid-body axis the thruster pushes the grid along —
+        /// one of the six cardinal unit axes (+-X, +-Y, +-Z). This is the
+        /// body-space force direction: a "<see cref="VRageMath.Vector3I.Backward"/>"
+        /// thruster pushes the grid along local -Z. Used when
+        /// <see cref="Kind"/> is <see cref="BlockKind.FixedThruster"/>; null
+        /// for non-thrusters.  (<see cref="SimThrust.GridThrustDirection"/>).
+        /// </summary>
+        public Vector3I? ThrustDirection { get; }
+
+        /// <summary>
+        /// Thruster: maximum thrust at full effectiveness, in Newtons.
+        /// Used when <see cref="Kind"/> is <see cref="BlockKind.FixedThruster"/>;
+        /// default 0 (a block with no thruster params). .
+        /// </summary>
+        public float MaxThrust { get; }
+
+        /// <summary>
+        /// Thruster: current effectiveness profile multiplier in [0, 1]
+        /// (1 = full effectiveness in this environment, 0 = no effect —
+        /// e.g. an atmospheric thruster in vacuum). <see cref="MaxEffectiveThrust"/>
+        /// is <see cref="MaxThrust"/> x this value. Used when
+        /// <see cref="Kind"/> is <see cref="BlockKind.FixedThruster"/>;
+        /// defaults to 1 (a thruster in its intended environment), the
+        /// game's full-effectiveness profile. .
+        /// </summary>
+        public float Effectiveness { get; }
+
+        /// <summary>
+        /// Thruster: power the block needs (MW) for full capability; the
+        /// grid's <see cref="SpaceEngineers.SimPowerBus"/> allocates this in
+        /// phase 4 and the delivered ratio scales the delivered thrust
+        /// (single source of truth). Default 0 (ideal source). .
+        /// </summary>
+        public float ThrusterPowerDemand { get; }
+
+        /// <summary>
         /// Grid-local center in meters: ((Min + Max) · 0.5) · GridSize,
         /// matching the game's mass-element placement
         /// (MyCubeBlockCollector.AddMass, MyGridShape.CollectBlockInventories).
@@ -131,7 +167,9 @@ namespace FleetCommand.Test.Templates
             Vector3I? size = null, float inventoryMass = 0f,
             Quaternion? orientation = null, BlockKind kind = BlockKind.Standard,
             float maxOutput = 0f, float maxInput = 0f,
-            float maxStoredPower = 0f, float initialStoredPower = 1f)
+            float maxStoredPower = 0f, float initialStoredPower = 1f,
+            Vector3I? thrustDirection = null, float maxThrust = 0f,
+            float effectiveness = 1f, float powerDemand = 0f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -145,6 +183,16 @@ namespace FleetCommand.Test.Templates
             {
                 throw new ArgumentOutOfRangeException(nameof(gridSize));
             }
+            if (thrustDirection.HasValue && !IsCardinalAxis(thrustDirection.Value))
+            {
+                throw new ArgumentException(
+                    "A fixed thruster's thrust direction must be one of the six cardinal axes (+-X, +-Y, +-Z).",
+                    nameof(thrustDirection));
+            }
+            if (effectiveness < 0f || effectiveness > 1f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(effectiveness), "Effectiveness must be in [0, 1].");
+            }
 
             Name = name;
             Min = min;
@@ -157,11 +205,21 @@ namespace FleetCommand.Test.Templates
             MaxInput = maxInput;
             MaxStoredPower = maxStoredPower;
             InitialStoredPower = initialStoredPower;
+            ThrustDirection = thrustDirection;
+            MaxThrust = maxThrust;
+            Effectiveness = effectiveness;
+            ThrusterPowerDemand = powerDemand;
 
             Vector3I max = Min + Size - Vector3I.One;
             Vector3 cellSum = (BlockCenter(min) + BlockCenter(max)) * (0.5f * gridSize);
             CenterLocal = cellSum;
             HalfExtents = new Vector3(Size) * gridSize * 0.5f;
+        }
+
+        private static bool IsCardinalAxis(Vector3I v)
+        {
+            int sum = Math.Abs(v.X) + Math.Abs(v.Y) + Math.Abs(v.Z);
+            return sum == 1;
         }
 
         private static Vector3 BlockCenter(Vector3I v)
