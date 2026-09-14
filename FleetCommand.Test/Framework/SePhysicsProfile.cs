@@ -69,6 +69,24 @@ namespace FleetCommand.Test.Framework
         /// </summary>
         public float ConnectorAngularVelocityMax { get; }
 
+        /// <summary>
+        /// Connector approach (.5): the separation (m) between the
+        /// two connector points below which the approach has converged and
+        /// the final fixed constraint ("lock", Connected) is created — the
+        /// connectors have physically met. Set above the rigid-body
+        /// contact separation the collision sim settles at, so a pair in
+        /// resting face-to-face contact (as against the hulls) locks.
+        /// </summary>
+        public float ConnectorApproachGap { get; }
+
+        /// <summary>
+        /// Connector approach (.5): the opposing-axis angular
+        /// error (rad) below which the approach has converged and the
+        /// final fixed constraint is created — the connect axes are
+        /// anti-parallel.
+        /// </summary>
+        public float ConnectorApproachAngle { get; }
+
         public SePhysicsProfile(
             string name,
             float maxLinearVelocity = 0f,
@@ -79,7 +97,9 @@ namespace FleetCommand.Test.Framework
             float connectorReach = 2.5f,
             float connectorAngularErrorMax = 0.174533f,
             float connectorLinearVelocityMax = 0.5f,
-            float connectorAngularVelocityMax = 0.5f)
+            float connectorAngularVelocityMax = 0.5f,
+            float connectorApproachGap = 0.2f,
+            float connectorApproachAngle = 0.02f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -95,6 +115,8 @@ namespace FleetCommand.Test.Framework
             ConnectorAngularErrorMax = connectorAngularErrorMax;
             ConnectorLinearVelocityMax = connectorLinearVelocityMax;
             ConnectorAngularVelocityMax = connectorAngularVelocityMax;
+            ConnectorApproachGap = connectorApproachGap;
+            ConnectorApproachAngle = connectorApproachAngle;
         }
 
         /// <summary>

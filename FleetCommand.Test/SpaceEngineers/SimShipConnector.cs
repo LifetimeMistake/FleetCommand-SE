@@ -45,6 +45,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private readonly Matrix _blockRotation;
         private readonly Matrix _connectorRotation;
         private readonly float _blockReach;
+        private readonly float _faceDepth;
         private readonly bool _throwOut;
         private readonly bool _collectAll;
         private readonly float _pullStrength;
@@ -59,12 +60,33 @@ namespace FleetCommand.Test.SpaceEngineers
         private SimShipConnector _partner;
         private HkConstraint _constraint;  // valid on the master while connected
 
+        // .5 approach state (the game's two-stage connect): between
+        // "connectable" (capture) and the final rigid lock, Connect() begins
+        // the approach — the two free grids are pulled together and their
+        // connect axes aligned (matching CreateConstraint's magnetic
+        // convergence), and only on meet is the final fixed constraint
+        // created (Connected). While approaching, Status stays Connectable
+        // (the game's InConstraint); the master (higher EntityId) is the
+        // approach driver (the game's GetMaster).
+        private bool _approaching;
+        private SimShipConnector _approachMaster;
+        private SimShipConnector _approachPartner;
+
         public SimShipConnector(long entityId, string name, SimCubeGrid grid, TemplateBlock template)
             : base(entityId, name, grid, template)
         {
             _blockRotation = Matrix.CreateFromQuaternion(template.Orientation);
             _connectorRotation = Matrix.CreateFromQuaternion(template.ConnectorOrientation);
             _blockReach = template.ConnectorReach;
+            // The connection point sits at the connector's mating face, not
+            // the block centre: offset from the block centre along the
+            // connect axis by the block's half-extent. Two connectors
+            // lock when these face points coincide (the dock plane), so the
+            // approach converges the leading faces to contact without the
+            // two hulls interpenetrating (matching the game's connect
+            // frame at the connector's outer face).
+            _faceDepth = Math.Max(template.HalfExtents.X,
+                Math.Max(template.HalfExtents.Y, template.HalfExtents.Z));
             _throwOut = false;
             _collectAll = false;
             _pullStrength = 0f;
@@ -75,10 +97,19 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>
         /// World position of the connection point (the body-fixed
-        /// connection frame's origin): the block's world position, derived
-        /// from the owning grid's rigid body plus the block local pose.
+        /// connection frame's origin): the block's world position plus an
+        /// offset along the connect axis to the connector's mating face,
+        /// derived from the owning grid's rigid body plus the block local
+        /// pose (the game's <c>ConstraintPositionWorld</c>, MyShipConnector.cs:1939).
         /// </summary>
-        public Vector3D WorldPosition => base.WorldMatrix.Translation;
+        public Vector3D WorldPosition
+        {
+            get
+            {
+                Vector3D center = base.WorldMatrix.Translation;
+                return center + ConnectAxisWorld * _faceDepth;
+            }
+        }
 
         /// <summary>
         /// World orientation of the connection frame: the grid body's
@@ -159,6 +190,31 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>True when the world capture phase found an eligible unconnected partner for this connector.</summary>
         internal bool Captured => _captured;
 
+        /// <summary>True while this connector is in the approach (pre-lock) stage.</summary>
+        internal bool ApproachingInternal => _approaching;
+
+        /// <summary>The approach master (higher EntityId) for this connector, or null.</summary>
+        internal SimShipConnector ApproachMasterInternal => _approachMaster;
+
+        /// <summary>The approach partner for the master, or null.</summary>
+        internal SimShipConnector ApproachPartnerInternal => _approachPartner;
+
+        /// <summary>Sets this connector's approach role; called by <see cref="ConnectorSystem.BeginApproach"/>.</summary>
+        internal void SetApproach(SimShipConnector master, SimShipConnector partner)
+        {
+            _approaching = true;
+            _approachMaster = master;
+            _approachPartner = partner;
+        }
+
+        /// <summary>Clears this connector's approach role (idempotent).</summary>
+        internal void ClearApproach()
+        {
+            _approaching = false;
+            _approachMaster = null;
+            _approachPartner = null;
+        }
+
         /// <summary>Resets this connector's per-tick capture result.</summary>
         internal void ResetCapture()
         {
@@ -212,7 +268,10 @@ namespace FleetCommand.Test.SpaceEngineers
                 {
                     return MyShipConnectorStatus.Connected;
                 }
-                if (IsWorking && _captured)
+                // Connectable while approaching (the game's InConstraint,
+                // MyShipConnector.cs:599-611) OR while the world's capture
+                // gates pass; IsWorking gates both.
+                if (IsWorking && (_approaching || _captured))
                 {
                     return MyShipConnectorStatus.Connectable;
                 }
@@ -246,34 +305,33 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return;
             }
-            // Designate the master: the connector with the higher EntityId
-            // (the game's GetMaster). Only the master creates the
-            // constraint; both are marked connected.
-            SimShipConnector master = EntityId >= other.EntityId ? this : other;
-            SimShipConnector slave = ReferenceEquals(master, this) ? other : this;
-            master.CreateConstraint(slave);
-            master._connected = true;
-            slave._connected = true;
-            master._isMaster = true;
-            slave._isMaster = false;
-            master._partner = slave;
-            slave._partner = master;
+            // Two-stage connect (.5): a connectable-but-not-yet-
+            // converged pair begins the approach (the game's CreateConstraint
+            // magnetic convergence); the pair only becomes Connected once
+            // the connectors physically meet and the axes are aligned.
+            ConnectorSystem.BeginApproach(this, other);
         }
 
         /// <inheritdoc />
         public void Disconnect()
         {
-            if (!_connected)
+            if (_connected)
             {
+                SimShipConnector other = _partner;
+                SimShipConnector master = (_isMaster || other == null) ? this : other;
+                master.RemoveConstraint();
+                ClearConnection();
+                if (other != null)
+                {
+                    other.ClearConnection();
+                }
                 return;
             }
-            SimShipConnector other = _partner;
-            SimShipConnector master = (_isMaster || other == null) ? this : other;
-            master.RemoveConstraint();
-            ClearConnection();
-            if (other != null)
+            if (_approaching)
             {
-                other.ClearConnection();
+                // Release a mid-approach pair: both return to a clean free
+                // state (no residual constraint).
+                ConnectorSystem.CancelApproach(this);
             }
         }
 
@@ -323,7 +381,10 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>Clears this connector's connection state (idempotent).</summary>
+        /// <summary>
+        /// Clears this connector's connection state (idempotent). Also
+        /// clears any approach role.
+        /// </summary>
         private void ClearConnection()
         {
             _constraint = null;
@@ -332,6 +393,30 @@ namespace FleetCommand.Test.SpaceEngineers
             _partner = null;
             _captured = false;
             _capturedPartner = null;
+            ClearApproach();
+        }
+
+        /// <summary>
+        /// The final lock of an approach pair: this connector is the master
+        /// (higher EntityId, per <c>MyShipConnector.GetMaster</c>), creates
+        /// the Havok fixed rigid constraint (the game's
+        /// <c>RecreateConstraintInternal</c>, :2030-2042), and marks both
+        /// connectors Connected. Called by <see cref="ConnectorSystem"/>
+        /// once the approach has converged.
+        /// </summary>
+        internal void LockTo(SimShipConnector slave)
+        {
+            _isMaster = true;
+            slave._isMaster = false;
+            CreateConstraint(slave);
+            _connected = true;
+            slave._connected = true;
+            _partner = slave;
+            slave._partner = this;
+            _captured = false;
+            _capturedPartner = null;
+            ClearApproach();
+            slave.ClearApproach();
         }
 
         private MatrixD ConnectionFrameWorld

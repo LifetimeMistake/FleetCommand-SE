@@ -477,6 +477,10 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.ApplyTorque(dt);
                 }
             }
+            // .5: apply the connector approach convergence (the
+            // magnetic pull at the connector points + axis alignment) for
+            // any approaching pre-lock pair.
+            ConnectorSystem.ApplyApproach(_connectors);
         }
 
         private void Phase7_AdvancePhysics()
@@ -528,6 +532,10 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.UpdateGyroTelemetry();
                 }
             }
+            // .5: advance the connector approach — an approaching
+            // pair that has converged is locked (final fixed constraint,
+            // both Connected) once the connectors physically meet.
+            ConnectorSystem.AdvanceApproach(_connectors, Profile);
         }
 
         private void Phase9_SampleAndEvaluate()
@@ -552,7 +560,7 @@ namespace FleetCommand.Test.Framework
             for (int i = 0; i < _connectors.Count; i++)
             {
                 SimShipConnector connector = _connectors[i];
-                if (!connector.Closed && connector.PartnerInternal != null)
+                if (!connector.Closed && (connector.PartnerInternal != null || connector.ApproachingInternal))
                 {
                     connector.Disconnect();
                 }
