@@ -51,6 +51,26 @@ namespace FleetCommand.Test.Physics
         /// <summary>Angular velocity in the world frame (rad/s).</summary>
         public Vector3 AngularVelocity => _angularVelocity;
 
+        /// <summary>
+        /// The configured grid angular-rate cap (rad/s): the larger of the
+        /// template's <c>MaxAngularVelocity</c> and the profile's
+        /// <c>MaxAngularVelocity</c> set on the Havok body at creation
+        /// ( step 9). Havok already enforces this cap; the gyro
+        /// override setter clamps commanded rates to it (the game's
+        /// <c>MaxAngularRadiansPerSecond</c>), and gyro response never
+        /// retunes it.
+        /// </summary>
+        public float MaxAngularVelocity => _maxAngularVelocity;
+
+        /// <summary>
+        /// The body's inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in
+        /// the grid-local frame (axes aligned with the grid's principal
+        /// axes — the frame the gyro override loop sizes its torque in,
+        /// matching the game's <c>InverseInertiaTensor</c> diagonal read,
+        /// MyGridGyroSystem.cs:293).
+        /// </summary>
+        public Vector3 InverseInertiaDiagonal => _inverseInertiaDiagonal;
+
         /// <summary>World transform of the grid origin, derived from the body pose.</summary>
         public MatrixD WorldMatrix
         {
@@ -87,6 +107,9 @@ namespace FleetCommand.Test.Physics
         private Quaternion _orientation;
         private Vector3 _linearVelocity;
         private Vector3 _angularVelocity;
+
+        private float _maxAngularVelocity;
+        private Vector3 _inverseInertiaDiagonal;
 
         private bool _disposed;
 
@@ -164,6 +187,15 @@ namespace FleetCommand.Test.Physics
                 body._orientation = ToQuaternion(initialState.Orientation);
                 body._linearVelocity = (Vector3)initialState.LinearVelocity;
                 body._angularVelocity = initialState.AngularVelocity;
+
+                // Retain the configured angular-rate cap (also set on the
+                // Havok body above) and the grid-local inverse inertia
+                // diagonal for the gyro override loop ( step 3).
+                body._maxAngularVelocity = maxAngular;
+                body._inverseInertiaDiagonal = new Vector3(
+                    mass.InverseInertiaTensor.M11,
+                    mass.InverseInertiaTensor.M22,
+                    mass.InverseInertiaTensor.M33);
             }
 
             return body;

@@ -89,9 +89,12 @@ namespace FleetCommand.Test.SpaceEngineers
         /// Power the block requires (MW) to operate at full capability.
         /// 0 (the default) means the block needs no power and is always
         /// considered fully powered. Scenario-set on the sim surface
-        /// before the tick that should apply it.
+        /// before the tick that should apply it. Virtual so a derived
+        /// block (e.g. the gyro, whose required input scales with its
+        /// power setting) can supply a computed demand that the bus
+        /// consumes each phase 4.
         /// </summary>
-        public float PowerDemand { get; set; }
+        public virtual float PowerDemand { get; set; }
 
         /// <summary>
         /// Allocation priority: higher values are satisfied first when

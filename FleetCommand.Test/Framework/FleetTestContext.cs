@@ -89,6 +89,8 @@ namespace FleetCommand.Test.Framework
             {
                 case BlockKind.FixedThruster:
                     return new SimThrust(blockId, templateBlock.Name, grid, templateBlock);
+                case BlockKind.Gyro:
+                    return new SimGyro(blockId, templateBlock.Name, grid, templateBlock);
                 case BlockKind.ShipController:
                     return new SimShipController(blockId, templateBlock.Name, grid, templateBlock);
                 case BlockKind.RemoteControl:

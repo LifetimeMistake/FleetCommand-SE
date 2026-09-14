@@ -22,6 +22,14 @@ namespace FleetCommand.Test.Templates
         /// </summary>
         FixedThruster,
 
+        /// <summary>
+        /// A gyroscope: contributes an axis-aligned box to shape and
+        /// mass, and () its local orientation gives the
+        /// grid-space override direction (<see cref="SimGyro"/>) via the
+        /// grid's <see cref="GyroRateSystem"/>.
+        /// </summary>
+        Gyro,
+
         /// <summary>An ordinary ship controller (IMyShipController). .</summary>
         ShipController,
 
@@ -142,6 +150,25 @@ namespace FleetCommand.Test.Templates
         public float ThrusterPowerDemand { get; }
 
         /// <summary>
+        /// Gyro: maximum gyroscopic force at full power (the template
+        /// value the game's <c>ForceMagnitude</c> would supply), in N·m.
+        /// <see cref="SimGyro.MaxGyroForce"/> is this value x the gyro's
+        /// <c>GyroPower</c> (in [0, 1]). Used when <see cref="Kind"/> is
+        /// <see cref="BlockKind.Gyro"/>; default 0 (a block with no gyro
+        /// params). .
+        /// </summary>
+        public float GyroForce { get; }
+
+        /// <summary>
+        /// Gyro: power the block needs (MW) at full power setting; the
+        /// grid's <see cref="SpaceEngineers.SimPowerBus"/> allocates this
+        /// in phase 4 (scaled by the gyro's <c>GyroPower</c>) and the
+        /// delivered ratio scales the delivered torque (single source of
+        /// truth). Default 0 (ideal source). .
+        /// </summary>
+        public float GyroPowerDemand { get; }
+
+        /// <summary>
         /// Grid-local center in meters: ((Min + Max) · 0.5) · GridSize,
         /// matching the game's mass-element placement
         /// (MyCubeBlockCollector.AddMass, MyGridShape.CollectBlockInventories).
@@ -171,7 +198,8 @@ namespace FleetCommand.Test.Templates
             float maxOutput = 0f, float maxInput = 0f,
             float maxStoredPower = 0f, float initialStoredPower = 1f,
             Vector3I? thrustDirection = null, float maxThrust = 0f,
-            float effectiveness = 1f, float powerDemand = 0f)
+            float effectiveness = 1f, float powerDemand = 0f,
+            float gyroForce = 0f, float gyroPowerDemand = 0f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -211,6 +239,8 @@ namespace FleetCommand.Test.Templates
             MaxThrust = maxThrust;
             Effectiveness = effectiveness;
             ThrusterPowerDemand = powerDemand;
+            GyroForce = gyroForce;
+            GyroPowerDemand = gyroPowerDemand;
 
             Vector3I max = Min + Size - Vector3I.One;
             Vector3 cellSum = (BlockCenter(min) + BlockCenter(max)) * (0.5f * gridSize);
