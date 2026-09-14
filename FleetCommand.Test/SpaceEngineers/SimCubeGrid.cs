@@ -213,6 +213,11 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 GyroRateSystem.RegisterGyro(gyro);
             }
+            SimShipConnector connector = block as SimShipConnector;
+            if (connector != null)
+            {
+                World.RegisterConnector(connector);
+            }
         }
 
         /// <summary>

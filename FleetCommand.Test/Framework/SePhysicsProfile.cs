@@ -39,13 +39,47 @@ namespace FleetCommand.Test.Framework
         /// <summary>Whether rigid-body collision response is enabled by default.</summary>
         public bool CollisionResponse { get; }
 
+        /// <summary>
+        /// Connector docking capture: maximum separation (m) between the two
+        /// connector points for capture. The effective threshold for a pair
+        /// is the minimum of the two connectors' <see cref="SpaceEngineers.SimShipConnector"/>
+        /// per-block reach and this value (). Part of the world
+        /// physics profile and visible to tests.
+        /// </summary>
+        public float ConnectorReach { get; }
+
+        /// <summary>
+        /// Connector docking capture: maximum opposing-axis angular error
+        /// (rad) — how far the two connectors' connect axes may deviate from
+        /// exactly opposing — for capture ().
+        /// </summary>
+        public float ConnectorAngularErrorMax { get; }
+
+        /// <summary>
+        /// Connector docking capture: maximum magnitude (m/s) of the
+        /// relative linear velocity at the two connector points for capture
+        /// ().
+        /// </summary>
+        public float ConnectorLinearVelocityMax { get; }
+
+        /// <summary>
+        /// Connector docking capture: maximum magnitude (rad/s) of the
+        /// relative angular velocity between the two connector bodies for
+        /// capture ().
+        /// </summary>
+        public float ConnectorAngularVelocityMax { get; }
+
         public SePhysicsProfile(
             string name,
             float maxLinearVelocity = 0f,
             float maxAngularVelocity = 0f,
             float linearDamping = 0f,
             float angularDamping = 0f,
-            bool collisionResponse = true)
+            bool collisionResponse = true,
+            float connectorReach = 2.5f,
+            float connectorAngularErrorMax = 0.174533f,
+            float connectorLinearVelocityMax = 0.5f,
+            float connectorAngularVelocityMax = 0.5f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -57,6 +91,10 @@ namespace FleetCommand.Test.Framework
             LinearDamping = linearDamping;
             AngularDamping = angularDamping;
             CollisionResponse = collisionResponse;
+            ConnectorReach = connectorReach;
+            ConnectorAngularErrorMax = connectorAngularErrorMax;
+            ConnectorLinearVelocityMax = connectorLinearVelocityMax;
+            ConnectorAngularVelocityMax = connectorAngularVelocityMax;
         }
 
         /// <summary>

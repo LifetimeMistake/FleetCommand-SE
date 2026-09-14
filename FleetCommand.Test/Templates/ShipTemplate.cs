@@ -51,6 +51,15 @@ namespace FleetCommand.Test.Templates
         /// shape and mass like any block.
         /// </summary>
         Battery,
+
+        /// <summary>
+        /// A ship connector (IMyShipConnector): contributes an
+        /// axis-aligned box to shape and mass, and () its
+        /// connection frame — the body-fixed frame from which the
+        /// connector derives its world pose and capture geometry
+        /// (<see cref="SpaceEngineers.SimShipConnector"/>).
+        /// </summary>
+        Connector,
     }
 
     /// <summary>
@@ -169,6 +178,25 @@ namespace FleetCommand.Test.Templates
         public float GyroPowerDemand { get; }
 
         /// <summary>
+        /// Connector: additional rotation of the block's connection frame
+        /// relative to the block's own grid placement — i.e. the rotation
+        /// that reorients the connector's connect face (its local forward,
+        /// the direction it extends to meet a partner) without moving the
+        /// block. Default <c>Quaternion.Identity</c> (the connect face
+        /// follows the block's own orientation). Used when
+        /// <see cref="Kind"/> is <see cref="BlockKind.Connector"/>. .
+        /// </summary>
+        public Quaternion ConnectorOrientation { get; }
+
+        /// <summary>
+        /// Connector: this block's own capture reach in meters (how far it
+        /// will reach for a partner). 0 (the default) means "use the
+        /// physics profile's <c>ConnectorReach</c>". Used when
+        /// <see cref="Kind"/> is <see cref="BlockKind.Connector"/>; .
+        /// </summary>
+        public float ConnectorReach { get; }
+
+        /// <summary>
         /// Grid-local center in meters: ((Min + Max) · 0.5) · GridSize,
         /// matching the game's mass-element placement
         /// (MyCubeBlockCollector.AddMass, MyGridShape.CollectBlockInventories).
@@ -199,7 +227,8 @@ namespace FleetCommand.Test.Templates
             float maxStoredPower = 0f, float initialStoredPower = 1f,
             Vector3I? thrustDirection = null, float maxThrust = 0f,
             float effectiveness = 1f, float powerDemand = 0f,
-            float gyroForce = 0f, float gyroPowerDemand = 0f)
+            float gyroForce = 0f, float gyroPowerDemand = 0f,
+            Quaternion? connectorOrientation = null, float connectorReach = 0f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -241,6 +270,8 @@ namespace FleetCommand.Test.Templates
             ThrusterPowerDemand = powerDemand;
             GyroForce = gyroForce;
             GyroPowerDemand = gyroPowerDemand;
+            ConnectorOrientation = connectorOrientation ?? Quaternion.Identity;
+            ConnectorReach = connectorReach;
 
             Vector3I max = Min + Size - Vector3I.One;
             Vector3 cellSum = (BlockCenter(min) + BlockCenter(max)) * (0.5f * gridSize);

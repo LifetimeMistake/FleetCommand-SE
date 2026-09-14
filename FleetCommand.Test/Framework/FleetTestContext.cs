@@ -103,6 +103,8 @@ namespace FleetCommand.Test.Framework
                     return new SimTextPanel(blockId, templateBlock.Name, grid, templateBlock);
                 case BlockKind.Battery:
                     return new SimBatteryBlock(blockId, templateBlock.Name, grid, templateBlock);
+                case BlockKind.Connector:
+                    return new SimShipConnector(blockId, templateBlock.Name, grid, templateBlock);
                 default:
                     return new SimTerminalBlock(blockId, templateBlock.Name, grid, templateBlock);
             }
