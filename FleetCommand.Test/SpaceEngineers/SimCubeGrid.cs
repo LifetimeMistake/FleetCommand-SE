@@ -51,6 +51,16 @@ namespace FleetCommand.Test.SpaceEngineers
         /// </summary>
         public ForceAggregator ForceAggregator { get; }
 
+        /// <summary>
+        /// The grid's gyro-rate system (, ): the world
+        /// calls <see cref="GyroRateSystem.Aggregate"/> in phase 5,
+        /// <see cref="GyroRateSystem.ApplyTorque"/> in phase 6 (one
+        /// resultant body-space angular impulse), and
+        /// <see cref="GyroRateSystem.UpdateGyroTelemetry"/> in phase 8
+        /// (gyros register when added to the grid).
+        /// </summary>
+        public GyroRateSystem GyroRateSystem { get; }
+
         /// <summary>Also the grid's user-visible terminal name (settable).</summary>
         public string CustomName { get; set; }
 
@@ -75,6 +85,7 @@ namespace FleetCommand.Test.SpaceEngineers
             TerminalSystem = new SimGridTerminalSystem(this);
             PowerBus = new SimPowerBus(this);
             ForceAggregator = new ForceAggregator(this);
+            GyroRateSystem = new GyroRateSystem(this);
         }
 
         /// <inheritdoc />
@@ -196,6 +207,11 @@ namespace FleetCommand.Test.SpaceEngineers
             if (thruster != null)
             {
                 ForceAggregator.RegisterThruster(thruster);
+            }
+            SimGyro gyro = block as SimGyro;
+            if (gyro != null)
+            {
+                GyroRateSystem.RegisterGyro(gyro);
             }
         }
 

@@ -363,6 +363,17 @@ namespace FleetCommand.Test.Framework
                     grid.ForceAggregator.Aggregate();
                 }
             }
+            // : each grid's gyro-rate system aggregates the
+            // force-weighted override target rate and the non-override
+            // authority pool ( step 2, ).
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.GyroRateSystem.Aggregate();
+                }
+            }
         }
 
         private void Phase6_ApplyImpulses()
@@ -401,6 +412,16 @@ namespace FleetCommand.Test.Framework
                 if (!grid.IsDisposed)
                 {
                     grid.ForceAggregator.ApplyThrust(dt);
+                }
+            }
+            // : apply each grid's ONE resultant body-space angular
+            // impulse from the gyro override loop ( step 8).
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.GyroRateSystem.ApplyTorque(dt);
                 }
             }
         }
@@ -442,6 +463,16 @@ namespace FleetCommand.Test.Framework
                 if (!grid.IsDisposed)
                 {
                     grid.ForceAggregator.UpdateThrusterTelemetry();
+                }
+            }
+            // , : publish each gyro's delivered torque and
+            // saturation after the physics interval.
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.GyroRateSystem.UpdateGyroTelemetry();
                 }
             }
         }
