@@ -54,6 +54,13 @@ namespace FleetCommand.Test.SpaceEngineers
         private Vector3 _groupDemand;
         private Vector3 _netBodyForce;
 
+        // Per-direction delivered-thrust capacity of the grid (.5),
+        // recomputed from the registered thrusters so the base-control path
+        // (BaseControlSystem) can reproduce the game's ComputeBaseThrust.
+        private Vector3 _maxPositiveThrust;
+        private Vector3 _maxNegativeThrust;
+        private float _slowdownFactor = 1f;
+
         /// <summary>The rigid grid (ship) this aggregator serves.</summary>
         public SimCubeGrid Grid => _grid;
 
@@ -72,6 +79,30 @@ namespace FleetCommand.Test.SpaceEngineers
         ///  "delivered thrust per block and direction" observation.)
         /// </summary>
         public Vector3 LastNetForce => _netBodyForce;
+
+        /// <summary>
+        /// The grid's maximum deliverable force along each +body axis (N),
+        /// summed from the registered thrusters' <see cref="SimThrust.MaxEffectiveThrust"/>
+        /// (the game's per-group <c>MaxPositiveThrust</c>, summed from
+        /// <c>ForceMagnitude</c>). Recomputed by
+        /// <see cref="RecalculateCapacities"/>; .5.
+        /// </summary>
+        public Vector3 MaxPositiveThrust => _maxPositiveThrust;
+
+        /// <summary>
+        /// The grid's maximum deliverable force along each -body axis (N),
+        /// the counterpart of <see cref="MaxPositiveThrust"/>.
+        /// </summary>
+        public Vector3 MaxNegativeThrust => _maxNegativeThrust;
+
+        /// <summary>
+        /// The grid's representative thrust-definition <c>SlowdownFactor</c>
+        /// (default 1), used by the base-control path's final clamp
+        /// (<c>MyEntityThrustComponent.ComputeBaseThrust</c> :1648). Set by
+        /// <see cref="RecalculateCapacities"/> from the first functional
+        /// thruster's definition value.
+        /// </summary>
+        public float SlowdownFactor => _slowdownFactor;
 
         internal ForceAggregator(SimCubeGrid grid)
         {
@@ -248,6 +279,75 @@ namespace FleetCommand.Test.SpaceEngineers
                 ClampComponent(value.X),
                 ClampComponent(value.Y),
                 ClampComponent(value.Z));
+        }
+
+        /// <summary>
+        /// Recomputes the grid's per-direction thrust capacity and the
+        /// representative <see cref="SlowdownFactor"/> from the registered
+        /// thrusters (the game's <c>RecomputeTypeThrustParameters</c>:
+        /// <c>MaxPositiveThrust</c>/<c>MaxNegativeThrust</c> summed from
+        /// <c>ForceMagnitude</c>=effective thrust over used, powered
+        /// thrusters). Called by <see cref="BaseControlSystem"/> each
+        /// phase 5 before it computes the base demand, so the game's
+        /// <c>ComputeBaseThrust</c> sees the same capacities the
+        /// aggregation consumes (no divergence).
+        /// </summary>
+        internal void RecalculateCapacities()
+        {
+            Vector3 pos = Vector3.Zero;
+            Vector3 neg = Vector3.Zero;
+            float factor = 1f;
+            bool haveFactor = false;
+            for (int i = 0; i < _thrusters.Count; i++)
+            {
+                SimThrust thruster = _thrusters[i];
+                if (thruster.Closed || !thruster.IsFunctional || thruster.Effectiveness <= 0f)
+                {
+                    continue;
+                }
+                // The grid is pushed OPPOSITE the thruster's forward; the
+                // force axis is -forward (MyThrust.cs:188). Accumulate the
+                // effective capacity by force direction.
+                Vector3 forceAxis = -(Vector3)new Vector3(thruster.GridThrustDirection);
+                float mag = thruster.MaxThrust * thruster.Effectiveness;
+                AddCapacity(ref pos, ref neg, forceAxis, mag);
+                if (!haveFactor)
+                {
+                    factor = thruster.SlowdownFactor;
+                    haveFactor = true;
+                }
+            }
+            _maxPositiveThrust = pos;
+            _maxNegativeThrust = neg;
+            _slowdownFactor = haveFactor ? factor : 1f;
+        }
+
+        private static void AddCapacity(ref Vector3 pos, ref Vector3 neg, Vector3 forceAxis, float mag)
+        {
+            if (forceAxis.X > 0f)
+            {
+                pos.X += mag;
+            }
+            else if (forceAxis.X < 0f)
+            {
+                neg.X += mag;
+            }
+            if (forceAxis.Y > 0f)
+            {
+                pos.Y += mag;
+            }
+            else if (forceAxis.Y < 0f)
+            {
+                neg.Y += mag;
+            }
+            if (forceAxis.Z > 0f)
+            {
+                pos.Z += mag;
+            }
+            else if (forceAxis.Z < 0f)
+            {
+                neg.Z += mag;
+            }
         }
 
         private static float ClampComponent(float value)

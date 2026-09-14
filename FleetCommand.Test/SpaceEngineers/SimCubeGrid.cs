@@ -61,6 +61,17 @@ namespace FleetCommand.Test.SpaceEngineers
         /// </summary>
         public GyroRateSystem GyroRateSystem { get; }
 
+        /// <summary>
+        /// The grid's controller-driven base thrust demand (.5): the
+        /// world calls <see cref="BaseControlSystem.ComputeBaseDemand"/> in
+        /// phase 5 (before <see cref="ForceAggregator.Aggregate"/>) to run
+        /// the occupied controllers' MoveIndicator + inertia dampening +
+        /// anti-gravity through the game's <c>ComputeBaseThrust</c> and set
+        /// the aggregator's group demand. Controllers register when added
+        /// to the grid.
+        /// </summary>
+        public BaseControlSystem BaseControl { get; }
+
         /// <summary>Also the grid's user-visible terminal name (settable).</summary>
         public string CustomName { get; set; }
 
@@ -86,6 +97,7 @@ namespace FleetCommand.Test.SpaceEngineers
             PowerBus = new SimPowerBus(this);
             ForceAggregator = new ForceAggregator(this);
             GyroRateSystem = new GyroRateSystem(this);
+            BaseControl = new BaseControlSystem(this);
         }
 
         /// <inheritdoc />
@@ -217,6 +229,11 @@ namespace FleetCommand.Test.SpaceEngineers
             if (connector != null)
             {
                 World.RegisterConnector(connector);
+            }
+            SimShipController controller = block as SimShipController;
+            if (controller != null)
+            {
+                BaseControl.RegisterController(controller);
             }
         }
 

@@ -159,6 +159,17 @@ namespace FleetCommand.Test.Templates
         public float ThrusterPowerDemand { get; }
 
         /// <summary>
+        /// Thruster: the per-thruster definition's <c>SlowdownFactor</c> —
+        /// the multiplier on the delivered thrust envelope in the base
+        /// (manual + dampened) control path, <c>MyThrusterBlockThrustComponent</c>
+        /// sets it from the block definition (:225/:240/:250; default derive
+        /// from <c>MyThrustDefinition</c>, :106). Carried as template data
+        /// like <see cref="Effectiveness"/>, defaulting to the definition
+        /// value (1) when unspecified. .5 (<see cref="SimThrust.SlowdownFactor"/>).
+        /// </summary>
+        public float SlowdownFactor { get; }
+
+        /// <summary>
         /// Gyro: maximum gyroscopic force at full power (the template
         /// value the game's <c>ForceMagnitude</c> would supply), in N·m.
         /// <see cref="SimGyro.MaxGyroForce"/> is this value x the gyro's
@@ -228,7 +239,8 @@ namespace FleetCommand.Test.Templates
             Vector3I? thrustDirection = null, float maxThrust = 0f,
             float effectiveness = 1f, float powerDemand = 0f,
             float gyroForce = 0f, float gyroPowerDemand = 0f,
-            Quaternion? connectorOrientation = null, float connectorReach = 0f)
+            Quaternion? connectorOrientation = null, float connectorReach = 0f,
+            float slowdownFactor = 1f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -272,6 +284,7 @@ namespace FleetCommand.Test.Templates
             GyroPowerDemand = gyroPowerDemand;
             ConnectorOrientation = connectorOrientation ?? Quaternion.Identity;
             ConnectorReach = connectorReach;
+            SlowdownFactor = slowdownFactor;
 
             Vector3I max = Min + Size - Vector3I.One;
             Vector3 cellSum = (BlockCenter(min) + BlockCenter(max)) * (0.5f * gridSize);

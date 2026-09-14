@@ -387,6 +387,20 @@ namespace FleetCommand.Test.Framework
             // demand into delivered thrust scaled by the bus's phase-4
             // DeliveredRatio, and sums it by grid-body direction. Disposed
             // grids (NRE guard) are skipped; their natives are gone.
+            // .5: run the grid's controller-driven base thrust
+            // demand (occupied controllers' MoveIndicator + inertia
+            // dampening + anti-gravity, the game's ComputeBaseThrust) BEFORE
+            // the force aggregation, so the aggregator consumes it as its
+            // group demand (effectiveness + power + direction all apply).
+            // The base path is idle when no controller is under control.
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.BaseControl.ComputeBaseDemand();
+                }
+            }
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];

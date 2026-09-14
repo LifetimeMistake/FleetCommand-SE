@@ -35,6 +35,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private readonly Vector3I _direction;
         private readonly float _maxThrust;
         private readonly float _effectiveness;
+        private readonly float _slowdownFactor;
 
         // Shared override storage, mirroring the game's single
         // m_thrustOverride: ThrustOverride (N) and ThrustOverridePercentage
@@ -51,6 +52,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _direction = template.ThrustDirection ?? Vector3I.Zero;
             _maxThrust = template.MaxThrust;
             _effectiveness = template.Effectiveness;
+            _slowdownFactor = template.SlowdownFactor;
             PowerDemand = template.ThrusterPowerDemand;
             _overrideFraction = 0f;
             _lastDelivered = 0f;
@@ -97,6 +99,16 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <inheritdoc />
         public float MaxEffectiveThrust => _maxThrust * _effectiveness;
+
+        /// <summary>
+        /// The thruster definition's <c>SlowdownFactor</c> (template data,
+        /// default the definition value 1) — the multiplier on the
+        /// delivered-thrust envelope in the grid's base (manual + dampened)
+        /// control path (.5). Read by
+        /// <see cref="SpaceEngineers.BaseControlSystem"/> via the grid's
+        /// <see cref="ForceAggregator"/>.
+        /// </summary>
+        public float SlowdownFactor => _slowdownFactor;
 
         /// <summary>
         /// The delivered thrust from the last applied physics interval,
