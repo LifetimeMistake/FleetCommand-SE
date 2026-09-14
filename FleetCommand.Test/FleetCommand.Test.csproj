@@ -8,7 +8,7 @@
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>FleetCommand.Test</RootNamespace>
-    <LangVersion>6</LangVersion>
+    <LangVersion>7.3</LangVersion>
     <Nullable>disable</Nullable>
     <EnableDefaultItems>true</EnableDefaultItems>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
