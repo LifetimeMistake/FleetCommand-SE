@@ -30,6 +30,12 @@ namespace FleetCommand.Test.Templates
 
         /// <summary>A cockpit (IMyCockpit). .</summary>
         Cockpit,
+
+        /// <summary>A programmable block (IMyProgrammableBlock). .</summary>
+        ProgrammableBlock,
+
+        /// <summary>A text panel / LCD (IMyTextPanel). .</summary>
+        TextPanel,
     }
 
     /// <summary>

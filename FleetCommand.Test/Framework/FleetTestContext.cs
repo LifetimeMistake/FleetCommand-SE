@@ -96,6 +96,10 @@ namespace FleetCommand.Test.Framework
                     return new SimRemoteControl(blockId, templateBlock.Name, grid, templateBlock);
                 case BlockKind.Cockpit:
                     return new SimCockpit(blockId, templateBlock.Name, grid, templateBlock);
+                case BlockKind.ProgrammableBlock:
+                    return new SimProgrammableBlock(blockId, templateBlock.Name, grid, templateBlock);
+                case BlockKind.TextPanel:
+                    return new SimTextPanel(blockId, templateBlock.Name, grid, templateBlock);
                 default:
                     return new SimTerminalBlock(blockId, templateBlock.Name, grid, templateBlock);
             }
