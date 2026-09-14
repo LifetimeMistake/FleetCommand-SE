@@ -33,6 +33,9 @@ namespace FleetCommand.Test.Physics
         /// <summary>The rigid body's mass in kilograms (0 for static bodies after Havok fix-up).</summary>
         public float Mass => _rigidBody == null ? 0f : _rigidBody.Mass;
 
+        /// <summary>True once <see cref="Dispose"/> has run (the wrapped native body may be gone).</summary>
+        public bool IsDisposed => _disposed;
+
         /// <summary>Center of mass in grid-local meters (ground truth, ).</summary>
         public Vector3 CenterOfMassLocal => _rigidBody == null ? Vector3.Zero : _rigidBody.CenterOfMassLocal;
 
