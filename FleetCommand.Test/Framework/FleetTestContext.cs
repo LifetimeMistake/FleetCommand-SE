@@ -1,6 +1,7 @@
 using System;
 using FleetCommand.Test.Observations;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
 
 namespace FleetCommand.Test.Framework
@@ -30,15 +31,28 @@ namespace FleetCommand.Test.Framework
         }
 
         /// <summary>
-        /// Spawns a ship. Strictly the framework's block surface arrives in
-        /// Stages 3 and 10; until <see cref="ShipTemplate"/> and the rigid
-        /// grid exist this member reports itself unsupported rather than
-        /// silently doing nothing.
+        /// Spawns a ship: builds a fresh rigid body (compound shape + combined
+        /// mass from the template's physical blocks), inserts it into the
+        /// world at the given <paramref name="initialState"/>, and returns a
+        /// <see cref="SimShip"/> handle whose grid owns the body. Each spawn
+        /// creates independent block state and fresh Havok objects; mutating
+        /// one ship never mutates its template or another instance ().
         /// </summary>
         public SimShip Spawn(ShipTemplate template, in SpawnState initialState)
         {
-            throw new NotSupportedException(
-                "FleetTestContext.Spawn is not implemented until  (rigid grid) and  (templates) land.");
+            if (template == null)
+            {
+                throw new ArgumentNullException(nameof(template));
+            }
+
+            long id = World.NextEntityId();
+            SimRigidBodyState bodyState = initialState.ToBodyState(id);
+            SimRigidBody body = SimRigidBody.Create(
+                id, template, World.ScenarioOrigin, in bodyState, World.Profile);
+            World.AddBody(body);
+
+            var grid = new SimCubeGrid(id, template.Name, template.GridSize, body);
+            return new SimShip(id, grid);
         }
 
         /// <summary>Advances the simulation by one fixed 1/60 s step.</summary>

@@ -3,6 +3,7 @@ using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
 using Havok;
 using NUnit.Framework;
+using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
@@ -85,15 +86,48 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void Spawn_IsUnsupported_UntilStage3()
+        public void Spawn_CreatesShip_WithBody_InWorld()
         {
             using (var context = new FleetTestContext(new SimWorld()))
             {
-                var template = new FleetCommand.Test.Templates.ShipTemplate();
-                var state = new SpawnState();
-                Assert.Throws<NotSupportedException>((Action)(() => context.Spawn(template, state)),
-                    "Spawn must report itself unsupported until /10, naming the member.");
+                var template = SingleBlockTemplate("test", 5000);
+                var ship = context.Spawn(template, SpawnState.At(new Vector3D(10, 0, 0)));
+
+                Assert.That(ship, Is.Not.Null);
+                Assert.That(context.World.Bodies, Has.Count.EqualTo(1));
+                Assert.That(ship.Grid.Body, Is.Not.Null);
+                Assert.That(ship.Grid.Body.Mass, Is.EqualTo(5000f).Within(1e-3));
+                Vector3D p = ship.Grid.Body.PositionWorld;
+                Assert.That(p.X, Is.EqualTo(10).Within(1e-3));
+                Assert.That(p.Y, Is.EqualTo(0).Within(1e-3));
+                Assert.That(p.Z, Is.EqualTo(0).Within(1e-3));
             }
+        }
+
+        [Test]
+        public void Dispose_DisposesSpawnedBodies()
+        {
+            var context = new FleetTestContext(new SimWorld());
+            var template = SingleBlockTemplate("test", 5000);
+            context.Spawn(template, SpawnState.At(Vector3D.Zero));
+            context.Spawn(template, SpawnState.At(new Vector3D(5, 0, 0)));
+            Assert.That(context.World.Bodies, Has.Count.EqualTo(2));
+
+            context.Dispose();
+
+            Assert.That(context.World.IsDisposed, Is.True,
+                "Disposing the context must dispose its world and all spawned bodies.");
+        }
+
+        private static FleetCommand.Test.Templates.ShipTemplate SingleBlockTemplate(string name, float mass)
+        {
+            return new FleetCommand.Test.Templates.ShipTemplate(
+                name, 2.5f,
+                new[]
+                {
+                    new FleetCommand.Test.Templates.TemplateBlock(
+                        name + "-block", new VRageMath.Vector3I(0, 0, 0), mass, 2.5f),
+                });
         }
 
         [Test]
