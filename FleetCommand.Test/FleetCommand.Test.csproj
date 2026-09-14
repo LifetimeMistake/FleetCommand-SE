@@ -79,6 +79,14 @@
       <HintPath>$(SpaceEngineersBin)\ProtoBuf.Net.dll</HintPath>
       <Private>true</Private>
     </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>$(SpaceEngineersBin)\System.Memory.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>$(SpaceEngineersBin)\System.Buffers.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
