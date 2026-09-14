@@ -53,7 +53,8 @@ namespace FleetCommand.Test.Framework
                 id, template, World.ScenarioOrigin, in bodyState, World.Profile);
             World.AddBody(body);
 
-            var grid = new SimCubeGrid(id, template.Name, template.GridSize, body);
+            var grid = new SimCubeGrid(id, template.Name, template.GridSize, body, World);
+            SimShipController controller = null;
             foreach (TemplateBlock templateBlock in template.Blocks)
             {
                 SimTerminalBlock block = CreateBlock(World, templateBlock, grid);
@@ -63,18 +64,24 @@ namespace FleetCommand.Test.Framework
                 {
                     World.RegisterFunctionalBlock(functional);
                 }
+                if (controller == null)
+                {
+                    controller = block as SimShipController;
+                }
             }
             World.AddGrid(grid);
 
-            return new SimShip(id, grid);
+            return new SimShip(id, grid, controller);
         }
 
         /// <summary>
         /// Instantiates the simulator block matching a template block's kind.
-        ///  maps the physical kinds onto the hierarchy bases: standard
+        /// Stages 4–5 map the kinds onto the hierarchy bases: standard
         /// blocks become <see cref="SimTerminalBlock"/>; fixed thrusters
         /// become <see cref="SimFunctionalBlock"/> (thrusters are functional
-        /// blocks in the game). Leaf kinds arrive with Stages 5–9.
+        /// blocks in the game); the ship controller stack and the
+        /// programmable block / text panel become functional leaves in this
+        /// stage.
         /// </summary>
         private static SimTerminalBlock CreateBlock(SimWorld world, TemplateBlock templateBlock, SimCubeGrid grid)
         {
@@ -83,6 +90,8 @@ namespace FleetCommand.Test.Framework
             {
                 case BlockKind.FixedThruster:
                     return new SimFunctionalBlock(blockId, templateBlock.Name, grid, templateBlock);
+                case BlockKind.ShipController:
+                    return new SimShipController(blockId, templateBlock.Name, grid, templateBlock);
                 default:
                     return new SimTerminalBlock(blockId, templateBlock.Name, grid, templateBlock);
             }

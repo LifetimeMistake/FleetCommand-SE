@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
 using VRage.Game;
 using VRage.Game.ModAPI.Ingame;
@@ -23,6 +24,9 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid body this grid owns (one per dynamic grid).</summary>
         public SimRigidBody Body { get; }
 
+        /// <summary>The world that owns this grid (gravity source, tick clock, …).  reads it for controller gravity.</summary>
+        public SimWorld World { get; }
+
         /// <summary>Grid cell size in meters.</summary>
         public float GridSize { get; }
 
@@ -35,14 +39,19 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>World-visible position of the grid origin (from the body).</summary>
         public Vector3D Position => Body.PositionWorld;
 
-        public SimCubeGrid(long entityId, string name, float gridSize, SimRigidBody body)
+        public SimCubeGrid(long entityId, string name, float gridSize, SimRigidBody body, SimWorld world)
             : base(entityId, name)
         {
             if (body == null)
             {
                 throw new ArgumentNullException(nameof(body));
             }
+            if (world == null)
+            {
+                throw new ArgumentNullException(nameof(world));
+            }
             Body = body;
+            World = world;
             GridSize = gridSize;
             CustomName = name;
             TerminalSystem = new SimGridTerminalSystem(this);

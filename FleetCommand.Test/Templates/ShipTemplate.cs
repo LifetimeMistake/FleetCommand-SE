@@ -21,6 +21,9 @@ namespace FleetCommand.Test.Templates
         /// they apply no torque — ).
         /// </summary>
         FixedThruster,
+
+        /// <summary>An ordinary ship controller (IMyShipController). .</summary>
+        ShipController,
     }
 
     /// <summary>

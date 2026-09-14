@@ -10,10 +10,10 @@ namespace FleetCommand.Test.Physics
     /// (numeric, ascending in spawn order), the owning <see cref="Grid"/>,
     /// the live rigid-body <see cref="Body"/> state,
     /// <see cref="TerminalSystem"/> (discovery over the grid's blocks,
-    /// ), and <see cref="SetState"/> for scenario setup and
-    /// ground-truth injection. The controller / power members
-    /// (<c>Controller</c>, <c>Power</c>) belong to Stages 5–6 and are not
-    /// present yet.
+    /// ), the template-designated <see cref="Controller"/>
+    /// (), and <see cref="SetState"/> for scenario setup and
+    /// ground-truth injection. <see cref="Power"/> belongs to  and
+    /// is not present yet.
     /// </summary>
     public sealed class SimShip
     {
@@ -29,10 +29,18 @@ namespace FleetCommand.Test.Physics
         /// <summary>The live rigid-body state of the ship's grid.</summary>
         public SimRigidBodyState Body => Grid.Body.GetState();
 
-        internal SimShip(long id, SimCubeGrid grid)
+        /// <summary>
+        /// The controller the template designates (the first
+        /// controller-kind block), or null when the template has none
+        /// (; ).
+        /// </summary>
+        public IMyShipController Controller { get; }
+
+        internal SimShip(long id, SimCubeGrid grid, IMyShipController controller)
         {
             Id = id;
             Grid = grid;
+            Controller = controller;
         }
 
         /// <summary>
