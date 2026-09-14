@@ -92,6 +92,10 @@ namespace FleetCommand.Test.Framework
                     return new SimFunctionalBlock(blockId, templateBlock.Name, grid, templateBlock);
                 case BlockKind.ShipController:
                     return new SimShipController(blockId, templateBlock.Name, grid, templateBlock);
+                case BlockKind.RemoteControl:
+                    return new SimRemoteControl(blockId, templateBlock.Name, grid, templateBlock);
+                case BlockKind.Cockpit:
+                    return new SimCockpit(blockId, templateBlock.Name, grid, templateBlock);
                 default:
                     return new SimTerminalBlock(blockId, templateBlock.Name, grid, templateBlock);
             }

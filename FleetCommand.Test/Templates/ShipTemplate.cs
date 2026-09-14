@@ -24,6 +24,12 @@ namespace FleetCommand.Test.Templates
 
         /// <summary>An ordinary ship controller (IMyShipController). .</summary>
         ShipController,
+
+        /// <summary>A remote control (IMyRemoteControl). .</summary>
+        RemoteControl,
+
+        /// <summary>A cockpit (IMyCockpit). .</summary>
+        Cockpit,
     }
 
     /// <summary>
