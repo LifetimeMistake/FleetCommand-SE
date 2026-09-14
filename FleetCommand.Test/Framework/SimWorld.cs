@@ -12,9 +12,9 @@ namespace FleetCommand.Test.Framework
     /// owned <see cref="HkWorld"/>, plus the deterministic clock, scheduler,
     /// and caller-visible scenario controls. One world per test; it owns every
     /// Havok object it creates and disposes them all on <see cref="Dispose"/>
-    /// (). This stage has no rigid bodies yet, but the nine-phase
-    /// pipeline exists with real, observable structure so later stages fill
-    /// the bodies in and the phase-order contract holds.
+    /// ().  adds the rigid bodies: the world owns one
+    /// <see cref="SimRigidBody"/> per dynamic grid, applies natural gravity
+    /// in phase 6, and synchronizes grid transforms and velocities in phase 8.
     /// </summary>
     public sealed class SimWorld : IDisposable
     {
@@ -27,11 +27,21 @@ namespace FleetCommand.Test.Framework
         /// <summary>
         /// Fixed scenario origin for numeric locality. World-visible positions
         /// are computed from this origin plus a local float offset ().
-        /// Not used by this empty stage, but part of the world contract.
         /// </summary>
         public Vector3D ScenarioOrigin { get; }
 
+        /// <summary>
+        /// Natural gravity field owned by this world (). Defaults to
+        /// <see cref="SimGravityField.Zero"/>; tests set it per scenario.
+        /// </summary>
+        public SimGravityField Gravity { get; private set; }
+
+        /// <summary>The rigid bodies the world owns, in deterministic insertion (spawn) order.</summary>
+        public IReadOnlyList<SimRigidBody> Bodies => _bodies;
+
         private readonly HkWorld _hkWorld;
+        private readonly List<SimRigidBody> _bodies = new List<SimRigidBody>();
+        private long _nextEntityId = 1;
         private bool _disposed;
 
         // Names of the phases executed by the most recent Step(), in order.
@@ -68,6 +78,7 @@ namespace FleetCommand.Test.Framework
             Clock = new TickClock();
             Profile = profile ?? SePhysicsProfile.Default;
             ScenarioOrigin = scenarioOrigin;
+            Gravity = SimGravityField.Zero;
 
             // Mirror the game's single-threaded world creation (CreateWorldCInfo)
             // for a no-global-gravity, deterministic host.
@@ -84,6 +95,33 @@ namespace FleetCommand.Test.Framework
 
         /// <summary>True once <see cref="Dispose"/> has run.</summary>
         public bool IsDisposed => _disposed;
+
+        /// <summary>Replaces the world's natural gravity field.</summary>
+        public void SetGravity(SimGravityField gravity)
+        {
+            Gravity = gravity ?? SimGravityField.Zero;
+        }
+
+        /// <summary>Allocates the next stable entity id (ascending, deterministic).</summary>
+        internal long NextEntityId()
+        {
+            return _nextEntityId++;
+        }
+
+        /// <summary>Registers a rigid body with the world (spawn). Deterministic insertion order.</summary>
+        internal void AddBody(SimRigidBody body)
+        {
+            if (body == null)
+            {
+                throw new ArgumentNullException(nameof(body));
+            }
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(SimWorld));
+            }
+            body.AddToWorld(_hkWorld);
+            _bodies.Add(body);
+        }
 
         /// <summary>
         /// Runs one fixed 1/60 s interval through the nine-phase pipeline:
@@ -206,8 +244,8 @@ namespace FleetCommand.Test.Framework
         {
             _phaseTrace.Add(PhaseNames[0]);
             // The state completed by the previous physics interval is published
-            // here. This stage has no bodies, so there is nothing to publish
-            // yet; later stages copy finalized body state here for observers.
+            // here. Body state is readable directly (SimRigidBody.GetState);
+            // observers and recorders sample it via the same surface.
         }
 
         private void Phase2_ScheduledMutations()
@@ -262,8 +300,23 @@ namespace FleetCommand.Test.Framework
         private void Phase6_ApplyImpulses()
         {
             _phaseTrace.Add(PhaseNames[5]);
-            // Apply gravity, linear impulses, and angular impulses to each
-            // rigid body. No bodies exist this stage.
+            // Apply natural gravity (and, later, thruster/gyro impulses) to
+            // each dynamic rigid body. The same gravity vector is what a
+            // controller's GetNaturalGravity would return ().
+            float dt = (float)TickClock.FixedStep;
+            for (int i = 0; i < _bodies.Count; i++)
+            {
+                SimRigidBody body = _bodies[i];
+                if (!body.IsDynamic)
+                {
+                    continue;
+                }
+                Vector3 gravity = Gravity.GetNaturalGravity(body.PositionWorld);
+                if (gravity != Vector3.Zero)
+                {
+                    body.ApplyLinearImpulse(gravity * body.Mass * dt);
+                }
+            }
         }
 
         private void Phase7_AdvancePhysics()
@@ -279,7 +332,16 @@ namespace FleetCommand.Test.Framework
         {
             _phaseTrace.Add(PhaseNames[7]);
             // Synchronize grid/block world matrices, velocities, connector
-            // state, and actuator telemetry. No blocks exist this stage.
+            // state, and actuator telemetry. This stage synchronizes each
+            // rigid body's pose and velocities back from Havok; blocks and
+            // connectors arrive in later stages.
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+            {
+                for (int i = 0; i < _bodies.Count; i++)
+                {
+                    _bodies[i].SynchronizeFromHavok();
+                }
+            }
         }
 
         private void Phase9_SampleAndEvaluate()
@@ -296,9 +358,16 @@ namespace FleetCommand.Test.Framework
             {
                 return;
             }
-            // Deterministic teardown: no bodies/constraints exist this stage,
-            // so disposing the HkWorld releases the world and any shapes it
-            // directly owns.
+            // Deterministic teardown in reverse spawn order: remove each body
+            // from the world, then release the body and its shape, then
+            // dispose the HkWorld.
+            for (int i = _bodies.Count - 1; i >= 0; i--)
+            {
+                SimRigidBody body = _bodies[i];
+                body.RemoveFromWorld(_hkWorld);
+                body.Dispose();
+            }
+            _bodies.Clear();
             _hkWorld.Dispose();
             _scheduled.Clear();
             _updateCallbacks.Clear();
