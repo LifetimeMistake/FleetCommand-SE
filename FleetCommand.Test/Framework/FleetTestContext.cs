@@ -33,7 +33,9 @@ namespace FleetCommand.Test.Framework
         /// <summary>
         /// Spawns a ship: builds a fresh rigid body (compound shape + combined
         /// mass from the template's physical blocks), inserts it into the
-        /// world at the given <paramref name="initialState"/>, and returns a
+        /// world at the given <paramref name="initialState"/>, creates fresh
+        /// block state (one terminal or functional block per template block,
+        /// registered with the grid's terminal system), and returns a
         /// <see cref="SimShip"/> handle whose grid owns the body. Each spawn
         /// creates independent block state and fresh Havok objects; mutating
         /// one ship never mutates its template or another instance ().
@@ -52,7 +54,38 @@ namespace FleetCommand.Test.Framework
             World.AddBody(body);
 
             var grid = new SimCubeGrid(id, template.Name, template.GridSize, body);
+            foreach (TemplateBlock templateBlock in template.Blocks)
+            {
+                SimTerminalBlock block = CreateBlock(World, templateBlock, grid);
+                grid.AddBlock(block);
+                SimFunctionalBlock functional = block as SimFunctionalBlock;
+                if (functional != null)
+                {
+                    World.RegisterFunctionalBlock(functional);
+                }
+            }
+            World.AddGrid(grid);
+
             return new SimShip(id, grid);
+        }
+
+        /// <summary>
+        /// Instantiates the simulator block matching a template block's kind.
+        ///  maps the physical kinds onto the hierarchy bases: standard
+        /// blocks become <see cref="SimTerminalBlock"/>; fixed thrusters
+        /// become <see cref="SimFunctionalBlock"/> (thrusters are functional
+        /// blocks in the game). Leaf kinds arrive with Stages 5–9.
+        /// </summary>
+        private static SimTerminalBlock CreateBlock(SimWorld world, TemplateBlock templateBlock, SimCubeGrid grid)
+        {
+            long blockId = world.NextEntityId();
+            switch (templateBlock.Kind)
+            {
+                case BlockKind.FixedThruster:
+                    return new SimFunctionalBlock(blockId, templateBlock.Name, grid, templateBlock);
+                default:
+                    return new SimTerminalBlock(blockId, templateBlock.Name, grid, templateBlock);
+            }
         }
 
         /// <summary>Advances the simulation by one fixed 1/60 s step.</summary>

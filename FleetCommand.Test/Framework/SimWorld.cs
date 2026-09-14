@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.SpaceEngineers;
 using Havok;
 using Sandbox.ModAPI.Ingame;
 using VRageMath;
@@ -12,9 +13,13 @@ namespace FleetCommand.Test.Framework
     /// owned <see cref="HkWorld"/>, plus the deterministic clock, scheduler,
     /// and caller-visible scenario controls. One world per test; it owns every
     /// Havok object it creates and disposes them all on <see cref="Dispose"/>
-    /// ().  adds the rigid bodies: the world owns one
-    /// <see cref="SimRigidBody"/> per dynamic grid, applies natural gravity
-    /// in phase 6, and synchronizes grid transforms and velocities in phase 8.
+    /// ().  added the rigid bodies (one per grid). 
+    /// adds the grids and their blocks: the world owns each
+    /// <see cref="SimCubeGrid"/> (with its block stack and terminal
+    /// system), recomputes block <c>IsWorking</c> in phase 4, and carries
+    /// the NRE guard — a grid or block disposed mid-world while still in the
+    /// world's collections is skipped by subsequent steps rather than
+    /// dereferencing disposed natives.
     /// </summary>
     public sealed class SimWorld : IDisposable
     {
@@ -39,8 +44,13 @@ namespace FleetCommand.Test.Framework
         /// <summary>The rigid bodies the world owns, in deterministic insertion (spawn) order.</summary>
         public IReadOnlyList<SimRigidBody> Bodies => _bodies;
 
+        /// <summary>The grids the world owns, in deterministic spawn order.</summary>
+        public IReadOnlyList<SimCubeGrid> Grids => _grids;
+
         private readonly HkWorld _hkWorld;
         private readonly List<SimRigidBody> _bodies = new List<SimRigidBody>();
+        private readonly List<SimCubeGrid> _grids = new List<SimCubeGrid>();
+        private readonly List<SimFunctionalBlock> _functionalBlocks = new List<SimFunctionalBlock>();
         private long _nextEntityId = 1;
         private bool _disposed;
 
@@ -121,6 +131,30 @@ namespace FleetCommand.Test.Framework
             }
             body.AddToWorld(_hkWorld);
             _bodies.Add(body);
+        }
+
+        /// <summary>Registers a grid (with its block stack) with the world (spawn).</summary>
+        internal void AddGrid(SimCubeGrid grid)
+        {
+            if (grid == null)
+            {
+                throw new ArgumentNullException(nameof(grid));
+            }
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(SimWorld));
+            }
+            _grids.Add(grid);
+        }
+
+        /// <summary>Registers a functional block so phase 4 can recompute its working state each tick.</summary>
+        internal void RegisterFunctionalBlock(SimFunctionalBlock block)
+        {
+            if (block == null)
+            {
+                throw new ArgumentNullException(nameof(block));
+            }
+            _functionalBlocks.Add(block);
         }
 
         /// <summary>
@@ -285,9 +319,20 @@ namespace FleetCommand.Test.Framework
         private void Phase4_RecomputePower()
         {
             _phaseTrace.Add(PhaseNames[3]);
-            // Recompute power availability and block IsWorking state. No
-            // blocks exist this stage; later stages iterate functional blocks
-            // here before actuation.
+            // Recompute power availability and block IsWorking state. :
+            // recompute IsWorking for every functional block from enablement,
+            // functionality, and power () before actuation. No
+            // power bus yet (); power is the scenario flag
+            // SimFunctionalBlock.IsPowered, assumed available by default.
+            // Disposed blocks (NRE guard) are skipped.
+            for (int i = 0; i < _functionalBlocks.Count; i++)
+            {
+                SimFunctionalBlock block = _functionalBlocks[i];
+                if (!block.IsDisposed)
+                {
+                    block.RecomputeIsWorking();
+                }
+            }
         }
 
         private void Phase5_AggregateForce()
@@ -303,10 +348,16 @@ namespace FleetCommand.Test.Framework
             // Apply natural gravity (and, later, thruster/gyro impulses) to
             // each dynamic rigid body. The same gravity vector is what a
             // controller's GetNaturalGravity would return ().
+            // Disposed bodies (NRE guard) are skipped; their natives are
+            // gone.
             float dt = (float)TickClock.FixedStep;
             for (int i = 0; i < _bodies.Count; i++)
             {
                 SimRigidBody body = _bodies[i];
+                if (body.IsDisposed)
+                {
+                    continue;
+                }
                 if (!body.IsDynamic)
                 {
                     continue;
@@ -334,12 +385,16 @@ namespace FleetCommand.Test.Framework
             // Synchronize grid/block world matrices, velocities, connector
             // state, and actuator telemetry. This stage synchronizes each
             // rigid body's pose and velocities back from Havok; blocks and
-            // connectors arrive in later stages.
+            // connectors arrive in later stages. Disposed bodies (NRE
+            // guard) are skipped — their natives are gone.
             using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
             {
                 for (int i = 0; i < _bodies.Count; i++)
                 {
-                    _bodies[i].SynchronizeFromHavok();
+                    if (!_bodies[i].IsDisposed)
+                    {
+                        _bodies[i].SynchronizeFromHavok();
+                    }
                 }
             }
         }
@@ -359,15 +414,21 @@ namespace FleetCommand.Test.Framework
                 return;
             }
             // Deterministic teardown in reverse spawn order: remove each body
-            // from the world, then release the body and its shape, then
-            // dispose the HkWorld.
+            // from the world, then release the body and its shape, close each
+            // grid (and its blocks), then dispose the HkWorld.
             for (int i = _bodies.Count - 1; i >= 0; i--)
             {
                 SimRigidBody body = _bodies[i];
                 body.RemoveFromWorld(_hkWorld);
                 body.Dispose();
             }
+            for (int i = _grids.Count - 1; i >= 0; i--)
+            {
+                _grids[i].Dispose();
+            }
             _bodies.Clear();
+            _grids.Clear();
+            _functionalBlocks.Clear();
             _hkWorld.Dispose();
             _scheduled.Clear();
             _updateCallbacks.Clear();

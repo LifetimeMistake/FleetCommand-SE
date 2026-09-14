@@ -1,4 +1,5 @@
 using FleetCommand.Test.SpaceEngineers;
+using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.Physics
 {
@@ -7,11 +8,12 @@ namespace FleetCommand.Test.Physics
     /// <see cref="Framework.FleetTestContext.Spawn"/> (). This
     /// stage provides the physics-side surface: a stable <see cref="Id"/>
     /// (numeric, ascending in spawn order), the owning <see cref="Grid"/>,
-    /// the live rigid-body <see cref="Body"/> state, and
-    /// <see cref="SetState"/> for scenario setup and ground-truth
-    /// injection. The terminal-system / controller / power members
-    /// (<c>TerminalSystem</c>, <c>Controller</c>, <c>Power</c>) belong to
-    /// Stages 4–6 and are not present yet.
+    /// the live rigid-body <see cref="Body"/> state,
+    /// <see cref="TerminalSystem"/> (discovery over the grid's blocks,
+    /// ), and <see cref="SetState"/> for scenario setup and
+    /// ground-truth injection. The controller / power members
+    /// (<c>Controller</c>, <c>Power</c>) belong to Stages 5–6 and are not
+    /// present yet.
     /// </summary>
     public sealed class SimShip
     {
@@ -20,6 +22,9 @@ namespace FleetCommand.Test.Physics
 
         /// <summary>The owning grid and its rigid body.</summary>
         public SimCubeGrid Grid { get; }
+
+        /// <summary>Discovery surface over this grid's blocks ().</summary>
+        public IMyGridTerminalSystem TerminalSystem => Grid.TerminalSystem;
 
         /// <summary>The live rigid-body state of the ship's grid.</summary>
         public SimRigidBodyState Body => Grid.Body.GetState();
