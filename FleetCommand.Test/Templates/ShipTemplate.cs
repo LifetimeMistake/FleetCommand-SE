@@ -104,12 +104,14 @@ namespace FleetCommand.Test.Templates
         public float InitialStoredPower { get; }
 
         /// <summary>
-        /// Thruster: the grid-body axis the thruster pushes the grid along —
-        /// one of the six cardinal unit axes (+-X, +-Y, +-Z). This is the
-        /// body-space force direction: a "<see cref="VRageMath.Vector3I.Backward"/>"
-        /// thruster pushes the grid along local -Z. Used when
-        /// <see cref="Kind"/> is <see cref="BlockKind.FixedThruster"/>; null
-        /// for non-thrusters.  (<see cref="SimThrust.GridThrustDirection"/>).
+        /// Thruster: the block's grid-body FORWARD direction — the axis its
+        /// exhaust points along (one of the six cardinal unit axes, matching
+        /// the game's <c>MyThrust.ThrustForwardVector</c> /
+        /// <c>Orientation.Forward</c>). The grid is pushed OPPOSITE to
+        /// this direction (game: <c>ThrustForce = -ThrustForwardVector</c>,
+        /// MyThrust.cs:188). Used when <see cref="Kind"/> is
+        /// <see cref="BlockKind.FixedThruster"/>; null for non-thrusters.
+        ///  (<see cref="SimThrust.GridThrustDirection"/>).
         /// </summary>
         public Vector3I? ThrustDirection { get; }
 
@@ -186,7 +188,7 @@ namespace FleetCommand.Test.Templates
             if (thrustDirection.HasValue && !IsCardinalAxis(thrustDirection.Value))
             {
                 throw new ArgumentException(
-                    "A fixed thruster's thrust direction must be one of the six cardinal axes (+-X, +-Y, +-Z).",
+                    "A fixed thruster's forward direction must be one of the six cardinal axes (+-X, +-Y, +-Z).",
                     nameof(thrustDirection));
             }
             if (effectiveness < 0f || effectiveness > 1f)

@@ -41,6 +41,16 @@ namespace FleetCommand.Test.SpaceEngineers
         /// </summary>
         public SimPowerBus PowerBus { get; }
 
+        /// <summary>
+        /// The grid's thrust aggregation step (, ): the
+        /// world calls <see cref="ForceAggregator.Aggregate"/> in phase 5,
+        /// <see cref="ForceAggregator.ApplyThrust"/> in phase 6 (one
+        /// resultant body-space linear impulse at the grid COM), and
+        /// <see cref="ForceAggregator.UpdateThrusterTelemetry"/> in phase 8
+        /// (thrusters register when added to the grid).
+        /// </summary>
+        public ForceAggregator ForceAggregator { get; }
+
         /// <summary>Also the grid's user-visible terminal name (settable).</summary>
         public string CustomName { get; set; }
 
@@ -64,6 +74,7 @@ namespace FleetCommand.Test.SpaceEngineers
             CustomName = name;
             TerminalSystem = new SimGridTerminalSystem(this);
             PowerBus = new SimPowerBus(this);
+            ForceAggregator = new ForceAggregator(this);
         }
 
         /// <inheritdoc />
@@ -180,6 +191,11 @@ namespace FleetCommand.Test.SpaceEngineers
             if (battery != null)
             {
                 PowerBus.RegisterSupply(battery);
+            }
+            SimThrust thruster = block as SimThrust;
+            if (thruster != null)
+            {
+                ForceAggregator.RegisterThruster(thruster);
             }
         }
 

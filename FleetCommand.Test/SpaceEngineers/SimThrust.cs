@@ -21,12 +21,14 @@ namespace FleetCommand.Test.SpaceEngineers
     /// <see cref="SimFunctionalBlock"/>; power scaling reads the
     /// bus-computed <see cref="SimFunctionalBlock.DeliveredRatio"/>
     /// (single source of truth, ). <see cref="GridThrustDirection"/>
-    /// is the body-space axis the thruster pushes the grid along — for a
-    /// single rigid grid the grid's forward, per the task brief — so the
-    /// aggregator groups thrusters by push axis with no craft-type
-    /// branches (asymmetric and missing axes are supported by template
-    /// data). Fixed grid thrusters generate no torque from block position
-    /// (the net force is applied at the grid COM, ).
+    /// is the thruster's grid-body forward (exhaust) axis — the value the
+    /// game returns — and the grid is pushed opposite to it, matching the
+    /// game's <c>ThrustForce = -ThrustForwardVector</c>. The aggregator
+    /// thus groups thrusters by forward axis and applies each force along
+    /// its negation, with no craft-type branches (asymmetric and missing
+    /// axes are supported by template data). Fixed grid thrusters generate
+    /// no torque from block position (the net force is applied at the grid
+    /// COM, ).
     /// </summary>
     public class SimThrust : SimFunctionalBlock, IMyThrust
     {
@@ -109,11 +111,16 @@ namespace FleetCommand.Test.SpaceEngineers
             : 0f;
 
         /// <summary>
-        /// The body-space direction this thruster pushes the grid along
-        /// (the template's thruster direction). For a single rigid grid
-        /// this is the grid's forward axis — the body axis the thruster
-        /// pushes along. Vector3I.Zero when the template supplied no
-        /// direction (a thruster block without thruster params).
+        /// The thruster's grid-body forward direction (the template's
+        /// thruster direction): for a single rigid grid, the body axis the
+        /// thruster's exhaust points along. This is the value the game
+        /// returns — <c>MyThrust.cs:276</c> (<see cref="IMyThrust.GridThrustDirection"/>)
+        /// returns the block's forward vector, controller-relative; for a
+        /// single rigid grid that is the grid-body forward axis. The grid
+        /// is pushed OPPOSITE to this direction (game:
+        /// <c>ThrustForce = -ThrustForwardVector x ForceMagnitude</c>,
+        /// MyThrust.cs:188). Vector3I.Zero when the template supplied no
+        /// direction.
         /// </summary>
         public Vector3I GridThrustDirection => _direction;
 

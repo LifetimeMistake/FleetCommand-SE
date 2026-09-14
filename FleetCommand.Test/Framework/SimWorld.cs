@@ -348,8 +348,21 @@ namespace FleetCommand.Test.Framework
         private void Phase5_AggregateForce()
         {
             _phaseTrace.Add(PhaseNames[4]);
-            // Aggregate thruster force and gyro torque from values written by
-            // callbacks. No blocks exist this stage.
+            // Aggregate thruster force (and later, gyro torque) from values
+            // written by callbacks. : each grid's ForceAggregator
+            // gates its thrusters (enabled/functional/powered/
+            // environmentally effective), converts override or group
+            // demand into delivered thrust scaled by the bus's phase-4
+            // DeliveredRatio, and sums it by grid-body direction. Disposed
+            // grids (NRE guard) are skipped; their natives are gone.
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.ForceAggregator.Aggregate();
+                }
+            }
         }
 
         private void Phase6_ApplyImpulses()
@@ -376,6 +389,18 @@ namespace FleetCommand.Test.Framework
                 if (gravity != Vector3.Zero)
                 {
                     body.ApplyLinearImpulse(gravity * body.Mass * dt);
+                }
+            }
+            // : apply each grid's ONE resultant body-space thrust
+            // impulse at the grid center of mass (the verified game
+            // application point, MyThrusterBlockThrustComponent.cs:201 —
+            // so fixed thrusters generate no torque from block position).
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.ForceAggregator.ApplyThrust(dt);
                 }
             }
         }
@@ -405,6 +430,18 @@ namespace FleetCommand.Test.Framework
                     {
                         _bodies[i].SynchronizeFromHavok();
                     }
+                }
+            }
+            // ,  step 6: update each thruster's
+            // CurrentThrust after the physics interval (the delivered
+            // force the phase 5 aggregation computed and phase 6 applied),
+            // so the value is readable from the next tick's callbacks.
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.ForceAggregator.UpdateThrusterTelemetry();
                 }
             }
         }
