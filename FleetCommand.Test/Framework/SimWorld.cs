@@ -51,6 +51,7 @@ namespace FleetCommand.Test.Framework
         private readonly List<SimRigidBody> _bodies = new List<SimRigidBody>();
         private readonly List<SimCubeGrid> _grids = new List<SimCubeGrid>();
         private readonly List<SimFunctionalBlock> _functionalBlocks = new List<SimFunctionalBlock>();
+        private readonly List<SimShipConnector> _connectors = new List<SimShipConnector>();
         private long _nextEntityId = 1;
         private bool _disposed;
 
@@ -155,6 +156,37 @@ namespace FleetCommand.Test.Framework
                 throw new ArgumentNullException(nameof(block));
             }
             _functionalBlocks.Add(block);
+        }
+
+        /// <summary>Registers a connector so phase 5 can evaluate docking capture each tick.</summary>
+        internal void RegisterConnector(SimShipConnector connector)
+        {
+            if (connector == null)
+            {
+                throw new ArgumentNullException(nameof(connector));
+            }
+            _connectors.Add(connector);
+        }
+
+        /// <summary>Adds a rigid constraint (e.g. a connector's fixed constraint) to the world.</summary>
+        internal void AddConstraint(HkConstraint constraint)
+        {
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+            {
+                _hkWorld.AddConstraint(constraint);
+            }
+        }
+
+        /// <summary>Removes a rigid constraint from the world.</summary>
+        internal void RemoveConstraint(HkConstraint constraint)
+        {
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+            {
+                if (constraint.InWorld)
+                {
+                    _hkWorld.RemoveConstraint(constraint);
+                }
+            }
         }
 
         /// <summary>
@@ -374,6 +406,13 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.Aggregate();
                 }
             }
+            // : evaluate connector docking capture () over
+            // the deterministic connector registry, so a connector's
+            // Connectable state is established before actuation each tick
+            // (Individual grids need not be non-disposed here — the
+            // registry only holds connectors; a closed connector is
+            // skipped by the gate).
+            ConnectorSystem.EvaluateCapture(_connectors, Profile);
         }
 
         private void Phase6_ApplyImpulses()
@@ -491,9 +530,19 @@ namespace FleetCommand.Test.Framework
             {
                 return;
             }
-            // Deterministic teardown in reverse spawn order: remove each body
-            // from the world, then release the body and its shape, close each
-            // grid (and its blocks), then dispose the HkWorld.
+            // Deterministic teardown in reverse spawn order: disconnect any
+            // live connector (removing its Havok constraint while the world
+            // and the bodies are still alive), remove each body from the
+            // world, then release the body and its shape, close each grid
+            // (and its blocks), then dispose the HkWorld.
+            for (int i = 0; i < _connectors.Count; i++)
+            {
+                SimShipConnector connector = _connectors[i];
+                if (!connector.Closed && connector.PartnerInternal != null)
+                {
+                    connector.Disconnect();
+                }
+            }
             for (int i = _bodies.Count - 1; i >= 0; i--)
             {
                 SimRigidBody body = _bodies[i];
@@ -507,6 +556,7 @@ namespace FleetCommand.Test.Framework
             _bodies.Clear();
             _grids.Clear();
             _functionalBlocks.Clear();
+            _connectors.Clear();
             _hkWorld.Dispose();
             _scheduled.Clear();
             _updateCallbacks.Clear();
