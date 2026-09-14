@@ -319,12 +319,22 @@ namespace FleetCommand.Test.Framework
         private void Phase4_RecomputePower()
         {
             _phaseTrace.Add(PhaseNames[3]);
-            // Recompute power availability and block IsWorking state. :
-            // recompute IsWorking for every functional block from enablement,
-            // functionality, and power () before actuation. No
-            // power bus yet (); power is the scenario flag
-            // SimFunctionalBlock.IsPowered, assumed available by default.
-            // Disposed blocks (NRE guard) are skipped.
+            // Recompute power availability and block IsWorking state before
+            // actuation.  adds the deterministic per-grid power
+            // bus: phase 4 first recomputes every functional block's
+            // delivered power ratio (priority-ordered demand against the
+            // ideal or finite battery supply), which updates IsPowered,
+            // then recomputes IsWorking from enablement, functionality,
+            // and power (, ). Disposed grids/blocks (NRE
+            // guard) are skipped.
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.PowerBus.Recompute((float)TickClock.FixedStep);
+                }
+            }
             for (int i = 0; i < _functionalBlocks.Count; i++)
             {
                 SimFunctionalBlock block = _functionalBlocks[i];

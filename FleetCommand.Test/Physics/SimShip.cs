@@ -6,14 +6,14 @@ namespace FleetCommand.Test.Physics
     /// <summary>
     /// The ship handle returned by
     /// <see cref="Framework.FleetTestContext.Spawn"/> (). This
-    /// stage provides the physics-side surface: a stable <see cref="Id"/>
+    /// provides the physics-side surface: a stable <see cref="Id"/>
     /// (numeric, ascending in spawn order), the owning <see cref="Grid"/>,
     /// the live rigid-body <see cref="Body"/> state,
     /// <see cref="TerminalSystem"/> (discovery over the grid's blocks,
     /// ), the template-designated <see cref="Controller"/>
-    /// (), and <see cref="SetState"/> for scenario setup and
-    /// ground-truth injection. <see cref="Power"/> belongs to  and
-    /// is not present yet.
+    /// (), the deterministic <see cref="Power"/> bus (),
+    /// and <see cref="SetState"/> for scenario setup and ground-truth
+    /// injection.
     /// </summary>
     public sealed class SimShip
     {
@@ -25,6 +25,15 @@ namespace FleetCommand.Test.Physics
 
         /// <summary>Discovery surface over this grid's blocks ().</summary>
         public IMyGridTerminalSystem TerminalSystem => Grid.TerminalSystem;
+
+        /// <summary>
+        /// The ship's deterministic power bus (): functional
+        /// blocks register demand + priority, batteries register as the
+        /// finite supply (or the template provides an ideal source), and
+        /// phase 4 delivers the per-block power ratio ahead of actuation
+        /// (, ).
+        /// </summary>
+        public SimPowerBus Power => Grid.PowerBus;
 
         /// <summary>The live rigid-body state of the ship's grid.</summary>
         public SimRigidBodyState Body => Grid.Body.GetState();

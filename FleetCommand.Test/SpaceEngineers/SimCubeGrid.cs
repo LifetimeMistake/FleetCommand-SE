@@ -33,6 +33,14 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The grid terminal system used to discover this grid's blocks.</summary>
         public SimGridTerminalSystem TerminalSystem { get; }
 
+        /// <summary>
+        /// The grid's deterministic power bus (, ): the
+        /// ship's <c>SimShip.Power</c>. Functional blocks register as
+        /// consumers and batteries as supply when added to the grid; the
+        /// world recomputes it in tick phase 4.
+        /// </summary>
+        public SimPowerBus PowerBus { get; }
+
         /// <summary>Also the grid's user-visible terminal name (settable).</summary>
         public string CustomName { get; set; }
 
@@ -55,6 +63,7 @@ namespace FleetCommand.Test.SpaceEngineers
             GridSize = gridSize;
             CustomName = name;
             TerminalSystem = new SimGridTerminalSystem(this);
+            PowerBus = new SimPowerBus(this);
         }
 
         /// <inheritdoc />
@@ -162,6 +171,16 @@ namespace FleetCommand.Test.SpaceEngineers
             }
             _blockByPosition.Add(block.Position, block);
             TerminalSystem.RegisterBlock(block);
+            SimFunctionalBlock functional = block as SimFunctionalBlock;
+            if (functional != null)
+            {
+                PowerBus.RegisterConsumer(functional);
+            }
+            SimBatteryBlock battery = block as SimBatteryBlock;
+            if (battery != null)
+            {
+                PowerBus.RegisterSupply(battery);
+            }
         }
 
         /// <summary>

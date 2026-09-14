@@ -36,6 +36,13 @@ namespace FleetCommand.Test.Templates
 
         /// <summary>A text panel / LCD (IMyTextPanel). .</summary>
         TextPanel,
+
+        /// <summary>
+        /// A battery (IMyBatteryBlock): the ship's finite power supply for
+        /// its SimPowerBus (). Contributes an axis-aligned box to
+        /// shape and mass like any block.
+        /// </summary>
+        Battery,
     }
 
     /// <summary>
@@ -66,8 +73,35 @@ namespace FleetCommand.Test.Templates
         /// <summary>Grid-local orientation (no effect on box mass; carried for later stages).</summary>
         public Quaternion Orientation { get; }
 
-        /// <summary>The block kind. Only <see cref="BlockKind.Standard"/> and <see cref="BlockKind.FixedThruster"/> exist this stage.</summary>
+        /// <summary>The block kind. Standard and fixed thrusters are physical; the rest arrive with their stages.</summary>
         public BlockKind Kind { get; }
+
+        /// <summary>
+        /// Battery maximum output power in MW (used when <see cref="Kind"/>
+        /// is <see cref="BlockKind.Battery"/>; default 0). .
+        /// </summary>
+        public float MaxOutput { get; }
+
+        /// <summary>
+        /// Battery maximum charging input power in MW (used when
+        /// <see cref="Kind"/> is <see cref="BlockKind.Battery"/>;
+        /// default 0). .
+        /// </summary>
+        public float MaxInput { get; }
+
+        /// <summary>
+        /// Battery capacity in MWh (used when <see cref="Kind"/> is
+        /// <see cref="BlockKind.Battery"/>; default 0). .
+        /// </summary>
+        public float MaxStoredPower { get; }
+
+        /// <summary>
+        /// Battery initial charge as a fraction of
+        /// <see cref="MaxStoredPower"/> (0..1, default 1 — a spawned
+        /// battery starts full). Used when <see cref="Kind"/> is
+        /// <see cref="BlockKind.Battery"/>. .
+        /// </summary>
+        public float InitialStoredPower { get; }
 
         /// <summary>
         /// Grid-local center in meters: ((Min + Max) · 0.5) · GridSize,
@@ -95,7 +129,9 @@ namespace FleetCommand.Test.Templates
 
         public TemplateBlock(string name, Vector3I min, float dryMass, float gridSize,
             Vector3I? size = null, float inventoryMass = 0f,
-            Quaternion? orientation = null, BlockKind kind = BlockKind.Standard)
+            Quaternion? orientation = null, BlockKind kind = BlockKind.Standard,
+            float maxOutput = 0f, float maxInput = 0f,
+            float maxStoredPower = 0f, float initialStoredPower = 1f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -117,6 +153,10 @@ namespace FleetCommand.Test.Templates
             InventoryMass = inventoryMass;
             Orientation = orientation ?? Quaternion.Identity;
             Kind = kind;
+            MaxOutput = maxOutput;
+            MaxInput = maxInput;
+            MaxStoredPower = maxStoredPower;
+            InitialStoredPower = initialStoredPower;
 
             Vector3I max = Min + Size - Vector3I.One;
             Vector3 cellSum = (BlockCenter(min) + BlockCenter(max)) * (0.5f * gridSize);

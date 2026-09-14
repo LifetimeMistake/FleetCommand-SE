@@ -190,7 +190,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimFunctionalBlock block = SpawnFunctionalBlock();
             Assert.That(block.Enabled, Is.True);
             Assert.That(block.IsFunctional, Is.True);
-            Assert.That(block.IsPowered, Is.True, "Power is assumed available before .");
+            Assert.That(block.IsPowered, Is.True, "An ideal source (no battery) fully powers a functional block.");
             Assert.That(block.IsWorking, Is.True);
         }
 
@@ -220,14 +220,32 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void FunctionalBlock_PowerTransition_AppliedInPhase4()
         {
-            SimFunctionalBlock block = SpawnFunctionalBlock();
+            // Power is a system quantity recomputed in tick phase 4: a
+            // supply change alone must take effect only at the next Step.
+            // : the ship's battery switching to Recharge cuts the
+            // supply; the block's working state must not change until
+            // phase 4 applies it (no immediate recompute from the control
+            // write).
+            ShipTemplate template = new ShipTemplate(
+                "T", 2.5f,
+                new[]
+                {
+                    new TemplateBlock("Battery", new Vector3I(0, 0, 0), 400f, 2.5f,
+                        kind: BlockKind.Battery, maxOutput: 4f, maxStoredPower: 10f),
+                    new TemplateBlock("Load", new Vector3I(2, 0, 0), 400f, 2.5f, kind: BlockKind.FixedThruster),
+                });
+            SimShip ship = Fc.Spawn(template, SpawnState.At(Vector3D.Zero));
+            SimFunctionalBlock block = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
+            block.PowerDemand = 4f;
+            SimBatteryBlock battery = (SimBatteryBlock)ship.TerminalSystem.GetBlockWithName("Battery");
+
+            Fc.Step();
+            Assert.That(block.IsWorking, Is.True, "A powered load works.");
+
             int workingEvents = 0;
             block.WorkingChanged += _ => workingEvents++;
 
-            // Power is a system quantity recomputed in tick phase 4: a power
-            // change alone must take effect only at the next Step (no
-            // immediate recompute from the scenario flag).
-            block.IsPowered = false;
+            battery.ChargeMode = ChargeMode.Recharge; // supply cut
             Assert.That(block.IsWorking, Is.True,
                 "A power change alone is applied by phase 4; IsWorking is unchanged until the next Step.");
             Assert.That(workingEvents, Is.EqualTo(0));
@@ -236,7 +254,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(block.IsWorking, Is.False, "Phase 4 must apply the power change.");
             Assert.That(workingEvents, Is.EqualTo(1), "Phase 4 must fire WorkingChanged on the transition.");
 
-            block.IsPowered = true;
+            battery.ChargeMode = ChargeMode.Auto; // restore supply
             Fc.Step();
             Assert.That(block.IsWorking, Is.True, "Restoring power must restore working state at the next Step.");
         }
