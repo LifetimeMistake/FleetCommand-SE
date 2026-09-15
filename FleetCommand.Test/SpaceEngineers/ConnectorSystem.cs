@@ -126,18 +126,44 @@ namespace FleetCommand.Test.SpaceEngineers
         // — .5: the two-stage connect (approach then lock) —
 
         // Approach convergence (deterministic, fixed 1/60 s step): a
-        // physical, critically-damped spring between the two connector
-        // points (force at each point via the reduced mass, natural
-        // frequency wn, with critical damping c = 2 mr wn). Applied at the
-        // connector points, the pull both translates the bodies together
-        // and (being off-COM) rotates them to align, as the game's
-        // CreateConstraint magnet does. A secondary gentle servo aligns the
-        // connect axes to anti-parallel for the lock gate.
-        private const float ApproachWn = 5f;     // spring natural frequency (rad/s)
-        private const float ApproachAmax = 30f;  // max pull acceleration (m/s^2)
-        private const float ApproachAngularGain = 10f;  // rad/s per rad of axis error
-        private const float ApproachAngularStep = 1f;
-        private const float ApproachAngularCap = 4f;    // rad/s
+        // physical, under-damped spring between the two connector
+        // connection frames — force at each frame (via the reduced mass,
+        // natural frequency wn with damping c), applied at the frames
+        // themselves (off the center of mass). Applying the force at r
+        // yields, per body, BOTH a linear impulse and the angular
+        // impulse τ = r × F, so the pull translates the bodies together
+        // AND, being off-COM, rotates them into alignment as a
+        // consequence of the coupled dynamics — exactly the game's
+        // CreateConstraint magnet tied at the connector frames. No
+        // separate alignment controller: rotation emerges from r × F.
+        private const float ApproachWn = 2f;      // magnet spring natural frequency (rad/s)
+        private const float ApproachAmax = 6f;    // max pull acceleration (m/s^2)
+        private const float ApproachDampingRatio = 1f;  // near-critically damped
+        // The fixed frame constraint's rotational tie (the torsional
+        // spring that restores the two connection frames to coincident
+        // orientation), as a torsion spring on the relative
+        // frame-orientation error with the reduced rotational inertia.
+        private const float ApproachRotWn = 1.2f;     // torsion natural frequency (rad/s)
+        private const float ApproachRotDamping = 1f;
+        private const float ApproachRotAmax = 1.5f;   // max torsion acceleration (rad/s^2)
+
+        /// <summary>The magnet spring natural frequency (rad/s).</summary>
+        internal static float MagnetNaturalFrequency => ApproachWn;
+
+        /// <summary>The magnet's maximum pull acceleration (m/s^2).</summary>
+        internal static float MagnetMaxAcceleration => ApproachAmax;
+
+        /// <summary>The magnet spring damping ratio.</summary>
+        internal static float MagnetDampingRatio => ApproachDampingRatio;
+
+        /// <summary>The frame-tie torsion natural frequency (rad/s).</summary>
+        internal static float FrameTieNaturalFrequency => ApproachRotWn;
+
+        /// <summary>The frame-tie torsion damping ratio.</summary>
+        internal static float FrameTieDampingRatio => ApproachRotDamping;
+
+        /// <summary>The frame-tie maximum torsion acceleration (rad/s^2).</summary>
+        internal static float FrameTieMaxAcceleration => ApproachRotAmax;
 
         /// <summary>
         /// Starts the approach for a connectable pair (the game's
@@ -180,11 +206,13 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>
         /// Tick phase 6: apply the approach convergence — a pull on each
-        /// body at its connector point driving the connector points to
-        /// coincidence, plus an alignment torque rotating each grid's
-        /// connect axis to anti-parallel — matching the game's
-        /// <c>CreateConstraint</c> magnet (a hinge at the connector frames
-        /// with finite strength). Only the master drives; deterministic.
+        /// body at its connector connection frame, driving the connector
+        /// frames to coincidence — matching the game's
+        /// <c>CreateConstraint</c> magnet (a fixed constraint at the two
+        /// connector frames, MyShipConnector.cs:1882). The off-COM force
+        /// couples translation and rotation: the torque r × F rotates the
+        /// connect axes into alignment as a consequence of the dynamics,
+        /// not by command. Only the master drives; deterministic.
         /// </summary>
         public static void ApplyApproach(IReadOnlyList<SimShipConnector> connectors)
         {
@@ -221,75 +249,115 @@ namespace FleetCommand.Test.SpaceEngineers
                 return;
             }
 
-            Vector3D rA = a.WorldPosition;
-            Vector3D rB = b.WorldPosition;
-            Vector3D axisA = a.ConnectAxisWorld;
-            Vector3D axisB = b.ConnectAxisWorld;
+            Vector3D rA = a.WorldPosition;   // A's connection frame
+            Vector3D rB = b.WorldPosition;   // B's connection frame
 
-            // The spring between the connector points, applied at each
-            // body's center of mass: a critically-damped spring on the
-            // reduced mass that pulls the bodies together in pure
-            // translation (no off-COM torque), while a separate stiff
-            // alignment servo below rotates the connect axes anti-parallel.
-            // Decoupling translation from rotation keeps the convergence
-            // stable as the heavy hulls close — the magnetic pull drives
-            // the connect points together, the alignment brings the faces
-            // to anti-parallel, and only on meet does the pair lock.
+            // The magnet: an under-damped spring between the two
+            // connection frames, on the reduced mass — force at A's frame
+            // pulling it to B's, and its equal-and-opposite reaction at
+            // B's frame. Applied at the frames (off-COM), each force
+            // delivers both motion of the center of mass and the torque
+            // r × F, so coupling (translate + rotate into alignment)
+            // falls out of r × F naturally — no separate alignment
+            // controller.
             float mRed = (ba.Mass * bb.Mass) / (ba.Mass + bb.Mass);
             float k = mRed * ApproachWn * ApproachWn;
-            float c = 2f * mRed * ApproachWn;
-            Vector3 sepVec = (Vector3)(rA - rB); // A's point relative to B's
+            float c = 2f * ApproachDampingRatio * mRed * ApproachWn;
+            Vector3 sepVec = (Vector3)(rA - rB); // A's frame relative to B's
+            float sepLen = sepVec.Length();
             Vector3 dv = (Vector3)(a.PointVelocityWorld - b.PointVelocityWorld);
-            Vector3 force = -k * sepVec - c * dv;
+            if (sepLen < 1e-6f)
+            {
+                return;
+            }
+            Vector3 sepDir = sepVec / sepLen;
+            // A central spring along the line between the two frames:
+            // the damping only acts along the separation axis (the
+            // relative linear velocity projected onto it), so the two
+            // equal-and-opposite point forces are collinear and the
+            // pair's internal forces conserve angular momentum — no
+            // net spin is injected (the game's connector pull is along
+            // the connector axis).
+            float dvAlong = Vector3.Dot(dv, sepDir);
+            Vector3 force = -(k * sepLen + c * dvAlong) * sepDir;
             float fmax = mRed * ApproachAmax;
             Vector3 impulseA = CapImpulse(force * (float)TickClock.FixedStep, fmax * (float)TickClock.FixedStep);
             if (impulseA != Vector3.Zero)
             {
-                ba.ApplyLinearImpulse(impulseA);
+                ba.ApplyPointImpulse(impulseA, rA);   // linear + r_A × F (off-COM torque)
             }
             if (impulseA != Vector3.Zero)
             {
-                bb.ApplyLinearImpulse(-impulseA);
+                bb.ApplyPointImpulse(-impulseA, rB);  // linear + r_B × (−F) (off-COM torque)
             }
 
-            // Alignment: rotate each grid so its connect axis becomes
-            // anti-parallel to the other's (the approach aligns opposing
-            // axes before the final lock).
-            AlignAxis(ba, axisA, -axisB);
-            AlignAxis(bb, axisB, -axisA);
+            // The fixed frame constraint's rotational tie: a torsion
+            // spring that restores the two connection frames to
+            // coincident orientation (the connect axes anti-parallel).
+            // This is the frame constraint's orientational DOF — the
+            // counterpart to the positional spring above, with each
+            // body's actual rotational inertia.
+            FrameRotationalTie(a, b, ba, bb, (float)TickClock.FixedStep);
+        }
+
+        /// <summary>
+        /// Restores the two connection frames to coincident orientation:
+        /// a torsion spring on the RELATIVE frame-orientation error
+        /// (target: the connect axes anti-parallel), applied as an
+        /// equal-and-opposite angular impulse to the two bodies scaled by
+        /// the reduced rotational inertia about the error axis. Because
+        /// the correction acts only on the relative DOF and adds no net
+        /// angular impulse, it is intrinsically stable — the physical
+        /// counterpart of the positional magnet (the fixed constraint
+        /// ties both position and orientation of the frames).
+        /// </summary>
+        private static void FrameRotationalTie(
+            SimShipConnector a, SimShipConnector b, SimRigidBody ba, SimRigidBody bb, float dt)
+        {
+            Vector3 axisA = (Vector3)Vector3D.Normalize(a.ConnectAxisWorld);
+            Vector3 axisB = (Vector3)Vector3D.Normalize(b.ConnectAxisWorld);
+            // Error axis: rotate A's connect axis onto anti-parallel of B's.
+            Vector3 cross = Vector3.Cross(axisA, -axisB);
+            float s = cross.Length();
+            if (s < 1e-9f)
+            {
+                return;
+            }
+            float angle = (float)Math.Asin(s > 1f ? 1f : s);
+            Vector3 n = cross / s;
+
+            // Relative angular rate and reduced rotational inertia about
+            // the error axis.
+            Vector3 wRel = (Vector3)(ba.AngularVelocity - bb.AngularVelocity);
+            float rate = Vector3.Dot(wRel, n);
+            float iA = ScalarInertia(ba);
+            float iB = ScalarInertia(bb);
+            float iRed = (iA * iB) / (iA + iB);
+
+            float k = iRed * ApproachRotWn * ApproachRotWn;
+            float cd = 2f * ApproachRotDamping * iRed * ApproachRotWn;
+            float torque = k * angle + cd * rate;
+            float torqueMax = iRed * ApproachRotAmax;
+            Vector3 impulse = CapImpulse(n * (torque * dt), torqueMax * dt);
+            if (impulse == Vector3.Zero)
+            {
+                return;
+            }
+            ba.ApplyAngularImpulse(impulse);   // + on A
+            bb.ApplyAngularImpulse(-impulse);  // reaction on B (no net torque)
+        }
+
+        private static float ScalarInertia(SimRigidBody body)
+        {
+            Vector3 inv = body.InverseInertiaDiagonal;
+            float invMean = (inv.X + inv.Y + inv.Z) / 3f;
+            return invMean > 1e-6f ? 1f / invMean : 1f;
         }
 
         private static Vector3 CapImpulse(Vector3 v, float cap)
         {
             float len = v.Length();
             return len > cap ? v / len * cap : v;
-        }
-
-        private static void AlignAxis(SimRigidBody body, Vector3D axis, Vector3D desired)
-        {
-            Vector3 cur = (Vector3)Vector3D.Normalize(axis);
-            Vector3 des = (Vector3)Vector3D.Normalize(desired);
-            Vector3 cross = Vector3.Cross(cur, des);
-            float crossLen = cross.Length();
-            if (crossLen < 1e-9f)
-            {
-                return;
-            }
-            float angle = (float)Math.Asin(ClampF(crossLen, -1f, 1f));
-            Vector3 axisRot = cross / crossLen;
-            Vector3 desAngVel = axisRot * Math.Min(ApproachAngularGain * angle, ApproachAngularCap);
-            Vector3 delta = (desAngVel - (Vector3)body.AngularVelocity) * ApproachAngularStep;
-            if (delta.Length() > ApproachAngularCap)
-            {
-                delta = Vector3.Normalize(delta) * ApproachAngularCap;
-            }
-            // Scalar inertia estimate from the inverse-inertia diagonal
-            // mean; drives the axis toward anti-parallel (the lock's
-            // angular tolerance absorbs the residual).
-            Vector3 invDiag = body.InverseInertiaDiagonal;
-            float invMean = (invDiag.X + invDiag.Y + invDiag.Z) / 3f;
-            float inertia = invMean > 1e-6f ? 1f / invMean : 1f;
-            body.ApplyAngularImpulse(delta * inertia);
         }
 
         /// <summary>
@@ -342,11 +410,6 @@ namespace FleetCommand.Test.SpaceEngineers
             }
             double relativeVelocity = (a.PointVelocityWorld - b.PointVelocityWorld).Length();
             return relativeVelocity <= profile.ConnectorLinearVelocityMax;
-        }
-
-        private static float ClampF(float v, float lo, float hi)
-        {
-            return v < lo ? lo : v > hi ? hi : v;
         }
     }
 }

@@ -291,6 +291,23 @@ namespace FleetCommand.Test.Physics
             }
         }
 
+        /// <summary>
+        /// Applies a world-frame impulse at <paramref name="worldPoint"/>
+        /// (off the center of mass), producing both a linear velocity
+        /// change and an angular velocity change <c>I⁻¹ (r × impulse)</c>
+        /// — the game's <c>rigidBody.ApplyPointImpulse(impulse, position)</c>
+        /// (MyGridPhysics.cs:1339, MyPhysicsBody.cs:1246). The point is
+        /// translated to origin-relative (body-local) space, matching how
+        /// the body stores its position.
+        /// </summary>
+        public void ApplyPointImpulse(Vector3 impulse, Vector3D worldPoint)
+        {
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+            {
+                _rigidBody.ApplyPointImpulse(impulse, (Vector3)(worldPoint - ScenarioOrigin));
+            }
+        }
+
         /// <summary>Inserts the rigid body into the world (spawn).</summary>
         internal void AddToWorld(HkWorld world)
         {
