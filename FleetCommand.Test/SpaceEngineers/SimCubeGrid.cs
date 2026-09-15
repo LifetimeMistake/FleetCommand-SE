@@ -72,6 +72,27 @@ namespace FleetCommand.Test.SpaceEngineers
         /// </summary>
         public BaseControlSystem BaseControl { get; }
 
+        /// <summary>
+        /// The grid's controller rotation control (.6 Part 1): the
+        /// world calls <see cref="RotationControlSystem.ComputeControlTorque"/>
+        /// in phase 5 to convert under-control controllers'
+        /// RotationIndicator/RollIndicator into
+        /// <see cref="GyroRateSystem.ControlTorque"/> (the game's
+        /// <c>MyShipController.MoveAndRotate</c> :1816-1824). Controllers
+        /// register when added to the grid.
+        /// </summary>
+        public RotationControlSystem RotationControl { get; }
+
+        /// <summary>
+        /// The grid's remote-control autopilot (.6 Part 2): the
+        /// world calls <see cref="AutopilotSystem.ComputeAutopilot"/> in
+        /// phase 5 to fly an enabled remote toward its waypoint through the
+        /// same <see cref="GyroRateSystem.ControlTorque"/> channel and the
+        /// <see cref="ForceAggregator"/> AI thrust path. Remotes register
+        /// when added to the grid.
+        /// </summary>
+        public AutopilotSystem Autopilot { get; }
+
         /// <summary>Also the grid's user-visible terminal name (settable).</summary>
         public string CustomName { get; set; }
 
@@ -98,6 +119,8 @@ namespace FleetCommand.Test.SpaceEngineers
             ForceAggregator = new ForceAggregator(this);
             GyroRateSystem = new GyroRateSystem(this);
             BaseControl = new BaseControlSystem(this);
+            RotationControl = new RotationControlSystem(this);
+            Autopilot = new AutopilotSystem(this);
         }
 
         /// <inheritdoc />
@@ -234,6 +257,12 @@ namespace FleetCommand.Test.SpaceEngineers
             if (controller != null)
             {
                 BaseControl.RegisterController(controller);
+                RotationControl.RegisterController(controller);
+            }
+            SimRemoteControl remote = block as SimRemoteControl;
+            if (remote != null)
+            {
+                Autopilot.RegisterRemote(remote);
             }
         }
 

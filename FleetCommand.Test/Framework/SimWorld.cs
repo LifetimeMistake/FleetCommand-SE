@@ -401,6 +401,27 @@ namespace FleetCommand.Test.Framework
                     grid.BaseControl.ComputeBaseDemand();
                 }
             }
+            // .6: the controller's rotation control writes the
+            // gyro ControlTorque (last-under-control-wins), then the
+            // remote autopilot — which flies through the SAME gyro
+            // channel — runs after so it wins when enabled (the game's
+            // per-frame last-writer assignment).
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.RotationControl.ComputeControlTorque();
+                }
+            }
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    grid.Autopilot.ComputeAutopilot();
+                }
+            }
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -507,6 +528,17 @@ namespace FleetCommand.Test.Framework
                     if (!_bodies[i].IsDisposed)
                     {
                         _bodies[i].SynchronizeFromHavok();
+                    }
+                }
+                // .6: clamp each grid's post-physics velocity to its
+                // enabled autopilot's SpeedLimit (MovementBlockMaxSpeed), so
+                // the cap holds on the observed post-step velocity.
+                for (int i = 0; i < _grids.Count; i++)
+                {
+                    SimCubeGrid grid = _grids[i];
+                    if (!grid.IsDisposed)
+                    {
+                        grid.Autopilot.ApplySpeedLimitAfterPhysics();
                     }
                 }
             }
