@@ -102,6 +102,10 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(con.ThrowOut, Is.False);
             Assert.That(con.CollectAll, Is.False);
             Assert.That(con.PullStrength, Is.Zero);
+            // IsParkingEnabled is stored (default true, the game's
+            // representation); the rest are out-of-contract.
+            Assert.That(con.IsParkingEnabled, Is.True);
+            con.IsParkingEnabled = false; // a stored value, no throw
             Assert.That(con.IsParkingEnabled, Is.False);
 
             Assert.That((Action)(() => con.ThrowOut = true), Throws.TypeOf<NotSupportedException>()
@@ -110,8 +114,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 .With.Message.Contains("CollectAll"));
             Assert.That((Action)(() => con.PullStrength = 1f), Throws.TypeOf<NotSupportedException>()
                 .With.Message.Contains("PullStrength"));
-            Assert.That((Action)(() => con.IsParkingEnabled = true), Throws.TypeOf<NotSupportedException>()
-                .With.Message.Contains("IsParkingEnabled"));
         }
 
         // — capture gates: each individually rejects when exceeded —
