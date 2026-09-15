@@ -87,6 +87,14 @@ namespace FleetCommand.Test.Framework
         /// </summary>
         public float ConnectorApproachAngle { get; }
 
+        /// <summary>
+        /// Remote-control autopilot (.6): the distance (m) to the
+        /// current waypoint below which it is considered reached and the
+        /// autopilot advances to the next one (or stops on the last) —
+        /// the sim's waypoint advance radius.
+        /// </summary>
+        public float AutopilotArrivalDistance { get; }
+
         public SePhysicsProfile(
             string name,
             float maxLinearVelocity = 0f,
@@ -99,7 +107,8 @@ namespace FleetCommand.Test.Framework
             float connectorLinearVelocityMax = 0.5f,
             float connectorAngularVelocityMax = 0.5f,
             float connectorApproachGap = 0.2f,
-            float connectorApproachAngle = 0.02f)
+            float connectorApproachAngle = 0.02f,
+            float autopilotArrivalDistance = 3f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -117,6 +126,7 @@ namespace FleetCommand.Test.Framework
             ConnectorAngularVelocityMax = connectorAngularVelocityMax;
             ConnectorApproachGap = connectorApproachGap;
             ConnectorApproachAngle = connectorApproachAngle;
+            AutopilotArrivalDistance = autopilotArrivalDistance;
         }
 
         /// <summary>

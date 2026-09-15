@@ -273,6 +273,31 @@ namespace FleetCommand.Test.Physics
                 AngularVelocity);
         }
 
+        /// <summary>
+        /// Clamps the body's world linear velocity magnitude to
+        /// <paramref name="maxSpeed"/> (the game's per-frame grid velocity
+        /// clamp to the max speed / <c>MovementBlockMaxSpeed</c>,
+        /// MyCubeGrid.cs:4573). A no-op when already at or below the cap.
+        /// </summary>
+        public void ClampLinearSpeed(float maxSpeed)
+        {
+            if (_disposed || _rigidBody == null || maxSpeed <= 0f)
+            {
+                return;
+            }
+            Vector3 v = _linearVelocity;
+            float len = v.Length();
+            if (len > maxSpeed && len > 0f)
+            {
+                Vector3 clamped = v * (maxSpeed / len);
+                using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+                {
+                    _rigidBody.LinearVelocity = clamped;
+                }
+                _linearVelocity = clamped;
+            }
+        }
+
         /// <summary>Applies a world-frame linear impulse (N·s) at the body's center of mass.</summary>
         public void ApplyLinearImpulse(Vector3 impulse)
         {
