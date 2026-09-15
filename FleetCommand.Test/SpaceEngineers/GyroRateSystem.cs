@@ -44,6 +44,21 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>Tiny torque threshold below which nothing is applied (game: TorqueSqLenTh = 0.0001).</summary>
         private const float TorqueSqLenThreshold = 0.0001f;
 
+        /// <summary>
+        /// The manual path's angular-velocity dampening blend (game:
+        /// MyGridGyroSystem.MAX_SLOWDOWN = WELD_LANDING_GEARS ? 0.8 : 0.93).
+        /// </summary>
+        private const float MaxSlowdown = 0.93f;
+
+        /// <summary>
+        /// Inertia-tensor-limit clamp divisor (game: MyGridGyroSystem.INV_TENSOR_MAX_LIMIT = 125000).
+        /// </summary>
+        private const float InvTensorMaxLimit = 125000f;
+
+        /// <summary>Slowdown torque multiplier for small and large grids (game: MyFakes 5f / 2f).</summary>
+        private const float SlowdownTorqueMultiplierSmall = 5f;
+        private const float SlowdownTorqueMultiplierLarge = 2f;
+
         /// <summary>Large-rate override ramp frame count (MyGridGyroSystem.cs:313).</summary>
         private const int LargeRateRampFrames = 120;
 
@@ -210,15 +225,31 @@ namespace FleetCommand.Test.SpaceEngineers
                 return;
             }
 
-            // The override loop only runs when there is override force
-            // (the game's Update() routes to UpdateOverriddenGyros only
-            // when m_maxOverrideForce != 0; with none it uses the
-            // separate manual path, which we model via ControlTorque).
-            if (_maxOverrideForce <= 0f)
+            // The game's Update() routes on maxOverrideForce
+            // (MyGridGyroSystem.cs:385-404): override gyros present ->
+            // the override loop; otherwise the separate manual path
+            // (UpdateGyros, :201-272) which consumes ControlTorque and
+            // provides angular-velocity dampening. This is the route the
+            // controller's rotation control (Part 1) and the autopilot's
+            // turn (Part 2) flow through.
+            if (_maxOverrideForce > 0f)
             {
-                return;
+                ApplyOverrideTorque(body, dtSeconds);
             }
+            else if (_maxGyroForce > 0f)
+            {
+                ApplyManualTorque(body, dtSeconds);
+            }
+        }
 
+        /// <summary>
+        /// The game's override loop (<c>MyGridGyroSystem.UpdateOverriddenGyros</c>,
+        /// :274-304) — the override-acceleration-ramp policy when override
+        /// gyros are present. Extracted from the former single
+        /// <see cref="ApplyTorque"/> body.
+        /// </summary>
+        private void ApplyOverrideTorque(SimRigidBody body, float dtSeconds)
+        {
             // The gyro-system supplied power ratio: the force-weighted
             // phase-4 DeliveredRatio of the used gyros (the exact
             // per-gyro value when they share a tier; the game's single
@@ -263,6 +294,153 @@ namespace FleetCommand.Test.SpaceEngineers
                 Vector3 worldTorque = Vector3.TransformNormal(torque, (Matrix)_grid.WorldMatrix);
                 body.ApplyAngularImpulse(worldTorque * dtSeconds);
             }
+        }
+
+        /// <summary>
+        /// The game's manual path (<c>MyGridGyroSystem.UpdateGyros</c>,
+        /// :201-272), routed to when there are no override gyros: this is
+        /// what consumes the controller's rotation control (Part 1) and the
+        /// autopilot's turn (Part 2) — both write <see cref="ControlTorque"/>
+        /// and the single, non-override authority pool drives the grid. It
+        /// applies the angular-velocity slowdown (dampening) plus the
+        /// ControlTorque torque:
+        /// <c>torque = clamp(ControlTorque, ±1) · m_maxGyroForce /
+        /// max(1, num4·125000)</c>, scaled by the normalized inertia-per-
+        /// axis and the supplied power (:254-266), with the slowdown
+        /// dampening clamped per-gyro-force and gated off on axes the
+        /// control actively drives (:231-250).
+        /// </summary>
+        private void ApplyManualTorque(SimRigidBody body, float dtSeconds)
+        {
+            float num = GyroPowerRatio();
+            if (!(num > 0f))
+            {
+                return;
+            }
+            if (!_controlTorque.IsValid())
+            {
+                _controlTorque = Vector3.Zero;
+            }
+
+            // world -> grid so the control and the angular velocity share a
+            // frame (game :227-229).
+            Matrix worldToGrid = Matrix.Transpose(((Matrix)_grid.WorldMatrix).GetOrientation());
+            Vector3 vector = Vector3.Transform(body.AngularVelocity, worldToGrid);
+            if (!vector.IsValid())
+            {
+                vector = Vector3.Zero;
+            }
+
+            // num2 = (1 - MAX_SLOWDOWN)·(1 - power) + MAX_SLOWDOWN (:230).
+            float num2 = (1f - MaxSlowdown) * (1f - num) + MaxSlowdown;
+            Vector3 slowdownTorque = -vector;
+
+            // num3 = per-grid-size slowdown torque multiplier (MyFakes:
+            // small 5, large 2) (:232-233). vector2 = maxGyroForce·num3.
+            float num3 = _grid.GridSizeEnum == VRage.Game.MyCubeSize.Large
+                ? SlowdownTorqueMultiplierLarge
+                : SlowdownTorqueMultiplierSmall;
+            Vector3 vector2 = new Vector3(_maxGyroForce * num3);
+
+            // Per-axis gating (:243): slowdown is removed on any axis the
+            // control torque actively drives (same sign), so the control
+            // isn't fighting the dampener.
+            Vector3 vector3 = Vector3.One - OneWhereZero(Vector3.Sign(vector) - Vector3.Sign(_controlTorque));
+
+            Vector3 invInertia = body.InverseInertiaDiagonal;
+            slowdownTorque *= num3;
+            slowdownTorque = DivideComponentWise(slowdownTorque, invInertia); // / inv-inertia = x inertia -> torque
+            slowdownTorque = Vector3.Clamp(slowdownTorque, -vector2, vector2) * vector3;
+            if (slowdownTorque.LengthSquared() > 0.0001f && dtSeconds > 0f)
+            {
+                Vector3 worldSlowdown = Vector3.TransformNormal(slowdownTorque * num2, (Matrix)_grid.WorldMatrix);
+                body.ApplyAngularImpulse(worldSlowdown * dtSeconds);
+            }
+
+            // The ControlTorque torque (:251-266): clamp to ±1, scale by
+            // gyro force and the inverse-tensor limit, then by power and
+            // the normalized per-axis inertia.
+            float iMax = MaxInertia(invInertia);
+            float num4 = iMax > 0f ? 1f / iMax : 0f;
+            float num5 = Math.Max(1f, num4 * InvTensorMaxLimit);
+            Vector3 torque = Vector3.Clamp(_controlTorque, -Vector3.One, Vector3.One) * _maxGyroForce / num5;
+            torque *= num;
+
+            Vector3 scale = NormalizedInertiaScale(invInertia);
+            torque *= scale;
+
+            _lastGridTorque = torque;
+            if (torque.LengthSquared() >= TorqueSqLenThreshold && dtSeconds > 0f)
+            {
+                Vector3 worldTorque = Vector3.TransformNormal(torque, (Matrix)_grid.WorldMatrix);
+                body.ApplyAngularImpulse(worldTorque * dtSeconds);
+            }
+            _lastSaturated = false;
+        }
+
+        /// <summary>
+        /// The game's <c>Vector3.IsZeroVector</c> on a vector of signed
+        /// axis differences (values in {-2,-1,0,1,2}): 1 where the
+        /// difference is exactly zero, else 0. Used for the manual path's
+        /// per-axis slowdown gating.
+        /// </summary>
+        private static Vector3 OneWhereZero(Vector3 signDiff)
+        {
+            return new Vector3(
+                signDiff.X == 0f ? 1f : 0f,
+                signDiff.Y == 0f ? 1f : 0f,
+                signDiff.Z == 0f ? 1f : 0f);
+        }
+
+        /// <summary>Inertia per axis computed from the inverse-inertia diagonal (the sim's diagonal inertia model).</summary>
+        private static float MaxInertia(Vector3 invInertia)
+        {
+            float ix = AxisInertia(invInertia.X);
+            float iy = AxisInertia(invInertia.Y);
+            float iz = AxisInertia(invInertia.Z);
+            return Math.Max(Math.Max(ix, iy), iz);
+        }
+
+        private static float AxisInertia(float inv)
+        {
+            return inv <= 1e-9f ? float.MaxValue : 1f / inv;
+        }
+
+        /// <summary>
+        /// The game's normalized inertia-per-axis scale
+        /// (<c>scale = Abs(inertia / inertia.AbsMax())</c>, :256-257):
+        /// the largest inertia axis maps to 1, smaller axes are scaled
+        /// proportionally, so the torque follows the body's rotational
+        /// anisotropy. The sim models inertia as diagonal-only.
+        /// </summary>
+        private static Vector3 NormalizedInertiaScale(Vector3 invInertia)
+        {
+            Vector3 inertia = new Vector3(
+                AxisInertia(invInertia.X),
+                AxisInertia(invInertia.Y),
+                AxisInertia(invInertia.Z));
+            float absMax = Math.Max(Math.Max(Math.Abs(inertia.X), Math.Abs(inertia.Y)), Math.Abs(inertia.Z));
+            if (absMax <= 0f || float.IsInfinity(absMax))
+            {
+                return Vector3.One;
+            }
+            return new Vector3(
+                Math.Abs(inertia.X) / absMax,
+                Math.Abs(inertia.Y) / absMax,
+                Math.Abs(inertia.Z) / absMax);
+        }
+
+        private static Vector3 DivideComponentWise(Vector3 a, Vector3 b)
+        {
+            return new Vector3(
+                SafeDiv(a.X, b.X),
+                SafeDiv(a.Y, b.Y),
+                SafeDiv(a.Z, b.Z));
+        }
+
+        private static float SafeDiv(float a, float b)
+        {
+            return b == 0f ? float.MaxValue : a / b;
         }
 
         /// <summary>
