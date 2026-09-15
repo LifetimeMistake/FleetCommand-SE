@@ -330,8 +330,16 @@ namespace FleetCommand.Test.SpaceEngineers
             if (_approaching)
             {
                 // Release a mid-approach pair: both return to a clean free
-                // state (no residual constraint).
+                // state — no residual constraint AND no stale capture
+                // result, so Status is Unconnected again until the world
+                // re-captures them.
+                SimShipConnector partner = _approachPartner ?? _approachMaster;
                 ConnectorSystem.CancelApproach(this);
+                ResetCapture();
+                if (partner != null && !ReferenceEquals(partner, this))
+                {
+                    partner.ResetCapture();
+                }
             }
         }
 
