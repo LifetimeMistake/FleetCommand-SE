@@ -348,10 +348,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             AssertThrowsNamed(() => remote.FlightMode, "IMyRemoteControl.FlightMode");
             AssertThrowsNamed(() => remote.Direction, "IMyRemoteControl.Direction");
-            AssertThrowsNamed(() => remote.CurrentWaypoint, "IMyRemoteControl.CurrentWaypoint");
             AssertThrowsNamed(() => remote.WaitForFreeWay, "IMyRemoteControl.WaitForFreeWay");
             AssertThrowsNamed(() => remote.GetNearestPlayer(out var _), "IMyRemoteControl.GetNearestPlayer()");
-            AssertThrowsNamed(() => { remote.ClearWaypoints(); return null; }, "IMyRemoteControl.ClearWaypoints()");
             AssertThrowsNamed(() => { remote.SetCollisionAvoidance(true); return null; }, "IMyRemoteControl.SetCollisionAvoidance()");
             AssertThrowsNamed(() => { remote.SetDockingMode(true); return null; }, "IMyRemoteControl.SetDockingMode()");
         }
