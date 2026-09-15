@@ -238,6 +238,11 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 PowerBus.RegisterSupply(battery);
             }
+            SimReactorBlock reactor = block as SimReactorBlock;
+            if (reactor != null)
+            {
+                PowerBus.RegisterProducer(reactor);
+            }
             SimThrust thruster = block as SimThrust;
             if (thruster != null)
             {

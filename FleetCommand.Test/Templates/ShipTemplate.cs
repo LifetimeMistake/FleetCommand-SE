@@ -53,6 +53,14 @@ namespace FleetCommand.Test.Templates
         Battery,
 
         /// <summary>
+        /// A reactor (IMyReactor): a second, finite power producer for
+        /// the ship's SimPowerBus (.7), giving a battery
+        /// something to charge from. Contributes an axis-aligned box to
+        /// shape and mass like any block.
+        /// </summary>
+        Reactor,
+
+        /// <summary>
         /// A ship connector (IMyShipConnector): contributes an
         /// axis-aligned box to shape and mass, and () its
         /// connection frame — the body-fixed frame from which the
@@ -94,8 +102,9 @@ namespace FleetCommand.Test.Templates
         public BlockKind Kind { get; }
 
         /// <summary>
-        /// Battery maximum output power in MW (used when <see cref="Kind"/>
-        /// is <see cref="BlockKind.Battery"/>; default 0). .
+        /// Battery / reactor maximum output power in MW (used when
+        /// <see cref="Kind"/> is <see cref="BlockKind.Battery"/> or
+        /// <see cref="BlockKind.Reactor"/>; default 0).  / 9.7.
         /// </summary>
         public float MaxOutput { get; }
 
