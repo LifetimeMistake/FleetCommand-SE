@@ -38,6 +38,7 @@ namespace FleetCommand.Test.SpaceEngineers
     {
         private bool _isUnderControl;
         private bool _controlThrusters = true;
+        private bool _controlGyros = true;
         private bool _dampenersOverride = true;
         private bool _isMainCockpit;
         private Vector3 _moveIndicator;
@@ -75,6 +76,18 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             get { return _dampenersOverride; }
             set { _dampenersOverride = value; }
+        }
+
+        /// <summary>
+        /// Whether this controller drives the grid gyros (the game's
+        /// <c>m_controlGyros</c>, which gates the whole rotation-control
+        /// block in <c>MyShipController.MoveAndRotate</c> :1816-1824.
+        /// Defaults on, matching the game's controller default.
+        /// </summary>
+        public bool ControlGyros
+        {
+            get { return _controlGyros; }
+            set { _controlGyros = value; }
         }
 
         /// <summary>
