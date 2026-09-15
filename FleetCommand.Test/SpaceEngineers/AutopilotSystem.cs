@@ -342,7 +342,7 @@ namespace FleetCommand.Test.SpaceEngineers
             // Single-fuel-group dampening (:1681-1695): cancel the
             // velocity (plus half gravity) perpendicular to the thrust
             // direction, with the game's /0.5 time constant.
-            Vector3 vector12 = Vector3.Transform((Vector3)body.LinearVelocity + gLocal * 0.5f, worldToGrid);
+            Vector3 vector12 = Vector3.Transform((Vector3)body.LinearVelocity + gravity * 0.5f, worldToGrid);
             Vector3D reject;
             Vector3D dirNorm;
             if (!Vector3.IsZero(direction))
