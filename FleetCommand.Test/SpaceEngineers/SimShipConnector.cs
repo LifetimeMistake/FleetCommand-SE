@@ -49,7 +49,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private readonly bool _throwOut;
         private readonly bool _collectAll;
         private readonly float _pullStrength;
-        private readonly bool _parkingEnabled;
+        private bool _parkingEnabled = true;
 
         // Connection state, mirroring the game's master/slave pairing
         // (MyShipConnector.IsMaster — block with higher EntityId is master).
@@ -90,7 +90,6 @@ namespace FleetCommand.Test.SpaceEngineers
             _throwOut = false;
             _collectAll = false;
             _pullStrength = 0f;
-            _parkingEnabled = false;
         }
 
         // — connection frame (derived from the owning rigid body) —
@@ -283,10 +282,13 @@ namespace FleetCommand.Test.SpaceEngineers
         public IMyShipConnector OtherConnector => _partner;
 
         /// <inheritdoc />
+        /// <summary>A plain stored value (default true), parity with the
+        /// game which merely stores it and never uses it in connect logic
+        /// (MyShipConnector.cs:436-446; representation-only).</summary>
         public bool IsParkingEnabled
         {
             get { return _parkingEnabled; }
-            set { throw ThrowSet("IMyShipConnector.IsParkingEnabled"); }
+            set { _parkingEnabled = value; }
         }
 
         /// <inheritdoc />

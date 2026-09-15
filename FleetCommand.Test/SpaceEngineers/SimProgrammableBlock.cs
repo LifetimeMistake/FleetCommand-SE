@@ -53,11 +53,15 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>
         /// Runs the program synchronously with <paramref name="argument"/>
-        /// (the explicit-execution model,  — no live game loop). An
-        /// already-running programmable block cannot be run again, matching
-        /// the interface contract. Records the run on <see cref="Runtime"/>
-        /// so <see cref="SimRuntimeInfo.TimeSinceLastRun"/> reflects the
-        /// elapsed interval from the fixed clock.
+        /// (the explicit-execution model,  — no live game loop). When
+        /// the explicit argument is null or empty the default terminal run
+        /// argument (<see cref="TerminalRunArgument"/>) is forwarded
+        /// instead, matching the game's Run-with-default front ends
+        /// (<c>MyProgrammableBlock.cs:552-555</c>, <c>OnRunDefaultApplied</c>).
+        /// An already-running programmable block cannot be run again,
+        /// matching the interface contract. Records the run on
+        /// <see cref="Runtime"/> so <see cref="SimRuntimeInfo.TimeSinceLastRun"/>
+        /// reflects the elapsed interval from the fixed clock.
         /// </summary>
         public bool TryRun(string argument)
         {
@@ -71,7 +75,8 @@ namespace FleetCommand.Test.SpaceEngineers
                 Action<string> handler = RunHandler;
                 if (handler != null)
                 {
-                    handler(argument ?? string.Empty);
+                    string effective = string.IsNullOrEmpty(argument) ? TerminalRunArgument : argument;
+                    handler(effective ?? string.Empty);
                 }
             }
             finally
