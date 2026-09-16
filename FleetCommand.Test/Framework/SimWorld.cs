@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FleetCommand.Test.Physics;
 using FleetCommand.Test.SpaceEngineers;
+using FleetCommand.Test.Observations;
 using Havok;
 using Sandbox.ModAPI.Ingame;
 using VRageMath;
@@ -41,6 +42,37 @@ namespace FleetCommand.Test.Framework
         /// </summary>
         public SimGravityField Gravity { get; private set; }
 
+        /// <summary>
+        /// The shared "short failure ring buffer" (): the one
+        /// always-on recorder. Each tick it retains a short rolling window
+        /// of recent actuator history (per grid), and an uncaught
+        /// component exception is added to it. The fixture surfaces it on
+        /// failure.
+        /// </summary>
+        public FailureRingBuffer FailureLog { get; }
+
+        /// <summary>
+        /// A short rolling log of recent Update1 callback invocations —
+        /// callback cadence and exact command-application intervals
+        /// (), kept automatically for observation and failure
+        /// output.
+        /// </summary>
+        public UpdateCadenceLog UpdateCadence { get; }
+
+        /// <summary>The number of opt-in time-series recorders currently sampling.</summary>
+        public int RecorderCount => _samplers.Count;
+
+        /// <summary>
+        /// Environmental atmosphere effectiveness in [0, 1] ():
+        /// the multiplier applied to every thruster's template
+        /// effectiveness when aggregating delivered thrust (an atmospheric
+        /// thruster in vacuum has effectiveness 0). Default 1.
+        /// </summary>
+        public float AtmosphereEffectiveness { get; private set; }
+
+        /// <summary>The world's named guidance-target snapshot register ().</summary>
+        public SimTargetStore Targets { get; }
+
         /// <summary>The rigid bodies the world owns, in deterministic insertion (spawn) order.</summary>
         public IReadOnlyList<SimRigidBody> Bodies => _bodies;
 
@@ -52,6 +84,7 @@ namespace FleetCommand.Test.Framework
         private readonly List<SimCubeGrid> _grids = new List<SimCubeGrid>();
         private readonly List<SimFunctionalBlock> _functionalBlocks = new List<SimFunctionalBlock>();
         private readonly List<SimShipConnector> _connectors = new List<SimShipConnector>();
+        private readonly List<ITickSampler> _samplers = new List<ITickSampler>();
         private long _nextEntityId = 1;
         private bool _disposed;
 
@@ -90,6 +123,10 @@ namespace FleetCommand.Test.Framework
             Profile = profile ?? SePhysicsProfile.Default;
             ScenarioOrigin = scenarioOrigin;
             Gravity = SimGravityField.Zero;
+            FailureLog = new FailureRingBuffer(24);
+            UpdateCadence = new UpdateCadenceLog(24);
+            AtmosphereEffectiveness = 1f;
+            Targets = new SimTargetStore();
 
             // Mirror the game's single-threaded world creation (CreateWorldCInfo)
             // for a no-global-gravity, deterministic host.
@@ -111,6 +148,26 @@ namespace FleetCommand.Test.Framework
         public void SetGravity(SimGravityField gravity)
         {
             Gravity = gravity ?? SimGravityField.Zero;
+        }
+
+        /// <summary>
+        /// Sets the environmental atmosphere effectiveness in [0, 1]
+        /// ( "change atmosphere effectiveness"). Clamped; 0 means
+        /// no atmospheric thrust. Applied from the next tick's aggregation.
+        /// </summary>
+        public void SetAtmosphereEffectiveness(float ratio)
+        {
+            AtmosphereEffectiveness = ratio < 0f ? 0f : ratio > 1f ? 1f : ratio;
+        }
+
+        /// <summary>Registers an opt-in time-series recorder to sample each tick (phase 9).</summary>
+        internal void RegisterSampler(ITickSampler sampler)
+        {
+            if (sampler == null)
+            {
+                throw new ArgumentNullException(nameof(sampler));
+            }
+            _samplers.Add(sampler);
         }
 
         /// <summary>Allocates the next stable entity id (ascending, deterministic).</summary>
@@ -166,6 +223,24 @@ namespace FleetCommand.Test.Framework
                 throw new ArgumentNullException(nameof(connector));
             }
             _connectors.Add(connector);
+        }
+
+        /// <summary>Removes a functional block from the phase-4 recompute list (scenario block removal).</summary>
+        internal void UnregisterFunctionalBlock(SimFunctionalBlock block)
+        {
+            if (block != null)
+            {
+                _functionalBlocks.Remove(block);
+            }
+        }
+
+        /// <summary>Removes a connector from the phase-5 capture registry (scenario block removal).</summary>
+        internal void UnregisterConnector(SimShipConnector connector)
+        {
+            if (connector != null)
+            {
+                _connectors.Remove(connector);
+            }
         }
 
         /// <summary>Adds a rigid constraint (e.g. a connector's fixed constraint) to the world.</summary>
@@ -344,7 +419,22 @@ namespace FleetCommand.Test.Framework
             }
             foreach (UpdateCallback callback in _updateCallbacks)
             {
-                callback.Invoke(Clock);
+                UpdateInvocation invocation;
+                try
+                {
+                    invocation = callback.Invoke(Clock);
+                }
+                catch (Exception ex)
+                {
+                    // An uncaught component exception fills the short failure
+                    // ring buffer () so the fixture can surface the
+                    // final state and recent history. Rethrow so the test
+                    // still fails at the point the component threw.
+                    FailureLog.Add("tick " + Clock.Tick + " uncaught component exception "
+                        + ex.GetType().Name + ": " + ex.Message);
+                    throw;
+                }
+                UpdateCadence.Add(invocation);
             }
         }
 
@@ -573,9 +663,21 @@ namespace FleetCommand.Test.Framework
         private void Phase9_SampleAndEvaluate()
         {
             _phaseTrace.Add(PhaseNames[8]);
-            // Sample requested recorders and evaluate RunUntil conditions.
-            // Recorders arrive in ; RunUntil checks its condition in
-            // the caller after each completed step.
+            // Keep the short failure ring buffer topped with recent actuator
+            // history () and sample the opt-in recorders. Neither
+            // exposes future state: both run after the post-step sync.
+            for (int i = 0; i < _grids.Count; i++)
+            {
+                SimCubeGrid grid = _grids[i];
+                if (!grid.IsDisposed)
+                {
+                    FailureLog.Add(ActuatorSnapshot.Capture(grid, Clock.Tick, Clock.Time).ToLine());
+                }
+            }
+            for (int i = 0; i < _samplers.Count; i++)
+            {
+                _samplers[i].Sample();
+            }
         }
 
         public void Dispose()
@@ -611,9 +713,10 @@ namespace FleetCommand.Test.Framework
             _grids.Clear();
             _functionalBlocks.Clear();
             _connectors.Clear();
-            _hkWorld.Dispose();
+            _samplers.Clear();
             _scheduled.Clear();
             _updateCallbacks.Clear();
+            _hkWorld.Dispose();
             _disposed = true;
         }
 
@@ -634,13 +737,20 @@ namespace FleetCommand.Test.Framework
                 _action = action;
             }
 
-            public void Invoke(TickClock clock)
+            public UpdateInvocation Invoke(TickClock clock)
             {
                 long elapsedTicks = _hasRun ? (clock.Tick - _lastRunTick) : 0;
                 double sinceLastRun = clock.TimeSinceLastRun(elapsedTicks);
                 _lastRunTick = clock.Tick;
                 _hasRun = true;
                 _action(new SimUpdateContext(clock.Time, sinceLastRun, UpdateType.Update1));
+                return new UpdateInvocation
+                {
+                    Tick = clock.Tick,
+                    Time = clock.Time,
+                    SinceLastRun = sinceLastRun,
+                    AppliedInterval = TickClock.FixedStep,
+                };
             }
         }
     }
