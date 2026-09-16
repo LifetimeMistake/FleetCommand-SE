@@ -42,6 +42,15 @@ namespace FleetCommand.Test.SpaceEngineers
             _blocks.Add(block);
         }
 
+        /// <summary>Removes a block from this terminal system (scenario block removal).</summary>
+        internal void DeregisterBlock(SimTerminalBlock block)
+        {
+            if (block != null)
+            {
+                _blocks.Remove(block);
+            }
+        }
+
         // — block groups (fixtures) —
 
         /// <summary>

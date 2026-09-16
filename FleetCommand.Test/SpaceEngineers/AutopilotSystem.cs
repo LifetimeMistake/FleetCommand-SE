@@ -103,6 +103,15 @@ namespace FleetCommand.Test.SpaceEngineers
             _remotes.Add(remote);
         }
 
+        /// <summary>Removes a remote control block (scenario block removal).</summary>
+        internal void UnregisterRemote(SimRemoteControl remote)
+        {
+            if (remote != null)
+            {
+                _remotes.Remove(remote);
+            }
+        }
+
         /// <summary>
         /// Tick phase 5 (after <see cref="BaseControlSystem"/>, before
         /// <see cref="ForceAggregator.Aggregate"/> and

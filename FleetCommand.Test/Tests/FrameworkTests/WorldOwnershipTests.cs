@@ -131,13 +131,14 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void Record_IsUnsupported_UntilStage11()
+        public void Record_ReturnsABoundedRecorder()
         {
             using (var context = new FleetTestContext(new SimWorld()))
             {
-                Assert.Throws<NotSupportedException>(
-                    (Action)(() => context.Record<double>(c => c.Time)),
-                    "Record must report itself unsupported until , naming the member.");
+                FleetCommand.Test.Observations.TraceRecorder<double> recorder = context.Record(c => c.Time, 4);
+                context.Step(6);
+                Assert.That(recorder.Count, Is.EqualTo(4),
+                    "Record returns a bounded time-series recorder ( observations).");
             }
         }
     }

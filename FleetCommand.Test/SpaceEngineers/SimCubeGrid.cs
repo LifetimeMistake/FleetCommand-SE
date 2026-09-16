@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.Templates;
+using Havok;
 using VRage.Game;
 using VRage.Game.ModAPI.Ingame;
 using VRageMath;
@@ -269,6 +271,122 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 Autopilot.RegisterRemote(remote);
             }
+        }
+
+        /// <summary>
+        /// Removes a block from this grid: disconnects it if a connector,
+        /// deregisters it from every system it joined on add (terminal
+        /// system, power bus, force aggregator, gyro system, base /
+        /// rotation control, autopilot, world registries), removes it from
+        /// the position map, disposes it, and rebuilds the body's mass
+        /// ( "add or remove a block"). Idempotent for an
+        /// already-closed block.
+        /// </summary>
+        public void RemoveBlock(SimTerminalBlock block)
+        {
+            if (block == null)
+            {
+                throw new ArgumentNullException(nameof(block));
+            }
+            if (block.Grid != this || block.Closed)
+            {
+                return;
+            }
+
+            SimShipConnector connector = block as SimShipConnector;
+            if (connector != null)
+            {
+                if (connector.ConnectedInternal || connector.ApproachingInternal)
+                {
+                    connector.Disconnect();
+                }
+                World.UnregisterConnector(connector);
+            }
+
+            TerminalSystem.DeregisterBlock(block);
+            _blockByPosition.Remove(block.Position);
+
+            SimFunctionalBlock functional = block as SimFunctionalBlock;
+            if (functional != null)
+            {
+                PowerBus.UnregisterConsumer(functional);
+                World.UnregisterFunctionalBlock(functional);
+            }
+            SimBatteryBlock battery = block as SimBatteryBlock;
+            if (battery != null)
+            {
+                PowerBus.UnregisterBattery(battery);
+            }
+            SimReactorBlock reactor = block as SimReactorBlock;
+            if (reactor != null)
+            {
+                PowerBus.UnregisterProducer(reactor);
+            }
+            SimThrust thruster = block as SimThrust;
+            if (thruster != null)
+            {
+                ForceAggregator.UnregisterThruster(thruster);
+            }
+            SimGyro gyro = block as SimGyro;
+            if (gyro != null)
+            {
+                GyroRateSystem.UnregisterGyro(gyro);
+            }
+            SimShipController controller = block as SimShipController;
+            if (controller != null)
+            {
+                BaseControl.UnregisterController(controller);
+                RotationControl.UnregisterController(controller);
+            }
+            SimRemoteControl remote = block as SimRemoteControl;
+            if (remote != null)
+            {
+                Autopilot.UnregisterRemote(remote);
+            }
+
+            block.Dispose();
+            RebuildBodyMass();
+        }
+
+        /// <summary>
+        /// Rebuilds the grid body's mass properties from the current live
+        /// block set (: add/remove block, change inventory
+        /// mass). Mirrors <c>MyPhysicsBody.UpdateMassProps</c> — combines
+        /// the box mass elements with Havok and applies via
+        /// <c>RigidBody.SetMassProperties</c> — so total mass, COM, and
+        /// inertia ground truth follow the live block inventory.
+        /// </summary>
+        internal void RebuildBodyMass()
+        {
+            var elements = new List<HkMassElement>();
+            IReadOnlyList<SimTerminalBlock> blocks = TerminalSystem.Blocks;
+            for (int i = 0; i < blocks.Count; i++)
+            {
+                SimTerminalBlock block = blocks[i];
+                if (block.Closed)
+                {
+                    continue;
+                }
+                TemplateBlock template = block.Template;
+                HkMassProperties box = HkInertiaTensorComputer.ComputeBoxVolumeMassProperties(
+                    template.HalfExtents, template.DryMass);
+                elements.Add(new HkMassElement
+                {
+                    Properties = box,
+                    Tranform = Matrix.CreateTranslation(template.CenterLocal),
+                });
+                if (block.InventoryMass > 0f)
+                {
+                    HkMassProperties inventory = HkInertiaTensorComputer.ComputeBoxVolumeMassProperties(
+                        template.HalfExtents, block.InventoryMass);
+                    elements.Add(new HkMassElement
+                    {
+                        Properties = inventory,
+                        Tranform = Matrix.CreateTranslation(template.CenterLocal),
+                    });
+                }
+            }
+            Body.UpdateMassProperties(MassProperties.FromMassElements(elements));
         }
 
         /// <summary>

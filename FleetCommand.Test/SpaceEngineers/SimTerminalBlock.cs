@@ -28,6 +28,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private readonly SimCubeGrid _grid;
         private readonly TemplateBlock _template;
         private readonly MyBlockOrientation _orientation;
+        private float _inventoryMass;
 
         /// <summary>The owning rigid grid (concrete, for scenario use).</summary>
         public SimCubeGrid Grid => _grid;
@@ -70,8 +71,20 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public Vector3I Max => _template.Min + _template.Size - Vector3I.One;
 
+        /// <summary>
+        /// Scenario-set inventory (cargo) mass in kilograms, starting from
+        /// the template's value. Changing it is the  "change
+        /// inventory mass" mutation; callers must rebuild the grid's body
+        /// mass afterwards (<see cref="FleetCommand.Test.Framework.FleetTestContext.SetInventoryMass"/>).
+        /// </summary>
+        public float InventoryMass
+        {
+            get { return _inventoryMass; }
+            set { _inventoryMass = value < 0f ? 0f : value; }
+        }
+
         /// <inheritdoc />
-        public float Mass => _template.DryMass + _template.InventoryMass;
+        public float Mass => _template.DryMass + _inventoryMass;
 
         /// <inheritdoc />
         public MyBlockOrientation Orientation => _orientation;
@@ -106,6 +119,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _template = template;
             CustomName = template.Name;
             CustomData = string.Empty;
+            _inventoryMass = template.InventoryMass;
 
             Quaternion orientation = template.Orientation;
             _orientation = new MyBlockOrientation(ref orientation);

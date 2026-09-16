@@ -61,6 +61,15 @@ namespace FleetCommand.Test.SpaceEngineers
             _controllers.Add(controller);
         }
 
+        /// <summary>Removes a ship controller from the rotation-control path (scenario block removal).</summary>
+        internal void UnregisterController(SimShipController controller)
+        {
+            if (controller != null)
+            {
+                _controllers.Remove(controller);
+            }
+        }
+
         /// <summary>
         /// Tick phase 5 (before <see cref="GyroRateSystem.ApplyTorque"/>):
         /// reproduce <c>MyShipController.MoveAndRotate</c>'s rotation

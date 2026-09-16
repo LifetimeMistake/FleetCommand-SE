@@ -100,6 +100,15 @@ namespace FleetCommand.Test.SpaceEngineers
             _controllers.Add(controller);
         }
 
+        /// <summary>Removes a ship controller from the base-control path (scenario block removal).</summary>
+        internal void UnregisterController(SimShipController controller)
+        {
+            if (controller != null)
+            {
+                _controllers.Remove(controller);
+            }
+        }
+
         /// <summary>
         /// Tick phase 5 (before <see cref="ForceAggregator.Aggregate"/>):
         /// recompute the grid's directional thrust capacity, then reproduce

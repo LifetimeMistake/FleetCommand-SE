@@ -88,6 +88,16 @@ namespace FleetCommand.Test.SpaceEngineers
         /// </summary>
         public float TotalSupply { get; private set; }
 
+        /// <summary>
+        /// Scenario-side electrical availability in [0, 1] (
+        /// "change available electrical ratio"): a multiplier applied to
+        /// the grid's finite supply each phase 4 (a degraded bus, e.g. a
+        /// shared shortfall). No effect on the ideal source (infinite).
+        /// Default 1. A ratio change reproduces the  delivered
+        /// ratio law <c>min(1, available / tierDemand)</c>.
+        /// </summary>
+        public float AvailableRatio { get; set; } = 1f;
+
         internal SimPowerBus(SimCubeGrid grid)
         {
             if (grid == null)
@@ -126,6 +136,35 @@ namespace FleetCommand.Test.SpaceEngineers
                 throw new ArgumentNullException(nameof(producer));
             }
             _sources.Add(producer);
+        }
+
+        /// <summary>Removes a functional block from the consumer demand list (scenario block removal).</summary>
+        internal void UnregisterConsumer(SimFunctionalBlock block)
+        {
+            if (block != null)
+            {
+                _consumers.Remove(block);
+            }
+        }
+
+        /// <summary>Removes a battery from the supply and the charge-sink list (scenario block removal).</summary>
+        internal void UnregisterBattery(SimBatteryBlock battery)
+        {
+            if (battery == null)
+            {
+                return;
+            }
+            _sources.Remove(battery);
+            _batteries.Remove(battery);
+        }
+
+        /// <summary>Removes a non-battery producer (e.g. a reactor) from the supply (scenario block removal).</summary>
+        internal void UnregisterProducer(SimPowerSource producer)
+        {
+            if (producer != null)
+            {
+                _sources.Remove(producer);
+            }
         }
 
         /// <summary>
@@ -259,7 +298,10 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 total += _sources[i].AvailableOutput(dtSeconds);
             }
-            return total;
+            // The scenario electrical availability ratio scales the finite
+            // supply (); ideal supply stays infinite.
+            float ratio = AvailableRatio < 0f ? 0f : AvailableRatio > 1f ? 1f : AvailableRatio;
+            return total * ratio;
         }
     }
 }

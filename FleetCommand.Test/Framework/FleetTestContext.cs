@@ -3,6 +3,8 @@ using FleetCommand.Test.Observations;
 using FleetCommand.Test.Physics;
 using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
+using Sandbox.ModAPI.Ingame;
+using VRageMath;
 
 namespace FleetCommand.Test.Framework
 {
@@ -163,14 +165,256 @@ namespace FleetCommand.Test.Framework
         }
 
         /// <summary>
-        /// Requests a bounded time-series recorder. Strictly arrivals in
-        /// ; until then this member reports itself unsupported
-        /// rather than silently recording nothing.
+        /// Requests a bounded time-series recorder (). The
+        /// recorder samples <paramref name="sample"/> once per tick
+        /// (phase 9) from now on, retaining at most
+        /// <see cref="TraceRecorder{T}.Capacity"/> samples (oldest
+        /// dropped when full). Nothing is recorded by default — a recorder
+        /// only exists once this is called.
         /// </summary>
         public TraceRecorder<T> Record<T>(Func<FleetTestContext, T> sample)
         {
-            throw new NotSupportedException(
-                "FleetTestContext.Record is not implemented until  (observations) lands.");
+            return Record(sample, DefaultRecorderCapacity);
+        }
+
+        /// <summary>
+        /// Requests a bounded time-series recorder with a caller-specified
+        /// <paramref name="capacity"/> (: "fixed or
+        /// caller-specified capacity").
+        /// </summary>
+        public TraceRecorder<T> Record<T>(Func<FleetTestContext, T> sample, int capacity)
+        {
+            var recorder = new TraceRecorder<T>(sample, this, capacity);
+            World.RegisterSampler(recorder);
+            return recorder;
+        }
+
+        /// <summary>The default time-series recorder capacity ().</summary>
+        public const int DefaultRecorderCapacity = 1024;
+
+        // —  scheduled mutation surface —
+
+        /// <summary>Enables or disables a functional block ().</summary>
+        public void SetBlockEnabled(SimFunctionalBlock block, bool enabled)
+        {
+            if (block == null)
+            {
+                throw new ArgumentNullException(nameof(block));
+            }
+            block.Enabled = enabled;
+        }
+
+        /// <summary>Damages (false) or repairs (true) a functional block ().</summary>
+        public void SetBlockFunctional(SimFunctionalBlock block, bool functional)
+        {
+            if (block == null)
+            {
+                throw new ArgumentNullException(nameof(block));
+            }
+            block.IsFunctional = functional;
+        }
+
+        /// <summary>Enables or disables the named functional block on <paramref name="ship"/> ().</summary>
+        public void SetBlockEnabled(SimShip ship, string name, bool enabled)
+        {
+            SetBlockEnabled(ResolveFunctional(ship, name), enabled);
+        }
+
+        /// <summary>Damages or repairs the named functional block on <paramref name="ship"/> ().</summary>
+        public void SetBlockFunctional(SimShip ship, string name, bool functional)
+        {
+            SetBlockFunctional(ResolveFunctional(ship, name), functional);
+        }
+
+        /// <summary>
+        /// Adds a block to <paramref name="ship"/> from a template block at
+        /// runtime (): creates fresh block state, registers it
+        /// with the grid's terminal system and power bus (and the
+        /// actuator / control systems it is an instance of), and rebuilds
+        /// the body mass to include the new block. Returns the new block.
+        /// </summary>
+        public SimTerminalBlock AddBlock(SimShip ship, TemplateBlock templateBlock)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            if (templateBlock == null)
+            {
+                throw new ArgumentNullException(nameof(templateBlock));
+            }
+            SimCubeGrid grid = ship.Grid;
+            SimTerminalBlock block = CreateBlock(World, templateBlock, grid);
+            grid.AddBlock(block);
+            SimFunctionalBlock functional = block as SimFunctionalBlock;
+            if (functional != null)
+            {
+                World.RegisterFunctionalBlock(functional);
+            }
+            grid.RebuildBodyMass();
+            return block;
+        }
+
+        /// <summary>
+        /// Removes the named block from <paramref name="ship"/> at runtime
+        /// (): deregisters it from the terminal system, power
+        /// bus, and actuator / control systems, disposes it, and rebuilds
+        /// the body mass. A removed connector is disconnected first.
+        /// </summary>
+        public void RemoveBlock(SimShip ship, string name)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            IMyTerminalBlock found = ship.TerminalSystem.GetBlockWithName(name);
+            SimTerminalBlock block = found as SimTerminalBlock;
+            if (block == null)
+            {
+                throw new ArgumentException(
+                    "No block named '" + name + "' is present on ship '" + ship.Grid.CustomName + "' to remove.", nameof(name));
+            }
+            ship.Grid.RemoveBlock(block);
+        }
+
+        /// <summary>Changes the grid's available electrical ratio (). See <see cref="SpaceEngineers.SimPowerBus.AvailableRatio"/>.</summary>
+        public void SetPowerAvailableRatio(SimShip ship, float ratio)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            ship.Grid.PowerBus.AvailableRatio = ratio;
+        }
+
+        /// <summary>Changes the named reactor's fuel ratio (). See <see cref="SpaceEngineers.SimReactorBlock.FuelRatio"/>.</summary>
+        public void SetFuelRatio(SimShip ship, string reactorName, float ratio)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            SimReactorBlock reactor = ship.TerminalSystem.GetBlockWithName(reactorName) as SimReactorBlock;
+            if (reactor == null)
+            {
+                throw new ArgumentException("No reactor named '" + reactorName + "' on ship '" + ship.Grid.CustomName + "'.", nameof(reactorName));
+            }
+            reactor.FuelRatio = ratio;
+        }
+
+        /// <summary>Changes the world's atmosphere effectiveness (, partial).</summary>
+        public void SetAtmosphereEffectiveness(float ratio)
+        {
+            World.SetAtmosphereEffectiveness(ratio);
+        }
+
+        /// <summary>Changes the world's natural gravity ().</summary>
+        public void SetGravity(SimGravityField gravity)
+        {
+            World.SetGravity(gravity);
+        }
+
+        /// <summary>Changes a block's inventory mass and rebuilds the body mass ().</summary>
+        public void SetInventoryMass(SimTerminalBlock block, float mass)
+        {
+            if (block == null)
+            {
+                throw new ArgumentNullException(nameof(block));
+            }
+            block.InventoryMass = mass;
+            block.Grid.RebuildBodyMass();
+        }
+
+        /// <summary>
+        /// Skips the next Update1 callback () without skipping
+        /// physics — models a missed programmable-block update.
+        /// </summary>
+        public void SkipNextUpdate1()
+        {
+            World.SuppressNextUpdate1();
+        }
+
+        /// <summary>Replaces a guidance target snapshot () and refreshes it.</summary>
+        public void ReplaceTargetSnapshot(string name, in SimTargetSnapshot snapshot)
+        {
+            World.Targets.Set(name, snapshot, World.Clock.Tick);
+        }
+
+        /// <summary>Stops refreshing <paramref name="name"/> so its snapshot becomes stale ().</summary>
+        public void StopRefreshingTarget(string name)
+        {
+            World.Targets.StopRefreshing(name);
+        }
+
+        /// <summary>Reads the current target snapshot for <paramref name="name"/>.</summary>
+        public bool TryGetTargetSnapshot(string name, out SimTargetSnapshot snapshot)
+        {
+            return World.Targets.TryGet(name, out snapshot);
+        }
+
+        /// <summary>Changes the demanded body-vector thrust while the craft is flying ().</summary>
+        public void SetGroupDemand(SimShip ship, Vector3 bodyDemand)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            ship.Grid.ForceAggregator.SetGroupDemand(bodyDemand);
+        }
+
+        /// <summary>Changes the demanded attitude torque while the craft is turning ().</summary>
+        public void SetControlTorque(SimShip ship, Vector3 torque)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            ship.Grid.GyroRateSystem.ControlTorque = torque;
+        }
+
+        /// <summary>Applies an external world-frame linear impulse to the ship's body ().</summary>
+        public void ApplyLinearImpulse(SimShip ship, Vector3 impulse)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            ship.Grid.Body.ApplyLinearImpulse(impulse);
+        }
+
+        /// <summary>Applies an external world-frame angular impulse to the ship's body ().</summary>
+        public void ApplyAngularImpulse(SimShip ship, Vector3 impulse)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            ship.Grid.Body.ApplyAngularImpulse(impulse);
+        }
+
+        /// <summary>Applies an external world impulse at an off-COM world point ().</summary>
+        public void ApplyPointImpulse(SimShip ship, Vector3 impulse, Vector3D worldPoint)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            ship.Grid.Body.ApplyPointImpulse(impulse, worldPoint);
+        }
+
+        private static SimFunctionalBlock ResolveFunctional(SimShip ship, string name)
+        {
+            if (ship == null)
+            {
+                throw new ArgumentNullException(nameof(ship));
+            }
+            SimFunctionalBlock block = ship.TerminalSystem.GetBlockWithName(name) as SimFunctionalBlock;
+            if (block == null)
+            {
+                throw new ArgumentException(
+                    "No functional block named '" + name + "' is present on ship '" + ship.Grid.CustomName + "'.", nameof(name));
+            }
+            return block;
         }
 
         public void Dispose()

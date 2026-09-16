@@ -274,6 +274,39 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
+        /// Replaces the body's mass, center of mass, inertia, and inverse
+        /// inertia from newly combined <paramref name="mass"/> (a scenario
+        /// block added/removed or inventory changed, ). Uses the
+        /// game's runtime path — <c>RigidBody.SetMassProperties</c>
+        /// (MyPhysicsBody.cs:2867) — so a mass mutation takes effect for
+        /// the body's dynamics immediately (next physics step).
+        /// </summary>
+        public void UpdateMassProperties(MassProperties mass)
+        {
+            if (_disposed || _rigidBody == null)
+            {
+                return;
+            }
+            if (mass == null)
+            {
+                throw new ArgumentNullException(nameof(mass));
+            }
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+            {
+                var mp = default(HkMassProperties);
+                mp.Mass = mass.TotalMass;
+                mp.CenterOfMass = mass.CenterOfMass;
+                mp.InertiaTensor = mass.InertiaTensor;
+                mp.Volume = 1f;
+                _rigidBody.SetMassProperties(ref mp);
+            }
+            _inverseInertiaDiagonal = new Vector3(
+                mass.InverseInertiaTensor.M11,
+                mass.InverseInertiaTensor.M22,
+                mass.InverseInertiaTensor.M33);
+        }
+
+        /// <summary>
         /// Clamps the body's world linear velocity magnitude to
         /// <paramref name="maxSpeed"/> (the game's per-frame grid velocity
         /// clamp to the max speed / <c>MovementBlockMaxSpeed</c>,

@@ -132,6 +132,15 @@ namespace FleetCommand.Test.SpaceEngineers
             _thrusters.Add(thruster);
         }
 
+        /// <summary>Removes a thruster block from this aggregator (scenario block removal).</summary>
+        internal void UnregisterThruster(SimThrust thruster)
+        {
+            if (thruster != null)
+            {
+                _thrusters.Remove(thruster);
+            }
+        }
+
         /// <summary>
         /// Tick phase 5: gate each thruster, convert its override or group
         /// demand into delivered thrust (scaled by the bus's delivered
@@ -220,7 +229,11 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return 0f;
             }
-            float effectiveness = thruster.Effectiveness;
+            // The template effectiveness is scaled by the world's
+            // atmosphere effectiveness ( "change atmosphere
+            // effectiveness"): an atmo thruster in vacuum (ratio 0) has no
+            // effect.
+            float effectiveness = thruster.Effectiveness * _grid.World.AtmosphereEffectiveness;
             if (effectiveness <= 0f)
             {
                 return 0f;
@@ -301,7 +314,11 @@ namespace FleetCommand.Test.SpaceEngineers
             for (int i = 0; i < _thrusters.Count; i++)
             {
                 SimThrust thruster = _thrusters[i];
-                if (thruster.Closed || !thruster.IsFunctional || thruster.Effectiveness <= 0f)
+                // Atmosphere scales effective thrust in the capacity too, so
+                // the base-control path's capacities match what aggregation
+                // delivers under the current atmosphere ().
+                float effective = thruster.Effectiveness * _grid.World.AtmosphereEffectiveness;
+                if (thruster.Closed || !thruster.IsFunctional || effective <= 0f)
                 {
                     continue;
                 }
@@ -309,7 +326,7 @@ namespace FleetCommand.Test.SpaceEngineers
                 // force axis is -forward (MyThrust.cs:188). Accumulate the
                 // effective capacity by force direction.
                 Vector3 forceAxis = -(Vector3)new Vector3(thruster.GridThrustDirection);
-                float mag = thruster.MaxThrust * thruster.Effectiveness;
+                float mag = thruster.MaxThrust * effective;
                 AddCapacity(ref pos, ref neg, forceAxis, mag);
                 if (!haveFactor)
                 {

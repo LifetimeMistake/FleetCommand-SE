@@ -142,6 +142,16 @@ namespace FleetCommand.Test.SpaceEngineers
             _gyrosChanged = true;
         }
 
+        /// <summary>Removes a gyro block from this rate system (scenario block removal).</summary>
+        internal void UnregisterGyro(SimGyro gyro)
+        {
+            if (gyro != null)
+            {
+                _gyros.Remove(gyro);
+                _gyrosChanged = true;
+            }
+        }
+
         /// <summary>
         /// Marks the gyro set as changed so the next <see cref="Aggregate"/>
         /// re-arms the override acceleration ramp (the game's

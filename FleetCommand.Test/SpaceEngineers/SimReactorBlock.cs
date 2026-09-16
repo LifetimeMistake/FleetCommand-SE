@@ -43,6 +43,14 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>Maximum output power in MW (from the template).</summary>
         public float MaxOutput { get; }
 
+        /// <summary>
+        /// Scenario-side fuel availability in [0, 1] ( "change
+        /// available fuel ratio"): the multiplier on the reactor's
+        /// available output (a depleted fuel rod produces proportionally
+        /// less; 0 when out of fuel). Default 1.
+        /// </summary>
+        public float FuelRatio { get; set; } = 1f;
+
         /// <summary>Ratio of current output to maximum output (0 when <see cref="MaxOutput"/> is 0).</summary>
         public float CurrentOutputRatio => MaxOutput > 0f ? CurrentOutput / MaxOutput : 0f;
 
@@ -50,11 +58,17 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>
         /// The maximum power this reactor can serve on one fixed step:
-        /// its <see cref="MaxOutput"/> while enabled and functional.
+        /// its <see cref="MaxOutput"/> times the scenario
+        /// <see cref="FuelRatio"/> while enabled and functional.
         /// </summary>
         public float AvailableOutput(float dtSeconds)
         {
-            return Enabled && IsFunctional ? MaxOutput : 0f;
+            if (!Enabled || !IsFunctional)
+            {
+                return 0f;
+            }
+            float ratio = FuelRatio < 0f ? 0f : FuelRatio > 1f ? 1f : FuelRatio;
+            return MaxOutput * ratio;
         }
 
         /// <summary>
