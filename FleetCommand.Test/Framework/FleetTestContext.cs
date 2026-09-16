@@ -54,6 +54,9 @@ namespace FleetCommand.Test.Framework
             World.AddBody(body);
 
             var grid = new SimCubeGrid(id, template.Name, template.GridSize, body, World);
+            // The designated controller () when the template names
+            // one; otherwise the first controller-kind block ('s
+            // behaviour, kept for directly-constructed templates).
             SimShipController controller = null;
             foreach (TemplateBlock templateBlock in template.Blocks)
             {
@@ -64,9 +67,14 @@ namespace FleetCommand.Test.Framework
                 {
                     World.RegisterFunctionalBlock(functional);
                 }
-                if (controller == null)
+                if (templateBlock.IsControllerKind)
                 {
-                    controller = block as SimShipController;
+                    bool designated = template.DesignatedControllerName != null
+                        && string.Equals(template.DesignatedControllerName, templateBlock.Name, StringComparison.Ordinal);
+                    if (designated || (template.DesignatedControllerName == null && controller == null))
+                    {
+                        controller = block as SimShipController;
+                    }
                 }
             }
             World.AddGrid(grid);

@@ -301,6 +301,22 @@ namespace FleetCommand.Test.Templates
             HalfExtents = new Vector3(Size) * gridSize * 0.5f;
         }
 
+        /// <summary>
+        /// True when this block kind acts as a ship controller (provides the
+        /// controller reference frame the template may designate): one of
+        /// <see cref="ShipController"/>, <see cref="RemoteControl"/> or
+        /// <see cref="Cockpit"/>.
+        /// </summary>
+        public bool IsControllerKind
+        {
+            get
+            {
+                return Kind == BlockKind.ShipController
+                    || Kind == BlockKind.RemoteControl
+                    || Kind == BlockKind.Cockpit;
+            }
+        }
+
         private static bool IsCardinalAxis(Vector3I v)
         {
             int sum = Math.Abs(v.X) + Math.Abs(v.Y) + Math.Abs(v.Z);
@@ -314,12 +330,56 @@ namespace FleetCommand.Test.Templates
     }
 
     /// <summary>
+    /// A named grid-local reference direction carried by a
+    /// <see cref="ShipTemplate"/> (: "controller and connector
+    /// reference frames"; e.g. OrbitGunship's named weapon reference axis).
+    /// Purely template data — craft identity comes from data, never from a
+    /// branch on craft type in the physics or block systems.
+    /// </summary>
+    public sealed class NamedReferenceAxis
+    {
+        /// <summary>The reference's name (must be unique and non-empty).</summary>
+        public string Name { get; }
+
+        /// <summary>The grid-local unit direction of the reference.</summary>
+        public Vector3 Axis { get; }
+
+        public NamedReferenceAxis(string name, Vector3 axis)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                throw new ArgumentException("A named reference axis needs a non-empty name.", nameof(name));
+            }
+            if (!IsFinite(axis) || axis.LengthSquared() < 1e-12f)
+            {
+                throw new ArgumentException(
+                    $"Named reference axis '{name}' must be a finite, non-zero direction.", nameof(axis));
+            }
+            Name = name;
+            Axis = axis;
+        }
+
+        internal static bool IsFinite(Vector3 v)
+        {
+            return IsFinite(v.X) && IsFinite(v.Y) && IsFinite(v.Z);
+        }
+
+        internal static bool IsFinite(float f)
+        {
+            return !float.IsNaN(f) && !float.IsInfinity(f);
+        }
+    }
+
+    /// <summary>
     /// Immutable physical description of one rigid grid (): grid
-    /// size, the block list, static/dynamic collision mode, and this
-    /// stage's physical scope (mass elements and compound shape from block
-    /// defs with local transforms). The full validating builder arrives in
-    /// ; this stage provides only enough structure to build mass
-    /// and compound shape from blocks.
+    /// size, the block list, static/dynamic collision mode, the designated
+    /// controller reference, named reference axes, and this stage's
+    /// physical scope (mass elements and compound shape from block defs with
+    /// local transforms). The full validating builder is
+    /// <see cref="ShipTemplateBuilder"/> (); this type is the
+    /// immutable result it returns — building a template once and spawning
+    /// from it many times never mutates it (entity IDs are assigned per
+    /// spawn, never baked into the template).
     /// </summary>
     public sealed class ShipTemplate
     {
@@ -341,6 +401,22 @@ namespace FleetCommand.Test.Templates
         /// <summary>Per-grid angular speed cap in rad/s.</summary>
         public float MaxAngularVelocity { get; }
 
+        /// <summary>
+        /// The name of the grid's designated (primary) controller, or null
+        /// when none is designated. When set it must resolve to a
+        /// controller-kind block in <see cref="Blocks"/> (validated at
+        /// <see cref="ShipTemplateBuilder.Build"/>). The designated
+        /// controller's frame is the grid's control reference ().
+        /// </summary>
+        public string DesignatedControllerName { get; }
+
+        /// <summary>
+        /// Named grid-local reference directions (e.g. a weapon reference
+        /// axis). Empty when the template declares none. Immutable;
+        /// arbitrary nameless geometry carries no craft-type meaning.
+        /// </summary>
+        public IReadOnlyList<NamedReferenceAxis> NamedAxes { get; }
+
         /// <summary>Total dry block mass in kilograms (without inventory).</summary>
         public float DryMass
         {
@@ -361,7 +437,9 @@ namespace FleetCommand.Test.Templates
             IEnumerable<TemplateBlock> blocks,
             bool isStatic = false,
             float maxLinearVelocity = 0f,
-            float maxAngularVelocity = 0f)
+            float maxAngularVelocity = 0f,
+            string designatedControllerName = null,
+            IEnumerable<NamedReferenceAxis> namedAxes = null)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -382,14 +460,8 @@ namespace FleetCommand.Test.Templates
             IsStatic = isStatic;
             MaxLinearVelocity = maxLinearVelocity;
             MaxAngularVelocity = maxAngularVelocity;
+            DesignatedControllerName = designatedControllerName;
+            NamedAxes = new List<NamedReferenceAxis>(namedAxes ?? Array.Empty<NamedReferenceAxis>());
         }
-    }
-
-    /// <summary>
-    /// Placeholder for the validating <see cref="ShipTemplate"/> builder
-    /// (); arrives in .
-    /// </summary>
-    public sealed class ShipTemplateBuilder
-    {
     }
 }
