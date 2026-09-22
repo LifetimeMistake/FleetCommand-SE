@@ -322,8 +322,10 @@ namespace FleetCommand.Test.Physics
         /// <summary>
         /// Clamps the body's world linear velocity magnitude to
         /// <paramref name="maxSpeed"/> (the game's per-frame grid velocity
-        /// clamp to the max speed / <c>MovementBlockMaxSpeed</c>,
-        /// MyCubeGrid.cs:4573). A no-op when already at or below the cap.
+        /// clamp to the max speed / <c>MovementBlockMaxSpeed</c>, enforced
+        /// by Havok via <c>RigidBody.MaxLinearVelocity</c> set in
+        /// MyGridPhysics.SetDefaultRigidBodyMaxVelocities,
+        /// MyGridPhysics.cs:538-555). A no-op when already at or below the cap.
         /// </summary>
         public void ClampLinearSpeed(float maxSpeed)
         {

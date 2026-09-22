@@ -184,7 +184,10 @@ namespace FleetCommand.Test.SpaceEngineers
         /// velocity to the enabled remote's <see cref="SimRemoteControl.SpeedLimit"/>
         /// — the game's <c>MovementBlockMaxSpeed = SpeedLimit</c>
         /// (MyAutopilotComponent.cs:1322) plus the per-frame grid
-        /// velocity clamp (MyCubeGrid.cs:4573). Applied after physics so
+        /// velocity clamp (enforced by Havok via
+        /// <c>RigidBody.MaxLinearVelocity</c>,
+        /// MyGridPhysics.SetDefaultRigidBodyMaxVelocities :538-555).
+        /// Applied after physics so
         /// the cap is tight on the observed post-step velocity (the
         /// per-tick thrust alone can overshoot by one frame's impulse).
         /// With no enabled remote (autopilot off) it is a no-op.
