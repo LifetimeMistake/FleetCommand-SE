@@ -631,6 +631,19 @@ namespace FleetCommand.Test.Framework
                         grid.Autopilot.ApplySpeedLimitAfterPhysics();
                     }
                 }
+                // : the per-frame grid linear-velocity clamp (the
+                // game's per-frame max-speed clamp, MyGridPhysics /
+                // MyCubeGrid), applied to every dynamic body after physics so
+                // the configured linear cap holds on the observed post-step
+                // velocity — regardless of whether an autopilot is active.
+                for (int i = 0; i < _bodies.Count; i++)
+                {
+                    SimRigidBody body = _bodies[i];
+                    if (!body.IsDisposed && body.IsDynamic)
+                    {
+                        body.ClampLinearSpeed(body.MaxLinearVelocity);
+                    }
+                }
             }
             // ,  step 6: update each thruster's
             // CurrentThrust after the physics interval (the delivered

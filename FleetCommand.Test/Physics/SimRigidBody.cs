@@ -63,6 +63,17 @@ namespace FleetCommand.Test.Physics
         public float MaxAngularVelocity => _maxAngularVelocity;
 
         /// <summary>
+        /// The configured grid linear-velocity cap (m/s): the larger of the
+        /// template's <c>MaxLinearVelocity</c> and the profile's
+        /// <c>MaxLinearVelocity</c> set on the Havok body at creation.
+        /// The sim applies this per frame after physics (phase 8) mirroring
+        /// the game's per-frame grid max-speed clamp (MyGridPhysics /
+        /// MyCubeGrid max speed from the sector environment definition), so
+        /// the cap holds on the observed post-step velocity deterministically.
+        /// </summary>
+        public float MaxLinearVelocity => _maxLinearVelocity;
+
+        /// <summary>
         /// The body's inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in
         /// the grid-local frame (axes aligned with the grid's principal
         /// axes — the frame the gyro override loop sizes its torque in,
@@ -109,6 +120,7 @@ namespace FleetCommand.Test.Physics
         private Vector3 _angularVelocity;
 
         private float _maxAngularVelocity;
+        private float _maxLinearVelocity;
         private Vector3 _inverseInertiaDiagonal;
 
         private bool _disposed;
@@ -188,10 +200,11 @@ namespace FleetCommand.Test.Physics
                 body._linearVelocity = (Vector3)initialState.LinearVelocity;
                 body._angularVelocity = initialState.AngularVelocity;
 
-                // Retain the configured angular-rate cap (also set on the
+                // Retain the configured velocity caps (also set on the
                 // Havok body above) and the grid-local inverse inertia
                 // diagonal for the gyro override loop ( step 3).
                 body._maxAngularVelocity = maxAngular;
+                body._maxLinearVelocity = maxLinear;
                 body._inverseInertiaDiagonal = new Vector3(
                     mass.InverseInertiaTensor.M11,
                     mass.InverseInertiaTensor.M22,
