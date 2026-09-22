@@ -271,9 +271,12 @@ namespace FleetCommand.Test.SpaceEngineers
             }
 
             // 3. Read the body's angular velocity into the grid frame:
-            // R^T * w_world (MyGridGyroSystem.cs:285).
+            // R^T * w_world (MyGridGyroSystem.cs:285; the game reads via
+            // WorldMatrixInvScaled = R^T). The mis-transpose (R * w) here
+            // was an accumulated rotated-mount sign error, masked by
+            // identity-orientation test grids (R = I).
             Matrix orientation = ((Matrix)_grid.WorldMatrix).GetOrientation();
-            Vector3 vector = Vector3.Transform(body.AngularVelocity, orientation);
+            Vector3 vector = Vector3.Transform(body.AngularVelocity, Matrix.Transpose(orientation));
 
             // 4-5. Rate error, ramp policy, error -> desired torque.
             Vector3 vector2 = _overrideTargetVelocity - vector;
