@@ -42,31 +42,31 @@ namespace FleetCommand.Test.SpaceEngineers
     public sealed class GyroRateSystem
     {
         /// <summary>Tiny torque threshold below which nothing is applied (game: TorqueSqLenTh = 0.0001).</summary>
-        private const float TorqueSqLenThreshold = 0.0001f;
+        public const float TorqueSqLenThreshold = 0.0001f;
 
         /// <summary>
         /// The manual path's angular-velocity dampening blend (game:
         /// MyGridGyroSystem.MAX_SLOWDOWN = WELD_LANDING_GEARS ? 0.8 : 0.93).
         /// </summary>
-        private const float MaxSlowdown = 0.93f;
+        public const float MaxSlowdown = 0.93f;
 
         /// <summary>
         /// Inertia-tensor-limit clamp divisor (game: MyGridGyroSystem.INV_TENSOR_MAX_LIMIT = 125000).
         /// </summary>
-        private const float InvTensorMaxLimit = 125000f;
+        public const float InvTensorMaxLimit = 125000f;
 
         /// <summary>Slowdown torque multiplier for small and large grids (game: MyFakes 5f / 2f).</summary>
-        private const float SlowdownTorqueMultiplierSmall = 5f;
-        private const float SlowdownTorqueMultiplierLarge = 2f;
+        public const float SlowdownTorqueMultiplierSmall = 5f;
+        public const float SlowdownTorqueMultiplierLarge = 2f;
 
         /// <summary>Large-rate override ramp frame count (MyGridGyroSystem.cs:313).</summary>
-        private const int LargeRateRampFrames = 120;
+        public const int LargeRateRampFrames = 120;
 
         /// <summary>Ramp frame scale below which the (short) ramp applies (MyGridGyroSystem.cs:311).</summary>
-        private const float RampFrameSqThreshold = 2.467401f;
+        public const float RampFrameSqThreshold = 2.467401f;
 
         /// <summary>Ramp frame count per unit squared rate error (MyGridGyroSystem.cs:317).</summary>
-        private const float RampFrameScale = 48.228886f;
+        public const float RampFrameScale = 48.228886f;
 
         private readonly SimCubeGrid _grid;
         private readonly List<SimGyro> _gyros = new List<SimGyro>();
