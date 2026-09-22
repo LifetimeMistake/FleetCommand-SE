@@ -343,6 +343,91 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "Stopping must decelerate toward zero, not overshoot to a large counter-rotation.");
         }
 
+        // — non-identity world-orientation: the override reads R^T·ω, not R·ω —
+
+        [Test]
+        public void Override_RotatedGrid_ReadsTransposeOfWorldOmega_NotOmegaItself()
+        {
+            // The override loop must read the body's WORLD angular
+            // velocity into the GRID frame as R^T·ω (the game reads via
+            // WorldMatrixInvScaled = R^T, MyGridGyroSystem.cs:281-285),
+            // then convert the grid-frame corrective torque back to the
+            // WORLD frame as R·(gridTorque) when applying it. Every
+            // identity-orientation grid (R = I) has R == R^T, which hid
+            // an accumulated mis-transpose bug where the read used R·ω
+            // (R instead of R^T). This test yaws the grid to a genuine
+            // non-identity WORLD orientation so R != R^T, and asserts
+            // the observed grid-frame override torque against the R^T
+            // analytic value — which under the bug would come out
+            // sign-flipped (R²-style) and fail.
+            //
+            // Scenario (chosen for an exact, by-hand derivation):
+            //   R = 90° about world Z (grid yawed a quarter turn).
+            //   R·(x,y,z) = (-y, x, z);  R^T·(x,y,z) = (y, -x, z).
+            // So R != R^T here — e.g. R^T·(1,0,0) = (0,-1,0) but
+            // R·(1,0,0) = (0,1,0).
+            //   ω_world = (2, 0, 0): the grid spins about world X.
+            //   Override target 0 (all gyro channels at 0, like a stop).
+            //
+            // Grid-frame read (correct, R^T): R^T·(2,0,0) = (0,-2,0).
+            // Rate error = target - read = -(0,-2,0) = (0, +2, 0) ->
+            // the corrective grid torque is along +grid Y, and applied
+            // to the world it becomes R·(+Y) = (-1,0,0)·k, opposing the
+            // world-X spin (physically correct). Under the bug the read
+            // would be R·(2,0,0) = (0,+2,0) -> error (0,-2,0) -> a
+            // grid torque along -Y, which applied to the world
+            // ACCELERATES the world-X spin. The sign of LastTorque.Y is
+            // therefore the whole point.
+            //   Ramp (MyGridGyroSystem.cs:306-324): |diff|^2 = 4 >
+            // 2.467401 -> 120 frames. Torque = diff·(60/120) /
+            // inverse-inertia (componentwise), far inside the
+            // gyro-force sphere (radius = maxOverrideForce) so no clamp.
+            // Nothing else perturbs: zero gravity, a single gyro, one
+            // fixed step.
+            MatrixD R = MatrixD.CreateRotationZ(MathHelper.PiOver2);
+            Vector3 omegaWorld = new Vector3(2f, 0, 0);
+
+            SimShip ship = Fc.Spawn(
+                GyroCubeCraft(gyroForce: 4e6f),
+                SpawnState.At(Vector3D.Zero, R).WithAngularVelocity(omegaWorld));
+            IMyGyro g = (IMyGyro)ship.TerminalSystem.GetBlockWithName("G");
+            g.GyroOverride = true; // all channels 0 -> override target rate 0
+
+            Fc.Step(); // first override step: read ω into grid frame, torque, apply
+
+            GyroRateSystem sys = ship.Grid.GyroRateSystem;
+            SimRigidBody body = ship.Grid.Body;
+
+            // Independent analytic expectation, derived from the game
+            // formula and the chosen geometry (R^T read, ramp policy,
+            // inverse-inertia scaling). The inverse-inertia diagonal is
+            // the body's own (not under test); the frame read is the
+            // discriminated quantity.
+            Vector3 gridOmega = Vector3.Transform(omegaWorld, Matrix.Transpose((Matrix)R)); // R^T·ω = (0,-2,0)
+            Vector3 diff = -gridOmega; // error = target(0) - R^T·ω = (0, +2, 0)
+            Assert.That(diff.Y, Is.EqualTo(2f).Within(1e-2), "R^T·(2,0,0) must read as a -2 ~Y grid spin.");
+            Assert.That(GyroRateSystem.ComputeOverrideRampFrames(diff), Is.EqualTo(120),
+                "|diff|^2 = 4 is a large rate error -> the 120-frame ramp.");
+
+            Vector3 inv = body.InverseInertiaDiagonal;
+            Vector3 expected = new Vector3(
+                diff.X * (60f / 120f) / inv.X,
+                diff.Y * (60f / 120f) / inv.Y,
+                diff.Z * (60f / 120f) / inv.Z);
+            Assert.That(expected.Length(), Is.GreaterThan(1f),
+                "Sanity: the corrective torque must be a substantial, measurable vector.");
+
+            Vector3 actual = sys.LastTorque;
+            AssertVector3(actual, expected, expected.Y * 1e-2 + 1e-2,
+                "A 90°-yawed grid spinning about world X must register the R^T (not R) grid-frame corrective torque");
+
+            // Lock the sign explicitly: R^T gives +Y; the mis-transpose
+            // (R·ω) would give -Y, so a clearly positive Y at this
+            // magnitude is the discriminating assertion.
+            Assert.That(actual.Y, Is.GreaterThan(expected.Y * 0.9f),
+                "The grid-frame corrective torque must be along +grid Y (R^T read), not -Y (the R read bug would give -Y).");
+        }
+
         // — grid angular-rate cap (the body's configured MaxAngularVelocity) —
 
         [Test]
@@ -475,6 +560,16 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 Assert.That(actual.Y, Is.EqualTo(expected.Y).Within(tolerance), message + " (Y)");
                 Assert.That(actual.Z, Is.EqualTo(expected.Z).Within(tolerance), message + " (Z)");
             }));
+        }
+
+        /// <summary>A single gyro block at the grid origin (a clean symmetric cube for the analytic scenario).</summary>
+        private static ShipTemplate GyroCubeCraft(float gyroForce)
+        {
+            return new ShipTemplate("gyro-cube", 2.5f, new[]
+            {
+                new TemplateBlock("G", Vector3I.Zero, 1000f, 2.5f,
+                    kind: BlockKind.Gyro, gyroForce: gyroForce),
+            });
         }
 
         /// <summary>A heavy hull plus one gyro block (name "G").</summary>
