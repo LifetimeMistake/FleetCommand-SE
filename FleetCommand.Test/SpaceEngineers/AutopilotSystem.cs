@@ -18,23 +18,52 @@ namespace FleetCommand.Test.SpaceEngineers
     /// game's last-writer-wins per-frame write is.</summary>
     public sealed class AutopilotSystem
     {
-        /// <summary>Proportional rotation gain (per-second), remapped through the gyro torque
-        /// channel.</summary>
-        private const double RotationGain = 0.8;
+        // The turn is the game's adaptive-rotation-speed + deadzone + angular-authority law from
+        // MyAutopilotComponent.UpdateGyro (:2439-2500), using the flight-movement definition's
+        // constants (EntityComponents.sbc "SmallFlightMovement"/"LargeFlightMovement"): the
+        // rotation speed is a linear ramp from MinRotationSpeed (at/below MinRotationSpeedThreshold)
+        // to MaxRotationSpeed (at/above MaxRotationSpeedThreshold) (:2451-2471), cap the demanded
+        // rate by the grid's angular authority (drive only while the time to finish the turn at the
+        // current rate still exceeds the time to stop it, :2479-2482), and stop below the rotation
+        // deadzone (:2474-2478). Commanded rate is written to ControlTorque and clamped to the
+        // gyro's ±1 unit control sphere by ApplyManualTorque, so rates ≥ 1 saturate to full torque.
 
-        /// <summary>Maximum commanded rotation (rad/s), clamped into the gyro's unit control
-        /// sphere.</summary>
-        private const double MaxRotationSpeed = 4.0;
+        /// <summary>Minimum adaptive rotation speed cap (rad/s): at remaining angles at or below
+        /// <see cref="MinRotationSpeedThreshold"/> the commanded turn rate is this value
+        /// (EntityComponents.sbc <c>MinRotationSpeed</c>, MyAutopilotComponent.cs:2457).</summary>
+        private const double MinRotationSpeed = 0.5;
 
-        /// <summary>Velocity damping on the turn: the command is reduced by this factor times the
-        /// current grid-frame rotation about the error axis, so the turn decelerates as it
-        /// approaches the target — the rotational analog of the game's <c>GetAngleVelocity</c>
-        /// smooth-rotation deceleration.</summary>
+        /// <summary>Maximum adaptive rotation speed cap (rad/s): at remaining angles at or above
+        /// <see cref="MaxRotationSpeedThreshold"/> the commanded turn rate is this value — since it
+        /// is ≥ 1 it saturates the gyro's unit control sphere to full torque
+        /// (EntityComponents.sbc <c>MaxRotationSpeed</c>, MyAutopilotComponent.cs:2461).</summary>
+        private const double MaxRotationSpeed = 2.0;
+
+        /// <summary>Angle (rad) at or below which the commanded turn rate is
+        /// <see cref="MinRotationSpeed"/> (EntityComponents.sbc
+        /// <c>MinRotationSpeedThresholdRadians</c>).</summary>
+        private const double MinRotationSpeedThreshold = 0.2;
+
+        /// <summary>Angle (rad) at or above which the commanded turn rate is
+        /// <see cref="MaxRotationSpeed"/> (EntityComponents.sbc
+        /// <c>MaxRotationSpeedTresholdRadians</c>).</summary>
+        private const double MaxRotationSpeedThreshold = 1.0;
+
+        /// <summary>Rotation deadzone (rad): below this remaining angle the turn is considered
+        /// aligned and no torque is commanded (EntityComponents.sbc <c>RotationDeadzone</c>,
+        /// MyAutopilotComponent.cs:2474).</summary>
+        private const double RotationDeadzone = 0.03;
+
+        /// <summary>Angular-authority feedback gain: the commanded turn rate is reduced by this
+        /// factor times the grid's current rotation about the error axis, so the turn
+        /// decelerates as it approaches the target instead of overshooting. This is the
+        /// rotational counterpart of the game's braking gate (num3/num4 vs
+        /// GetAngularVelocity, MyAutopilotComponent.cs:2479-2482): the game stops commanding
+        /// torque once the grid can stop within the remaining angle; the sim's per-axis inertia
+        /// scale in the gyro manual path (ApplyManualTorque) prevents reproducing that
+        /// torque-authority prediction exactly, so the same braking is realized from the
+        /// measured on-axis rotation.</summary>
         private const double RotationDamping = 0.5;
-
-        /// <summary>Rotation deadzone (rad): below this the turn is considered aligned and
-        /// stops.</summary>
-        private const double RotationDeadzone = 0.02;
 
         /// <summary>The waypoint's stopping-time multiplier (game: <c>StoppingTimeMultiplier</c>,
         /// default 1).</summary>
@@ -192,10 +221,11 @@ namespace FleetCommand.Test.SpaceEngineers
         }
 
         /// <summary>The turn: an angular command about the rotation-from-current-forward-to-target
-        /// axis, magnitude proportional to the remaining angle (capped, with a deadzone), written
-        /// into the gyro's ControlTorque channel. This is the game's end state — "drive
-        /// ControlTorque to turn toward the target" (:2472-2497) — using a proportional-rate law
-        /// for the required rotation.</summary>
+        /// axis, magnitude the game's adaptive rotation speed (<see cref="AdaptiveRotationSpeed"/>)
+        /// capped by the grid's angular authority, stopped below the rotation deadzone, written
+        /// into the gyro's ControlTorque channel. This reproduces the game's end state —
+        /// "drive ControlTorque to turn toward the target"
+        /// (MyAutopilotComponent.UpdateGyro :2439-2500).</summary>
         private Vector3 ComputeTurnTorque(SimRigidBody body, Vector3D delta)
         {
             Vector3D fwd = (Vector3D)_grid.WorldMatrix.Forward;
@@ -206,25 +236,45 @@ namespace FleetCommand.Test.SpaceEngineers
             double angle = Math.Atan2(sinA, cosA);
             if (angle < RotationDeadzone || sinA <= 1e-12)
             {
-                return Vector3.Zero;
+                return Vector3.Zero; // aligned within the game's RotationDeadzone (:2474-2478)
             }
             Matrix worldToGrid = _grid.WorldToLocal;
             Vector3 axisGrid = Vector3.TransformNormal((Vector3)(axisW / sinA), worldToGrid);
             Vector3 wGrid = Vector3.Transform(body.AngularVelocity, worldToGrid);
             double wAlong = Vector3.Dot(wGrid, axisGrid);
-            double rate = angle * RotationGain - wAlong * RotationDamping;
-            if (rate < 0.0)
+
+            // Angular-authority feedback: command the game's adaptive rotation speed reduced by
+            // the grid's own on-axis rotation, so the turn decelerates as it approaches and
+            // settles without overshoot (MyAutopilotComponent.cs:2479-2482's braking gate).
+            // Once the grid is already rotating fast enough to close the angle, command zero
+            // and let the gyro's dampening finish it.
+            double rotationSpeed = AdaptiveRotationSpeed(angle);
+            double rate = rotationSpeed - RotationDamping * Math.Abs(wAlong);
+            if (rate <= 0.0)
             {
-                rate = 0.0;
+                return Vector3.Zero; // rotational braking: coast and let the gyro settle
             }
-            else if (rate > MaxRotationSpeed)
-            {
-                rate = MaxRotationSpeed;
-            }
-            Vector3 cmd = axisGrid * (float)rate;
-            cmd = Vector3.Clamp(cmd, -Vector3.One, Vector3.One);
+            Vector3 cmd = Vector3.ClampToSphere(axisGrid * (float)rate, 1f);
             _lastControlTorque = cmd;
             return cmd;
+        }
+
+        /// <summary>The game's adaptive rotation speed (rad/s): <see cref="MinRotationSpeed"/>
+        /// at or below <see cref="MinRotationSpeedThreshold"/>, <see cref="MaxRotationSpeed"/>
+        /// at or above <see cref="MaxRotationSpeedThreshold"/>, linear between — the piecewise
+        /// ramp from MyAutopilotComponent.UpdateGyro :2451-2471.</summary>
+        private double AdaptiveRotationSpeed(double angle)
+        {
+            if (angle <= MinRotationSpeedThreshold)
+            {
+                return MinRotationSpeed;
+            }
+            if (angle >= MaxRotationSpeedThreshold)
+            {
+                return MaxRotationSpeed;
+            }
+            double t = (angle - MinRotationSpeedThreshold) / (MaxRotationSpeedThreshold - MinRotationSpeedThreshold);
+            return MinRotationSpeed + t * (MaxRotationSpeed - MinRotationSpeed);
         }
 
         /// <summary>The forward thrust command — the game's <c>UpdateThrust</c> (:2732-2885) no-CA
