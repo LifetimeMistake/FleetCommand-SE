@@ -87,13 +87,16 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         public void MutationsForSameTick_RunInRegistrationOrder()
         {
             var order = new List<int>();
-            Fc.AtTick(4, c => order.Add(1));
+            // Register out of numeric order to prove it is registration
+            // order (not value or ID order) that governs same-tick
+            // execution.
             Fc.AtTick(4, c => order.Add(2));
+            Fc.AtTick(4, c => order.Add(1));
             Fc.AtTick(4, c => order.Add(3));
 
             Fc.Step(5);
 
-            Assert.That(order, Is.EqualTo(new List<int> { 1, 2, 3 }),
+            Assert.That(order, Is.EqualTo(new List<int> { 2, 1, 3 }),
                 "Mutations registered for the same tick run in registration order.");
         }
 

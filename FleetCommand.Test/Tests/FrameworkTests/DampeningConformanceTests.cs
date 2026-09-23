@@ -1,6 +1,7 @@
 using System;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.Shared;
 using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
 using NUnit.Framework;
@@ -206,24 +207,19 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void Dampening_Deterministic_AcrossTwoWorlds()
         {
-            double a = RunDampening();
-            double b = RunDampening();
+            (double a, double b) = DeterminismHelper.RunTwice(RunDampening);
             Assert.That(a, Is.EqualTo(b).Within(1e-9),
                 "The dampened final speed must be identical across two independent worlds (no wall-clock).");
         }
 
-        private double RunDampening()
+        private static double RunDampening(FleetTestContext ctx)
         {
-            var world = new SimWorld();
-            var ctx = new FleetTestContext(world);
             SimShip ship = ctx.Spawn(
                 DampeningCraft("det", thrusters: AxialX()),
                 SpawnState.At(Vector3D.Zero).WithVelocity(new Vector3D(3, 0, 0)));
             ((SimShipController)ship.Controller).IsUnderControl = true;
             ctx.RunFor(2.0);
-            double speed = ship.Body.LinearVelocity.X;
-            ctx.Dispose();
-            return speed;
+            return ship.Body.LinearVelocity.X;
         }
 
         // — helpers —

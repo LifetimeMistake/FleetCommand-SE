@@ -88,23 +88,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void AtTick_MutationRuns_InRegistrationOrder_OnTargetTick()
-        {
-            var order = new List<int>();
-
-            // Register out of order (2 before 1) to prove registration order
-            // is preserved for the same target tick.
-            Fc.AtTick(3, c => order.Add(2));
-            Fc.AtTick(3, c => order.Add(1));
-
-            Fc.Step(4);
-
-            Assert.That(order.Count, Is.EqualTo(2), "Both mutations ran on tick 3.");
-            Assert.That(order, Is.EqualTo(new List<int> { 2, 1 }),
-                "Scheduled mutations run in registration order.");
-        }
-
-        [Test]
         public void AtTick_Mutation_SeesStartOfTickTime_OnTargetTick()
         {
             long seenTick = -1;

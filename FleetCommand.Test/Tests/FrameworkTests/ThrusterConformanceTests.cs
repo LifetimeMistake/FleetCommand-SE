@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.Shared;
 using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using VRageMath;
+using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
@@ -442,21 +444,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
         // — helpers —
 
-        private static void AssertThrowsNamed(Func<object> accessor, string member)
-        {
-            try
-            {
-                accessor();
-            }
-            catch (NotSupportedException ex)
-            {
-                Assert.That(ex.Message, Does.Contain(member),
-                    "An unimplemented member must throw naming the member '" + member + "', not a silent default.");
-                return;
-            }
-            Assert.Fail("Expected NotSupportedException naming '" + member + "', but the member did not throw.");
-        }
-
         private static void AssertVector3(Vector3 actual, Vector3 expected, double tolerance, string message)
         {
             Assert.Multiple((Action)(() =>
@@ -509,15 +496,10 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         /// <summary>A battery-powered +X engine with the given bus shortfall.</summary>
         private static ShipTemplate PoweredCraft(float maxOutput, float powerDemand, float batteryStored)
         {
-            return new ShipTemplate("powered", 2.5f, new[]
-            {
-                new TemplateBlock("Battery", new Vector3I(0, 0, 0), 400f, 2.5f,
-                    kind: BlockKind.Battery, maxOutput: maxOutput, maxStoredPower: batteryStored),
-                new TemplateBlock("Hull", new Vector3I(2, 0, 0), 2000f, 2.5f),
-                new TemplateBlock("Engine", new Vector3I(4, 0, 0), 400f, 2.5f,
-                    kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left,
-                    maxThrust: 50000f, powerDemand: powerDemand),
-            });
+            return CraftTemplates.PoweredDriverCraft("powered", maxOutput, batteryStored, new TemplateBlock(
+                "Engine", new Vector3I(4, 0, 0), 400f, 2.5f,
+                kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left,
+                maxThrust: 50000f, powerDemand: powerDemand));
         }
     }
 }

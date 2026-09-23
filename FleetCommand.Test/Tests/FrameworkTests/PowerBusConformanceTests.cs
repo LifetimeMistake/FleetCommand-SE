@@ -6,6 +6,7 @@ using FleetCommand.Test.Templates;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using VRageMath;
+using static FleetCommand.Test.Shared.TestHelpers;
 
 // The obsolete battery aliases (OnlyRecharge/OnlyDischarge/SemiautoEnabled)
 // are exercised deliberately; the obsolete-call usage warnings would
@@ -287,21 +288,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         // — helpers —
-
-        private static void AssertThrowsNamed(Func<object> accessor, string member)
-        {
-            try
-            {
-                accessor();
-            }
-            catch (NotSupportedException ex)
-            {
-                Assert.That(ex.Message, Does.Contain(member),
-                    "An unimplemented member must throw naming the member '" + member + "', not a silent default.");
-                return;
-            }
-            Assert.Fail("Expected NotSupportedException naming '" + member + "', but the member did not throw.");
-        }
 
         /// <summary>Scenario-set a functional load's demand and priority on the sim surface.</summary>
         private static void SetLoad(SimFunctionalBlock block, float demand, int priority)

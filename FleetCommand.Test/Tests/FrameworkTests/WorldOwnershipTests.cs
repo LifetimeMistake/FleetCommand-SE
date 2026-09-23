@@ -8,10 +8,10 @@ using VRageMath;
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>
-    /// Verifies world ownership and disposal (, ): each world
-    /// owns its Havok objects and disposes them fully, and a complete
-    /// disposal is followed by a clean second world in the same process —
-    /// with Havok remaining initialized across both (init once, quit once per
+    /// Verifies world ownership and disposal: each world owns its Havok
+    /// objects and disposes them fully, and a complete disposal is
+    /// followed by a clean second world in the same process — with Havok
+    /// remaining initialized across both (init once, quit once per
     /// process).
     /// </summary>
     [TestFixture]
@@ -128,18 +128,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                     new FleetCommand.Test.Templates.TemplateBlock(
                         name + "-block", new VRageMath.Vector3I(0, 0, 0), mass, 2.5f),
                 });
-        }
-
-        [Test]
-        public void Record_ReturnsABoundedRecorder()
-        {
-            using (var context = new FleetTestContext(new SimWorld()))
-            {
-                FleetCommand.Test.Observations.TraceRecorder<double> recorder = context.Record(c => c.Time, 4);
-                context.Step(6);
-                Assert.That(recorder.Count, Is.EqualTo(4),
-                    "Record returns a bounded time-series recorder ( observations).");
-            }
         }
     }
 }

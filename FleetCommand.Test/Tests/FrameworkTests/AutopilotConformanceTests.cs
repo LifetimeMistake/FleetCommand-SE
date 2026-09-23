@@ -11,16 +11,15 @@ using VRageMath;
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>
-    /// .6 conformance for the remote-control autopilot + SpeedLimit
-    /// (Part 2) and the P3 one-liners. The autopilot behavior (turns
-    /// toward the waypoint through <see cref="GyroRateSystem.ControlTorque"/>,
-    /// translates via the AI thrust path <c>ComputeAiThrust</c>, and caps
-    /// forward throttle at <see cref="SimRemoteControl.SpeedLimit"/> with the
+    /// Conformance for the remote-control autopilot + SpeedLimit. The
+    /// autopilot behavior (turns toward the waypoint through
+    /// <see cref="GyroRateSystem.ControlTorque"/>, translates via the AI
+    /// thrust path <c>ComputeAiThrust</c>, and caps forward throttle at
+    /// <see cref="SimRemoteControl.SpeedLimit"/> with the
     /// <c>|v|² &lt; maxSpeed²</c> gate plus the per-frame
-    /// <c>MovementBlockMaxSpeed</c> velocity clamp) is checked end-to-end.
-    /// The P3 checks lock the ProgrammableBlock run-argument forward and the
-    /// connector parking flag. Expectations are analytic (source formulas),
-    /// never circular.
+    /// <c>MovementBlockMaxSpeed</c> velocity clamp) is checked
+    /// end-to-end. Expectations are analytic (source formulas), never
+    /// circular.
     /// </summary>
     [TestFixture]
     public class AutopilotConformanceTests : FleetTestFixture
@@ -143,37 +142,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(rc.CurrentWaypoint.IsEmpty(), Is.True, "With no waypoints CurrentWaypoint is empty.");
         }
 
-        // — P3 one-liners —
-
-        [Test]
-        public void ProgrammableBlock_DefaultRunArgument_Forwarded_WhenExplicitNull()
-        {
-            SimShip ship = Fc.Spawn(ProgrammableCraft(), SpawnState.At(Vector3D.Zero));
-            SimProgrammableBlock pb = (SimProgrammableBlock)ship.TerminalSystem.GetBlockWithName("PB");
-            pb.TerminalRunArgument = "default-arg";
-            string captured = null;
-            pb.RunHandler = s => captured = s;
-
-            Assert.That(pb.TryRun(null), Is.True, "A null explicit argument must still run.");
-            Assert.That(captured, Is.EqualTo("default-arg"),
-                "A null explicit argument must forward TerminalRunArgument (game OnRunDefaultApplied).");
-
-            captured = null;
-            pb.TryRun("explicit");
-            Assert.That(captured, Is.EqualTo("explicit"),
-                "A non-default explicit argument must be passed as-is.");
-        }
-
-        [Test]
-        public void Connector_IsParkingEnabled_StoredDefaultTrue_NoThrow()
-        {
-            SimShip ship = Fc.Spawn(ParkingConnectorCraft(), SpawnState.At(Vector3D.Zero));
-            SimShipConnector conn = (SimShipConnector)ship.TerminalSystem.GetBlockWithName("C");
-            Assert.That(conn.IsParkingEnabled, Is.True, "IsParkingEnabled must default true (game representation).");
-            conn.IsParkingEnabled = false; // must not throw
-            Assert.That(conn.IsParkingEnabled, Is.False, "The stored value must read back.");
-        }
-
         // — helpers —
 
         private static SimRemoteControl Remote(SimShip ship)
@@ -219,22 +187,5 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }
         }
 
-        private static ShipTemplate ProgrammableCraft()
-        {
-            return new ShipTemplate("pb", 2.5f, new[]
-            {
-                new TemplateBlock("Hull", Vector3I.Zero, 2000f, 2.5f),
-                new TemplateBlock("PB", new Vector3I(1, 0, 0), 400f, 2.5f, kind: BlockKind.ProgrammableBlock),
-            });
-        }
-
-        private static ShipTemplate ParkingConnectorCraft()
-        {
-            return new ShipTemplate("conn", 2.5f, new[]
-            {
-                new TemplateBlock("Hull", Vector3I.Zero, 2000f, 2.5f),
-                new TemplateBlock("C", new Vector3I(1, 0, 0), 400f, 2.5f, kind: BlockKind.Connector),
-            });
-        }
     }
 }

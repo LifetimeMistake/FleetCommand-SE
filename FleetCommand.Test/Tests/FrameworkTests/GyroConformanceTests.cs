@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.Shared;
 using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
 using NUnit.Framework;
@@ -171,6 +172,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             // Large error (|diff|^2 > 2.467401) -> 120 frames; otherwise
             // (int)(|diff|^2 * 48.228886) + 1.
+            Assert.That(GyroRateSystem.RampFrameSqThreshold, Is.EqualTo(2.467401f).Within(1e-6),
+                "The large-rate threshold must match the game source (MyGridGyroSystem.cs:312).");
             Assert.That(GyroRateSystem.ComputeOverrideRampFrames(new Vector3(3f, 0, 0)), Is.EqualTo(120),
                 "A large rate error must use the 120-frame ramp.");
             Assert.That(GyroRateSystem.ComputeOverrideRampFrames(new Vector3(2f, 0, 0)), Is.EqualTo(120),
@@ -591,14 +594,9 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         /// <summary>A battery + hull + gyro ("G") with the given bus shortfall.</summary>
         private static ShipTemplate PoweredGyroCraft(float maxOutput, float gyroPowerDemand)
         {
-            return new ShipTemplate("pg", 2.5f, new[]
-            {
-                new TemplateBlock("Battery", Vector3I.Zero, 400f, 2.5f,
-                    kind: BlockKind.Battery, maxOutput: maxOutput, maxStoredPower: 100f),
-                new TemplateBlock("Hull", new Vector3I(2, 0, 0), 2000f, 2.5f),
-                new TemplateBlock("G", new Vector3I(4, 0, 0), 400f, 2.5f,
-                    kind: BlockKind.Gyro, gyroForce: 4e6f, gyroPowerDemand: gyroPowerDemand),
-            });
+            return CraftTemplates.PoweredDriverCraft("pg", maxOutput, 100f, new TemplateBlock(
+                "G", new Vector3I(4, 0, 0), 400f, 2.5f,
+                kind: BlockKind.Gyro, gyroForce: 4e6f, gyroPowerDemand: gyroPowerDemand));
         }
 
         /// <summary>Two gyros (A strong, B weak) for aggregation.</summary>

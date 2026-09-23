@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.Shared;
 using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
 using NUnit.Framework;
@@ -14,10 +15,9 @@ using VRageMath;
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>
-    ///  conformance (, /): the scheduled
-    /// mutation surface. Each mutation type applies its effect, where
-    /// practical against an analytic expectation (delivered thrust, the
-    ///  delivered-ratio law, momentum change from an external
+    /// The scheduled mutation surface. Each mutation type applies its
+    /// effect, where practical against an analytic expectation (delivered
+    /// thrust, the delivered-ratio law, momentum change from an external
     /// impulse, mass change from inventory / add / remove). Block loss and
     /// a missed Update1 happen at the exact scheduled tick, deterministically
     /// across two worlds.
@@ -30,8 +30,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void ScheduledBlockRemoval_HappensExactlyAtTick_DeterministicAcrossTwoWorlds()
         {
-            ScenarioA resultA = RunBlockLossScenario();
-            ScenarioA resultB = RunBlockLossScenario();
+            var (resultA, resultB) = DeterminismHelper.RunTwice(RunBlockLossScenario);
 
             Assert.That(resultA.PresentThroughTick, Is.EqualTo(resultB.PresentThroughTick));
             Assert.That(resultA.FinalMass, Is.EqualTo(resultB.FinalMass).Within(1e-3));
@@ -53,35 +52,31 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             public float FinalMass;
         }
 
-        private static ScenarioA RunBlockLossScenario()
+        private static ScenarioA RunBlockLossScenario(FleetTestContext context)
         {
             var result = new ScenarioA();
-            using (var context = new FleetTestContext(new SimWorld()))
-            {
-                SimShip ship = context.Spawn(Rig(), SpawnState.At(Vector3D.Zero));
-                context.AtTick(3, c => c.RemoveBlock(ship, "Thruster"));
+            SimShip ship = context.Spawn(Rig(), SpawnState.At(Vector3D.Zero));
+            context.AtTick(3, c => c.RemoveBlock(ship, "Thruster"));
 
-                for (long tick = 0; tick < 6; tick++)
+            for (long tick = 0; tick < 6; tick++)
+            {
+                // Removal happens during tick 3's phase 2, so the block
+                // is present after completing tick 2 but gone after tick 3.
+                context.Step();
+                bool present = ship.TerminalSystem.GetBlockWithName("Thruster") != null;
+                if (present)
                 {
-                    // Removal happens during tick 3's phase 2, so the block
-                    // is present after completing tick 2 but gone after tick 3.
-                    context.Step();
-                    bool present = ship.TerminalSystem.GetBlockWithName("Thruster") != null;
-                    if (present)
-                    {
-                        result.PresentThroughTick = (int)tick;
-                    }
+                    result.PresentThroughTick = (int)tick;
                 }
-                result.FinalMass = ship.Grid.Body.Mass;
             }
+            result.FinalMass = ship.Grid.Body.Mass;
             return result;
         }
 
         [Test]
         public void ScheduledMissedUpdate1_HappensAtExactTick_PhysicsStillAdvances_DeterministicAcrossTwoWorlds()
         {
-            ScenarioB a = RunMissedUpdateScenario();
-            ScenarioB b = RunMissedUpdateScenario();
+            var (a, b) = DeterminismHelper.RunTwice(RunMissedUpdateScenario);
 
             Assert.That(a.SeenTicks, Is.EqualTo(b.SeenTicks));
             Assert.That(a.EndTick, Is.EqualTo(b.EndTick));
@@ -98,18 +93,15 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             public long EndTick;
         }
 
-        private static ScenarioB RunMissedUpdateScenario()
+        private static ScenarioB RunMissedUpdateScenario(FleetTestContext context)
         {
             var result = new ScenarioB();
-            using (var context = new FleetTestContext(new SimWorld()))
-            {
-                // Schedule the skip as a scenario mutation at tick 2 (the
-                // public SkipNextUpdate1 surface); physics still advances.
-                context.AtTick(2, c => c.SkipNextUpdate1());
-                context.EveryUpdate1(frame => result.SeenTicks.Add(context.Tick));
-                context.Step(5);
-                result.EndTick = context.Tick;
-            }
+            // Schedule the skip as a scenario mutation at tick 2 (the
+            // public SkipNextUpdate1 surface); physics still advances.
+            context.AtTick(2, c => c.SkipNextUpdate1());
+            context.EveryUpdate1(frame => result.SeenTicks.Add(context.Tick));
+            context.Step(5);
+            result.EndTick = context.Tick;
             return result;
         }
 
@@ -375,8 +367,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void MutationHeavyScenario_IsDeterministicAcrossTwoWorlds()
         {
-            ScenarioC a = RunMutationScenario();
-            ScenarioC b = RunMutationScenario();
+            var (a, b) = DeterminismHelper.RunTwice(RunMutationScenario);
 
             Assert.That((b.FinalPosition - a.FinalPosition).Length(), Is.LessThan(1e-6),
                 "Final position is identical across two identical worlds.");
@@ -396,32 +387,29 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             public int WorkingEvents;
         }
 
-        private static ScenarioC RunMutationScenario()
+        private static ScenarioC RunMutationScenario(FleetTestContext context)
         {
             var result = new ScenarioC();
-            using (var context = new FleetTestContext(new SimWorld()))
-            {
-                SimShip ship = context.Spawn(BatteryRig(8f), SpawnState.At(Vector3D.Zero));
-                SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
-                load.PowerDemand = 8f;
-                int workingEvents = 0;
-                load.WorkingChanged += _ => workingEvents++;
+            SimShip ship = context.Spawn(BatteryRig(8f), SpawnState.At(Vector3D.Zero));
+            SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
+            load.PowerDemand = 8f;
+            int workingEvents = 0;
+            load.WorkingChanged += _ => workingEvents++;
 
-                // A rich, deterministic schedule of mutations.
-                context.AtTick(1, c => c.SetPowerAvailableRatio(ship, 0.5f));   // load now half-powered
-                context.AtTick(4, c => c.SetBlockEnabled(load, false));          // disabled
-                context.AtTick(6, c => c.SetBlockEnabled(load, true));           // re-enabled
-                context.AtTick(8, c => c.ApplyLinearImpulse(ship, new Vector3(0, 0, 50f))); // external impulse
-                context.AtTick(10, c => c.SetInventoryMass((SimTerminalBlock)load, 200f)); // inventory change
+            // A rich, deterministic schedule of mutations.
+            context.AtTick(1, c => c.SetPowerAvailableRatio(ship, 0.5f));   // load now half-powered
+            context.AtTick(4, c => c.SetBlockEnabled(load, false));          // disabled
+            context.AtTick(6, c => c.SetBlockEnabled(load, true));           // re-enabled
+            context.AtTick(8, c => c.ApplyLinearImpulse(ship, new Vector3(0, 0, 50f))); // external impulse
+            context.AtTick(10, c => c.SetInventoryMass((SimTerminalBlock)load, 200f)); // inventory change
 
-                context.Step(12);
+            context.Step(12);
 
-                result.FinalPosition = ship.Grid.Body.PositionWorld;
-                result.FinalVelocity = ship.Grid.Body.LinearVelocity;
-                result.FinalMass = ship.Grid.Body.Mass;
-                result.LoadRatio = load.DeliveredRatio;
-                result.WorkingEvents = workingEvents;
-            }
+            result.FinalPosition = ship.Grid.Body.PositionWorld;
+            result.FinalVelocity = ship.Grid.Body.LinearVelocity;
+            result.FinalMass = ship.Grid.Body.Mass;
+            result.LoadRatio = load.DeliveredRatio;
+            result.WorkingEvents = workingEvents;
             return result;
         }
 

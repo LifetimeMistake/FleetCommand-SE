@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FleetCommand.Common;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.Shared;
 using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
 using NUnit.Framework;
@@ -424,8 +425,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void CaptureAndConnect_Deterministic_AcrossTwoWorlds()
         {
-            Tuple<Vector3D, bool> first = RunDocking();
-            Tuple<Vector3D, bool> second = RunDocking();
+            var (first, second) = DeterminismHelper.RunTwice(RunDocking);
 
             // Identical scenario in two freshly-built worlds yields the same
             // connected outcome and the same final connected geometry.
@@ -435,10 +435,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "The connected pair's post-step position must be identical across two independent worlds.");
         }
 
-        private Tuple<Vector3D, bool> RunDocking()
+        private static Tuple<Vector3D, bool> RunDocking(FleetTestContext ctx)
         {
-            var world = new SimWorld();
-            var ctx = new FleetTestContext(world);
             SimShip a = ctx.Spawn(ConnectorCraft("da", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(1, 0, 0))), SpawnState.At(new Vector3D(0, 0, 0)));
             SimShip b = ctx.Spawn(
                 ConnectorCraft("db", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(-1, 0, 0))),
@@ -456,7 +454,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }
             Vector3D pos = b.Grid.Body.PositionWorld;
             bool connected = ca.IsConnected;
-            ctx.Dispose();
             return Tuple.Create(pos, connected);
         }
 

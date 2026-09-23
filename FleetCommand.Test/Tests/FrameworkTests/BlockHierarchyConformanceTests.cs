@@ -8,6 +8,7 @@ using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame;
 using VRageMath;
+using static FleetCommand.Test.Shared.TestHelpers;
 
 // Obsolete interface members (SetCustomName, UpdateVisual, ...) are exercised
 // deliberately by the conformance suite; the obsolete-call usage warnings
@@ -17,7 +18,7 @@ using VRageMath;
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>
-    ///  conformance (, /): the entity →
+    /// The entity →
     /// terminal-block → functional-block hierarchy, terminal-system
     /// discovery (typed lookup and same-grid filtering), working-state
     /// transitions recomputed in tick phase 4, and the rule that every
@@ -328,21 +329,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             AssertThrowsNamed(() => slim.IsDestroyed, "IMySlimBlock.IsDestroyed");
             AssertThrowsNamed(() => slim.ColorMaskHSV, "IMySlimBlock.ColorMaskHSV");
             AssertThrowsNamed(() => { slim.GetMissingComponents(new Dictionary<string, int>()); return null; }, "IMySlimBlock.GetMissingComponents()");
-        }
-
-        private static void AssertThrowsNamed(Func<object> accessor, string member)
-        {
-            try
-            {
-                accessor();
-            }
-            catch (NotSupportedException ex)
-            {
-                Assert.That(ex.Message, Does.Contain(member),
-                    "An unimplemented member must throw naming the member '" + member + "', not a silent default.");
-                return;
-            }
-            Assert.Fail("Expected NotSupportedException naming '" + member + "', but the member did not throw.");
         }
 
         // — same-grid / construct identity —

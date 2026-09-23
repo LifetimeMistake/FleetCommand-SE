@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
+using FleetCommand.Test.Shared;
 using FleetCommand.Test.SpaceEngineers;
 using Sandbox.ModAPI.Ingame;
 using FleetCommand.Test.Templates;
@@ -12,8 +13,7 @@ using VRageMath;
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>
-    ///  conformance (, ): the validating
-    /// <see cref="ShipTemplateBuilder"/>, the seven baseline
+    /// The validating <see cref="ShipTemplateBuilder"/>, the seven baseline
     /// <see cref="ShipTemplates"/>, and the immutability / variant /
     /// determinism guarantees. Every validation rule is asserted to throw
     /// an <see cref="ArgumentException"/> naming the offending block;
@@ -219,29 +219,19 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void Template_SpawnAndDrive_Deterministic_AcrossTwoWorlds()
         {
-            double a = RunForwardThenMeasure();
-            double b = RunForwardThenMeasure();
+            (double a, double b) = DeterminismHelper.RunTwice(RunForwardThenMeasure);
             Assert.That(a, Is.EqualTo(b).Within(1e-9),
                 "The driven final speed must be identical across two independent worlds.");
         }
 
-        private double RunForwardThenMeasure()
+        private static double RunForwardThenMeasure(FleetTestContext ctx)
         {
-            var world = new SimWorld();
-            var ctx = new FleetTestContext(world);
-            try
-            {
-                SimShip ship = ctx.Spawn(ShipTemplates.SixAxisCraft, SpawnState.At(Vector3D.Zero));
-                Controlled(ship).IsUnderControl = true;
-                Controlled(ship).DampenersOverride = false;
-                Controlled(ship).MoveIndicator = new Vector3(1, 0, 0);
-                ctx.RunFor(1.0);
-                return ship.Body.LinearVelocity.X;
-            }
-            finally
-            {
-                ctx.Dispose();
-            }
+            SimShip ship = ctx.Spawn(ShipTemplates.SixAxisCraft, SpawnState.At(Vector3D.Zero));
+            Controlled(ship).IsUnderControl = true;
+            Controlled(ship).DampenersOverride = false;
+            Controlled(ship).MoveIndicator = new Vector3(1, 0, 0);
+            ctx.RunFor(1.0);
+            return ship.Body.LinearVelocity.X;
         }
 
         // — helpers —

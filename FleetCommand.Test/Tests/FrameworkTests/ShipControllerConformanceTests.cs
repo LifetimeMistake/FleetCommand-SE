@@ -7,12 +7,13 @@ using FleetCommand.Test.Templates;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using VRageMath;
+using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>
-    ///  conformance (, ): the ship controller (and
-    /// its remote-control / cockpit leaves) implement the controller-facing
+    /// The ship controller (and its remote-control / cockpit leaves)
+    /// implement the controller-facing
     /// surface the autopilot adapter reads, with the load-bearing frame
     /// conventions verified against ground truth — <see cref="GetShipVelocities"/>
     /// returns WORLD-frame linear and angular velocity (no body transform,
@@ -385,21 +386,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         // — helpers —
-
-        private static void AssertThrowsNamed(Func<object> accessor, string member)
-        {
-            try
-            {
-                accessor();
-            }
-            catch (NotSupportedException ex)
-            {
-                Assert.That(ex.Message, Does.Contain(member),
-                    "An unimplemented member must throw naming the member '" + member + "', not a silent default.");
-                return;
-            }
-            Assert.Fail("Expected NotSupportedException naming '" + member + "', but the member did not throw.");
-        }
 
         private static void AssertVector3D(Vector3D actual, Vector3D expected, double tolerance, string message)
         {

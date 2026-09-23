@@ -8,6 +8,7 @@ using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using VRage.Game.GUI.TextPanel;
 using VRageMath;
+using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
@@ -177,6 +178,23 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
+        public void ProgrammableBlock_TryRun_NullArgument_ForwardsTerminalRunArgument()
+        {
+            // A null explicit argument must still run and forward the
+            // default terminal run argument (the game's OnRunDefaultApplied).
+            // (Non-default explicit arguments are covered by
+            // ProgrammableBlock_TryRun_InvokesExplicitHook.)
+            SimProgrammableBlock pb = SpawnPb();
+            pb.TerminalRunArgument = "default-arg";
+            string captured = null;
+            pb.RunHandler = s => captured = s;
+
+            Assert.That(pb.TryRun(null), Is.True, "A null explicit argument must still run.");
+            Assert.That(captured, Is.EqualTo("default-arg"),
+                "A null explicit argument must forward TerminalRunArgument (game OnRunDefaultApplied).");
+        }
+
+        [Test]
         public void ProgrammableBlock_TextSurfaceProvider_NoSurface()
         {
             SimProgrammableBlock pb = SpawnPb();
@@ -309,21 +327,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimTextPanel panel = ship.TerminalSystem.GetBlockWithName("Panel") as SimTextPanel;
             Assert.That(panel, Is.Not.Null);
             return panel;
-        }
-
-        private static void AssertThrowsNamed(Func<object> accessor, string member)
-        {
-            try
-            {
-                accessor();
-            }
-            catch (NotSupportedException ex)
-            {
-                Assert.That(ex.Message, Does.Contain(member),
-                    "An unimplemented member must throw naming the member '" + member + "', not a silent default.");
-                return;
-            }
-            Assert.Fail("Expected NotSupportedException naming '" + member + "', but the member did not throw.");
         }
 
         private static ShipTemplate PbTemplate(string name)

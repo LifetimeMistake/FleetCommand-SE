@@ -5,8 +5,7 @@ using NUnit.Framework;
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>
-    ///  conformance (:462, ): the manual
-    /// live-profile calibration record is kept at
+    /// The manual live-profile calibration record is kept at
     /// <c>docs/superpowers/calibration/se-live-profile-calibration.md</c>.
     /// This test locks the sim's compatibility profile and its
     /// source-derived behaviour constants to that record, so the two cannot
@@ -23,18 +22,11 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     public class LiveProfileCalibrationConformanceTests
     {
         // — source-derived behaviour constants (must equal the game source) —
-
-        [Test]
-        public void GyroOverrideRamp_MatchesSourceRecord()
-        {
-            // MyGridGyroSystem.cs:311-316.
-            Assert.That(GyroRateSystem.LargeRateRampFrames, Is.EqualTo(120),
-                "Large-rate override ramp frames must match the game source (MyGridGyroSystem.cs:313).");
-            Assert.That(GyroRateSystem.RampFrameSqThreshold, Is.EqualTo(2.467401f).Within(1e-6),
-                "Ramp frame threshold must match the game source (MyGridGyroSystem.cs:312).");
-            Assert.That(GyroRateSystem.RampFrameScale, Is.EqualTo(48.228886f).Within(1e-5),
-                "Ramp frame scale must match the game source (MyGridGyroSystem.cs:314).");
-        }
+        // The override-ramp constants (LargeRateRampFrames, RampFrameScale,
+        // RampFrameSqThreshold) are locked behaviorally by
+        // GyroConformanceTests.OverrideRamp_RampFrameCounts_AreTheGamePolicy
+        // (which also asserts the threshold value), so they live there and
+        // are not re-asserted here.
 
         [Test]
         public void GyroTorqueAndSlowdown_Constants_MatchesSourceRecord()
