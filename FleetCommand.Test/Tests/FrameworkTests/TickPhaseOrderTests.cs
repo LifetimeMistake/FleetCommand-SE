@@ -5,11 +5,7 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// Verifies the nine-phase tick pipeline runs with real observable
-    /// structure, in the exact non-negotiable order defined by , even
-    /// though this stage has no rigid bodies yet.
-    /// </summary>
+    /// <summary>Verifies the nine-phase tick pipeline runs in the exact non-negotiable order, with real observable structure.</summary>
     [TestFixture]
     public class TickPhaseOrderTests
     {

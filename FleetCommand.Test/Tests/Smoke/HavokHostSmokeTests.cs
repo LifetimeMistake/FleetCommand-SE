@@ -5,13 +5,7 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.Smoke
 {
-    /// <summary>
-    /// Verifies the  host contract: the process is x64, the active
-    /// physics profile is visible, and Havok's <see cref="HkBaseSystem.Init"/> /
-    /// <see cref="HkBaseSystem.Quit"/> each happen exactly once per process
-    /// while the fixture runs its two worlds (the second operates cleanly
-    /// after the first was fully disposed).
-    /// </summary>
+    /// <summary>Verifies the host contract: the process is x64, the physics profile is visible, and Havok init/quit each happen exactly once per process.</summary>
     [TestFixture]
     public class HavokHostSmokeTests
     {

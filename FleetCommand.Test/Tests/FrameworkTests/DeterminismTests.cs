@@ -5,12 +5,7 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// Verifies the deterministic guarantee (): two runs of the same
-    /// scenario on the same build step identically — same tick, time, and
-    /// callback sequence. Time is derived from the fixed step, never
-    /// wall-clock, so no run-to-run variation can creep in.
-    /// </summary>
+    /// <summary>Verifies two runs of the same scenario on the same build step identically.</summary>
     [TestFixture]
     public class DeterminismTests : FleetTestFixture
     {
@@ -75,11 +70,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
     }
 
-    /// <summary>
-    /// Verifies that scheduled mutations run in deterministic order —
-    /// registration order, then stable numeric ID order () — so a
-    /// test's observable mutation sequence is stable across runs.
-    /// </summary>
+    /// <summary>Verifies that same-tick scheduled mutations run in stable registration order.</summary>
     [TestFixture]
     public class MutationOrderingTests : FleetTestFixture
     {

@@ -7,13 +7,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// Verifies world ownership and disposal: each world owns its Havok
-    /// objects and disposes them fully, and a complete disposal is
-    /// followed by a clean second world in the same process — with Havok
-    /// remaining initialized across both (init once, quit once per
-    /// process).
-    /// </summary>
+    /// <summary>Verifies world ownership and disposal: each world owns and fully disposes its Havok objects, and a complete disposal is followed by a clean second world.</summary>
     [TestFixture]
     public class WorldOwnershipTests
     {

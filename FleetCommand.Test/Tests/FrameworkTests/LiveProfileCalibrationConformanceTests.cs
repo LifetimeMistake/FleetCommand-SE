@@ -4,29 +4,11 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// The manual live-profile calibration record is kept at
-    /// <c>docs/superpowers/calibration/se-live-profile-calibration.md</c>.
-    /// This test locks the sim's compatibility profile and its
-    /// source-derived behaviour constants to that record, so the two cannot
-    /// silently drift.
-    ///
-    /// No live game is available in this environment, so no value is
-    /// MEASURED; the record distinguishes SOURCE-DERIVED values (read from
-    /// the decompiled game source — asserted here exactly) from
-    /// REPRESENTATIVE values (design defaults whose exact live value needs
-    /// game calibration — asserted to match the recorded baseline). This is
-    /// source-derived conformity, never a check of Havok against itself.
-    /// </summary>
+    /// <summary>Locks source-derived behaviour constants and the compatibility profile to the live-profile calibration record so neither can silently drift (source-derived values asserted exactly; representative values matched to the recorded baseline).</summary>
     [TestFixture]
     public class LiveProfileCalibrationConformanceTests
     {
         // — source-derived behaviour constants (must equal the game source) —
-        // The override-ramp constants (LargeRateRampFrames, RampFrameScale,
-        // RampFrameSqThreshold) are locked behaviorally by
-        // GyroConformanceTests.OverrideRamp_RampFrameCounts_AreTheGamePolicy
-        // (which also asserts the threshold value), so they live there and
-        // are not re-asserted here.
 
         [Test]
         public void GyroTorqueAndSlowdown_Constants_MatchesSourceRecord()
@@ -61,7 +43,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             // Source-aligned: zero damping unless a profile specifies it.
             Assert.That(p.LinearDamping, Is.EqualTo(0f).Within(1e-9),
-                "The default profile must apply zero linear damping ().");
+                "The default profile must apply zero linear damping.");
             Assert.That(p.AngularDamping, Is.EqualTo(0f).Within(1e-9),
                 "The default profile must apply zero angular damping.");
             Assert.That(p.CollisionResponse, Is.EqualTo(true),

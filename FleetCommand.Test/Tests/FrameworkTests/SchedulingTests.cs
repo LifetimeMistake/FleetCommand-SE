@@ -5,13 +5,7 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// Verifies Update scheduling and callback cadence (, ):
-    /// EveryUpdate1 callbacks run with coherent start-of-tick state,
-    /// TimeSinceLastRun is derived from elapsed fixed steps, a suppressed
-    /// Update1 is skipped without skipping physics, and scheduled mutations
-    /// run in registration order on their target tick.
-    /// </summary>
+    /// <summary>Verifies Update scheduling and callback cadence: coherent start-of-tick state, elapsed-fixed-step TimeSinceLastRun, suppression, and registration-ordered tick mutations.</summary>
     [TestFixture]
     public class SchedulingTests : FleetTestFixture
     {

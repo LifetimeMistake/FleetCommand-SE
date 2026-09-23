@@ -14,18 +14,11 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// The scheduled mutation surface. Each mutation type applies its
-    /// effect, where practical against an analytic expectation (delivered
-    /// thrust, the delivered-ratio law, momentum change from an external
-    /// impulse, mass change from inventory / add / remove). Block loss and
-    /// a missed Update1 happen at the exact scheduled tick, deterministically
-    /// across two worlds.
-    /// </summary>
+    /// <summary>Conformance of the scheduled mutation surface: each mutation type applies its effect deterministically at its scheduled tick.</summary>
     [TestFixture]
     public class ScheduledMutationConformanceTests : FleetTestFixture
     {
-        // — scheduled block loss and missed Update1, deterministic () —
+        // — scheduled block loss and missed Update1, deterministic —
 
         [Test]
         public void ScheduledBlockRemoval_HappensExactlyAtTick_DeterministicAcrossTwoWorlds()
@@ -199,7 +192,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "Removing a block must remove its dry mass from the body.");
         }
 
-        // — power ratio change reproduces the  delivered-ratio law —
+        // — power ratio change reproduces the delivered-ratio law —
 
         [Test]
         public void ElectricalRatioChange_ReproducesDeliveredRatioLaw()
@@ -215,7 +208,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Fc.SetPowerAvailableRatio(ship, 0.5f);
             Fc.Step();
             Assert.That(load.DeliveredRatio, Is.EqualTo(0.5f).Within(1e-6),
-                "The  ratio law min(1, available/demand) with available = ratio·supply.");
+                "The ratio law min(1, available/demand) with available = ratio·supply.");
         }
 
         // — fuel ratio change reproduces the supply reduction —
