@@ -93,6 +93,17 @@ namespace FleetCommand.Test.Templates
         /// default 1 — a spawned battery starts full).</summary>
         public float InitialStoredPower { get; }
 
+        /// <summary>Reactor initial fuel in item-count units (the game's uranium inventory, counted
+        /// in <c>ConsumptionPerSecond_Items</c>). Reactor output is binary — full
+        /// <see cref="MaxOutput"/> while any fuel remains — so this sets only runtime, never
+        /// partial output. Default large (effectively always fueled).</summary>
+        public float InitialFuel { get; }
+
+        /// <summary>Reactor fuel consumed per second at full output, in item-count units (the
+        /// game's <c>ConsumptionPerSecond_Items</c>, MyReactor.cs:271); actual consumption
+        /// scales with delivered output. Default 1.</summary>
+        public float FuelConsumptionPerSecond { get; }
+
         /// <summary>
         /// Thruster: the grid-body FORWARD direction, the axis its exhaust points along
         /// (a cardinal axis; the game's <c>MyThrust.ThrustForwardVector</c>). The grid is
@@ -176,7 +187,8 @@ namespace FleetCommand.Test.Templates
             float effectiveness = 1f, float powerDemand = 0f,
             float gyroForce = 0f, float gyroPowerDemand = 0f,
             Quaternion? connectorOrientation = null, float connectorReach = 0f,
-            float slowdownFactor = 1f)
+            float slowdownFactor = 1f,
+            float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -221,6 +233,8 @@ namespace FleetCommand.Test.Templates
             ConnectorOrientation = connectorOrientation ?? Quaternion.Identity;
             ConnectorReach = connectorReach;
             SlowdownFactor = slowdownFactor;
+            InitialFuel = initialFuel;
+            FuelConsumptionPerSecond = fuelConsumptionPerSecond;
 
             Vector3I max = Min + Size - Vector3I.One;
             Vector3 cellSum = (BlockCenter(min) + BlockCenter(max)) * (0.5f * gridSize);

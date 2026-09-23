@@ -271,9 +271,9 @@ namespace FleetCommand.Test.Framework
             ship.Grid.PowerBus.AvailableRatio = ratio;
         }
 
-        /// <summary>Changes the named reactor's fuel ratio. See
-        /// <see cref="SpaceEngineers.SimReactorBlock.FuelRatio"/>.</summary>
-        public void SetFuelRatio(SimShip ship, string reactorName, float ratio)
+        /// <summary>Changes the named reactor's remaining fuel (in item-count units). See
+        /// <see cref="SpaceEngineers.SimReactorBlock.FuelRemaining"/>.</summary>
+        public void SetReactorFuel(SimShip ship, string reactorName, float fuel)
         {
             if (ship == null)
             {
@@ -284,7 +284,7 @@ namespace FleetCommand.Test.Framework
             {
                 throw new ArgumentException("No reactor named '" + reactorName + "' on ship '" + ship.Grid.CustomName + "'.", nameof(reactorName));
             }
-            reactor.FuelRatio = ratio;
+            reactor.FuelRemaining = fuel;
         }
 
         /// <summary>Changes the world's atmosphere effectiveness (partial).</summary>

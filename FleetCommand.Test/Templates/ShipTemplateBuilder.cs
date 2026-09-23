@@ -243,9 +243,11 @@ namespace FleetCommand.Test.Templates
             return this;
         }
 
-        /// <summary>Adds a reactor power producer with the given maximum output.</summary>
+        /// <summary>Adds a reactor power producer with the given maximum output and optional fuel
+        /// store (initial fuel and per-second-at-full-output consumption, both in item-count
+        /// units).</summary>
         public ShipTemplateBuilder AddReactor(string blockName, Vector3I min, float maxOutput,
-            float dryMass = 100f)
+            float dryMass = 100f, float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f)
         {
             CheckNotFrozen();
             _blocks.Add(new BlockSpec
@@ -255,6 +257,8 @@ namespace FleetCommand.Test.Templates
                 Min = min,
                 DryMass = dryMass,
                 MaxOutput = maxOutput,
+                InitialFuel = initialFuel,
+                FuelConsumptionPerSecond = fuelConsumptionPerSecond,
             });
             return this;
         }
@@ -485,6 +489,7 @@ namespace FleetCommand.Test.Templates
             public float InventoryMass;
             public Quaternion? Orientation;
             public float MaxOutput, MaxInput, MaxStoredPower, InitialStoredPower;
+            public float InitialFuel, FuelConsumptionPerSecond;
             public Vector3I? ThrustDirection;
             public float MaxThrust, Effectiveness, PowerDemand;
             public float GyroForce, GyroPowerDemand;
@@ -496,6 +501,8 @@ namespace FleetCommand.Test.Templates
                 Effectiveness = 1f;
                 InitialStoredPower = 1f;
                 SlowdownFactor = 1f;
+                InitialFuel = 1000000f;
+                FuelConsumptionPerSecond = 1f;
             }
 
             public BlockSpec(TemplateBlock b)
@@ -511,6 +518,8 @@ namespace FleetCommand.Test.Templates
                 MaxInput = b.MaxInput;
                 MaxStoredPower = b.MaxStoredPower;
                 InitialStoredPower = b.InitialStoredPower;
+                InitialFuel = b.InitialFuel;
+                FuelConsumptionPerSecond = b.FuelConsumptionPerSecond;
                 ThrustDirection = b.ThrustDirection;
                 MaxThrust = b.MaxThrust;
                 Effectiveness = b.Effectiveness;
@@ -529,7 +538,8 @@ namespace FleetCommand.Test.Templates
                     Size, InventoryMass, Orientation, Kind,
                     MaxOutput, MaxInput, MaxStoredPower, InitialStoredPower,
                     ThrustDirection, MaxThrust, Effectiveness, PowerDemand,
-                    GyroForce, GyroPowerDemand, ConnectorOrientation, ConnectorReach, SlowdownFactor);
+                    GyroForce, GyroPowerDemand, ConnectorOrientation, ConnectorReach, SlowdownFactor,
+                    InitialFuel, FuelConsumptionPerSecond);
             }
         }
     }

@@ -212,27 +212,78 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "The ratio law min(1, available/demand) with available = ratio·supply.");
         }
 
-        // — fuel ratio change reproduces the supply reduction —
+        // — reactor fuel is binary: full output while any fuel remains, then none —
 
         [Test]
-        public void FuelRatioChange_ReproducesSupplyReduction()
+        public void ReactorFuel_PartialFuel_StillProducesFullOutput()
         {
-            SimShip ship = Fc.Spawn(ReactorRig(8f), SpawnState.At(Vector3D.Zero));
+            // Reactor output is BINARY, not proportional to remaining fuel: MyFueledPowerProducer
+            // CheckIsWorking requires only IsSupplied (Capacity > 0) and ComputeMaxProduction
+            // returns the full MaxOutput (MyFueledPowerProducer.cs:143-151, :215-232). A rod that
+            // has burned partway still delivers full output — fuel sets only runtime.
+            SimShip ship = Fc.Spawn(ReactorRig(8f, initialFuel: 60f, fuelPerSecond: 1f),
+                SpawnState.At(Vector3D.Zero));
+            SimReactorBlock reactor = (SimReactorBlock)ship.TerminalSystem.GetBlockWithName("Reactor");
+            SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
+            load.PowerDemand = 8f;
+
+            Fc.Step();
+            Assert.That(reactor.FuelRemaining, Is.LessThan(60f), "Full output consumes fuel.");
+            Assert.That(load.DeliveredRatio, Is.EqualTo(1f).Within(1e-6),
+                "Fuel present -> full output, even after burning some (binary, not proportional).");
+            Assert.That(reactor.IsWorking, Is.True, "A supplied reactor works.");
+            Assert.That(reactor.CurrentOutput, Is.EqualTo(8f).Within(1e-6),
+                "The reactor delivers its full MaxOutput while supplied.");
+        }
+
+        [Test]
+        public void ReactorFuel_Consumption_ProportionalToOutput()
+        {
+            // The game consumes fuel at a rate proportional to CURRENT output (MyReactor.ConsumeFuel:
+            // per-second = currentOutput / MaxPowerOutput * ConsumptionPerSecond_Items, :266-278), and
+            // nothing while output is zero (:260-264). A small fuel store keeps the measured
+            // remainders precise (a large float baseline would swamp the per-step delta).
+            SimShip ship = Fc.Spawn(ReactorRig(8f, initialFuel: 1f, fuelPerSecond: 4f),
+                SpawnState.At(Vector3D.Zero));
+            SimReactorBlock reactor = (SimReactorBlock)ship.TerminalSystem.GetBlockWithName("Reactor");
+            SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
+
+            load.PowerDemand = 8f; // full output
+            Fc.Step();
+            float burnedAtFull = 1f - reactor.FuelRemaining;
+
+            load.PowerDemand = 2f; // a quarter of output
+            Fc.Step();
+            float burnedAtQuarter = 1f - reactor.FuelRemaining - burnedAtFull;
+
+            Assert.That(burnedAtFull, Is.EqualTo(4f / 60f).Within(1e-5),
+                "Full output burns fuelConsumptionPerSecond x dt (4 items/s over one 1/60 s step).");
+            Assert.That(burnedAtQuarter, Is.EqualTo(burnedAtFull / 4f).Within(1e-6),
+                "A quarter of output burns a quarter of the full-rate fuel.");
+        }
+
+        [Test]
+        public void ReactorFuel_Exhausted_StopsProducing()
+        {
+            // When the fuel store empties the reactor stops working and produces zero
+            // (RefreshRemainingCapacity -> Capacity -> CheckIsWorking -> no output,
+            // MyReactor.cs:286-306, MyFueledPowerProducer.cs:143-151). The mutation drives the
+            // fuel store directly (scenario-side), reproducing the cut-off.
+            SimShip ship = Fc.Spawn(ReactorRig(8f, initialFuel: 100000f, fuelPerSecond: 1f),
+                SpawnState.At(Vector3D.Zero));
+            SimReactorBlock reactor = (SimReactorBlock)ship.TerminalSystem.GetBlockWithName("Reactor");
             SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
             load.PowerDemand = 8f;
             Fc.Step();
-            Assert.That(load.DeliveredRatio, Is.EqualTo(1f).Within(1e-6));
+            Assert.That(reactor.IsWorking, Is.True);
 
-            Fc.SetFuelRatio(ship, "Reactor", 0f);
+            Fc.SetReactorFuel(ship, "Reactor", 0f); // dumps the rod
             Fc.Step();
-            Assert.That(ship.Grid.PowerBus.TotalSupply, Is.EqualTo(0f), "No fuel -> no supply.");
+            Assert.That(ship.Grid.PowerBus.TotalSupply, Is.EqualTo(0f), "Out of fuel -> no supply.");
             Assert.That(load.DeliveredRatio, Is.EqualTo(0f).Within(1e-6), "Out of fuel starves the load.");
             Assert.That(load.IsPowered, Is.False);
-
-            Fc.SetFuelRatio(ship, "Reactor", 0.5f);
-            Fc.Step();
-            Assert.That(load.DeliveredRatio, Is.EqualTo(0.5f).Within(1e-6),
-                "Half fuel halves the delivered ratio for a full-demand load.");
+            Assert.That(reactor.IsWorking, Is.False, "An out-of-fuel reactor is not working.");
+            Assert.That(reactor.CurrentOutput, Is.EqualTo(0f), "An out-of-fuel reactor produces nothing.");
         }
 
         // — atmosphere effectiveness change scales delivered thrust —
@@ -437,12 +488,14 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             });
         }
 
-        private static ShipTemplate ReactorRig(float maxOutput)
+        private static ShipTemplate ReactorRig(float maxOutput,
+            float initialFuel = 1000000f, float fuelPerSecond = 1f)
         {
             return new ShipTemplate("Reactor", 0.5f, new[]
             {
                 new TemplateBlock("Reactor", new Vector3I(0, 0, 0), 400f, 0.5f,
-                    kind: BlockKind.Reactor, maxOutput: maxOutput),
+                    kind: BlockKind.Reactor, maxOutput: maxOutput,
+                    initialFuel: initialFuel, fuelConsumptionPerSecond: fuelPerSecond),
                 new TemplateBlock("Load", new Vector3I(2, 0, 0), 400f, 0.5f, kind: BlockKind.FixedThruster),
             });
         }
