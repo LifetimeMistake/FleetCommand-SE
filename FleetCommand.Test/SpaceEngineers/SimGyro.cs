@@ -10,8 +10,9 @@ namespace FleetCommand.Test.SpaceEngineers
     /// <c>GyroOverride</c>, <c>Yaw</c>, <c>Pitch</c>, <c>Roll</c>). <see cref="GyroPower"/>
     /// (clamped to [0, 1]) scales <see cref="MaxGyroForce"/> (template force x power, the game's
     /// <c>ForceMagnitude * m_gyroPower</c>) and the <see cref="RequiredPowerInput"/> that feeds
-    /// <c>PowerDemand</c> (so the phase-4 bus allocates it and the delivered ratio scales the
-    /// delivered torque). <see cref="Yaw"/>/<see cref="Pitch"/>/<see cref="Roll"/> hold a single
+    /// <c>PowerDemand</c> (so the phase-4 bus allocates it; the delivered ratio then gates the gyro
+    /// binarily — any delivered power means it is powered and applies full force, none means it
+    /// contributes nothing, MyGyro.cs:105). <see cref="Yaw"/>/<see cref="Pitch"/>/<see cref="Roll"/> hold a single
     /// rotated override velocity with the source-verified all-three-negated ingame mapping
     /// (MyGyro.cs:141-190): each setter stores the negation, so <c>m_gyroOverrideVelocity =
     /// (-Pitch, -Yaw, -Roll)</c> in the block's local frame, clamped to the grid's configured

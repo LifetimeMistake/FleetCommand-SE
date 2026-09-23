@@ -19,9 +19,11 @@ namespace FleetCommand.Test.SpaceEngineers
     /// and apply ONE resultant body-space angular impulse); phase 8
     /// <see cref="UpdateGyroTelemetry"/> (write each gyro's delivered torque and saturation).
     /// <see cref="ControlTorque"/> is the scenario's non-override stabilization input (zero by
-    /// default), added as <c>ControlTorque * m_maxGyroForce</c>; power scaling reads the gyros'
-    /// phase-4 <see cref="SimFunctionalBlock.DeliveredRatio"/>, force-weighted into one gyro-system
-    /// ratio.</summary>
+    /// default), added as <c>ControlTorque * m_maxGyroForce</c>. Power is a binary gate: a gyro is
+    /// either powered (<see cref="SimFunctionalBlock.IsPowered"/>) and contributes its FULL force, or
+    /// unpowered and contributes nothing — no partial torque from a partial supply (the game's gyro
+    /// resource sink gates on <c>IsPoweredByType</c>, MyResourceSinkComponent.cs:353-362, whose
+    /// supplied ratio is 0 on a non-adaptible shortfall and 1 on full supply).</summary>
     public sealed class GyroRateSystem
     {
         /// <summary>Tiny torque threshold below which nothing is applied (game: TorqueSqLenTh =
@@ -95,6 +97,13 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>True when the last applied torque was clamped by the aggregate gyro-force
         /// sphere.</summary>
         public bool LastSaturated => _lastSaturated;
+
+        /// <summary>The non-override authority pool — the sum of MaxGyroForce from the most
+        /// recent <see cref="Aggregate"/> — i.e. the gyro force that drives the autopilot turn
+        /// (<c>ControlTorque</c>, MyAutopilotComponent's <c>UpdateGyro</c>, is applied through
+        /// this pool in the manual path). Read by the autopilot to bound its angular-authority
+        /// feedback (MyAutopilotComponent.cs:2479).</summary>
+        internal float NonOverrideMaxForce => _maxGyroForce;
 
         /// <summary>The current override acceleration-ramp frame count (-1 = unset). Observation
         /// surface so conformance can lock the game's cross-tick countdown
@@ -171,6 +180,17 @@ namespace FleetCommand.Test.SpaceEngineers
                 {
                     continue;
                 }
+                if (!gyro.IsPowered)
+                {
+                    // Binary power gate: an unpowered gyro contributes no
+                    // force to either pool; a powered gyro contributes its
+                    // full MaxGyroForce. There is no partial contribution
+                    // from a partial supply (the game's gyro resource sink
+                    // is powered or not — IsPoweredByType,
+                    // MyResourceSinkComponent.cs:353-362 — and unpowered
+                    // gyros are not working, MyGyro.cs:105,236).
+                    continue;
+                }
                 if (!gyro.IsOverridden || AutopilotEnabled)
                 {
                     _maxGyroForce += gyro.MaxGyroForce;
@@ -228,10 +248,12 @@ namespace FleetCommand.Test.SpaceEngineers
         /// Extracted from the former single <see cref="ApplyTorque"/> body.</summary>
         private void ApplyOverrideTorque(SimRigidBody body, float dtSeconds)
         {
-            // The gyro-system supplied power ratio: the force-weighted
-            // phase-4 DeliveredRatio of the used gyros (the exact
-            // per-gyro value when they share a tier; the game's single
-            // ResourceSink.SuppliedRatioByType). Gate on power ("num > 0").
+            // Binary power gate: 1 while any used gyro is powered, 0 when
+            // none is (the game gates on the resource-sink supplied ratio
+            // being > 0, MyGridGyroSystem.cs:276-277, which is 0 or 1 for
+            // the non-adaptible gyro sink). Since Aggregate already
+            // excludes unpowered gyros from the force pool, the multiplier
+            // here is full (1) — an unpowered system returned above.
             float num = GyroPowerRatio();
             if (!(num > 0f))
             {
@@ -428,7 +450,7 @@ namespace FleetCommand.Test.SpaceEngineers
                 {
                     continue;
                 }
-                if (!gyro.IsUsed || !gyro.IsOverridden || _maxOverrideForce <= 0f)
+                if (!gyro.IsUsed || !gyro.IsPowered || !gyro.IsOverridden || _maxOverrideForce <= 0f)
                 {
                     gyro.CommitTelemetry(0f, false);
                     continue;
@@ -467,14 +489,16 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>The force-weighted phase-4 delivered power ratio of the used gyros: (sum
-        /// MaxGyroForce·DeliveredRatio) / (sum MaxGyroForce). Reduces to the exact per-gyro phase-4
-        /// value when all gyros share a tier (the common case); the single source of truth scaling
-        /// available gyro force under a shared power shortfall.</summary>
+        /// <summary>The gyro system's BINARY powered gate (the game's
+        /// <c>ResourceSink.SuppliedRatioByType</c> is 0 or 1 for the non-adaptible gyro sink —
+        /// MyResourceSinkComponent.SetInputFromDistributor sets 0 on a shortfall and 1 on full
+        /// supply, :353-362 — and <c>MyGridGyroSystem.UpdateOverriddenGyros</c> returns when it is
+        /// not &gt; 0, :276-277): 1 while any used gyro is powered, else 0. Because
+        /// <see cref="Aggregate"/> already excludes unpowered gyros from the force pools, a powered
+        /// system here applies its FULL torque — no partial-torque multiplier from a partial
+        /// supply.</summary>
         private float GyroPowerRatio()
         {
-            float weighted = 0f;
-            float total = 0f;
             for (int i = 0; i < _gyros.Count; i++)
             {
                 SimGyro gyro = _gyros[i];
@@ -482,11 +506,12 @@ namespace FleetCommand.Test.SpaceEngineers
                 {
                     continue;
                 }
-                float f = gyro.MaxGyroForce;
-                weighted += f * gyro.DeliveredRatio;
-                total += f;
+                if (gyro.IsPowered)
+                {
+                    return 1f;
+                }
             }
-            return total <= 0f ? 0f : weighted / total;
+            return 0f;
         }
     }
 }
