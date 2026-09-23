@@ -7,12 +7,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (): an uncaught component exception
-    /// fills the short failure ring buffer, which also carries the recent
-    /// actuator history; the buffer is bounded; and the final state is
-    /// surfaced (the fixture writes it to NUnit output on failure).
-    /// </summary>
+    /// <summary>Conformance of the failure ring buffer: it fills on an uncaught component exception, carries recent actuator history, and is bounded.</summary>
     [TestFixture]
     public class FailureRingBufferConformanceTests : FleetTestFixture
     {

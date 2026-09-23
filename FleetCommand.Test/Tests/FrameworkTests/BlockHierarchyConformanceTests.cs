@@ -17,14 +17,7 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// The entity →
-    /// terminal-block → functional-block hierarchy, terminal-system
-    /// discovery (typed lookup and same-grid filtering), working-state
-    /// transitions recomputed in tick phase 4, and the rule that every
-    /// interface member outside the implemented contract throws a
-    /// <see cref="NotSupportedException"/> naming the member.
-    /// </summary>
+    /// <summary>Conformance of the entity → terminal-block → functional-block hierarchy and block contracts.</summary>
     [TestFixture]
     public class BlockHierarchyConformanceTests : FleetTestFixture
     {
@@ -223,10 +216,9 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             // Power is a system quantity recomputed in tick phase 4: a
             // supply change alone must take effect only at the next Step.
-            // : the ship's battery switching to Recharge cuts the
-            // supply; the block's working state must not change until
-            // phase 4 applies it (no immediate recompute from the control
-            // write).
+            // The ship's battery switching to Recharge cuts the supply;
+            // the block's working state must not change until phase 4
+            // applies it (no immediate recompute from the control write).
             ShipTemplate template = new ShipTemplate(
                 "T", 2.5f,
                 new[]
@@ -277,8 +269,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             // Carry-forward NRE guard: a grid (and its body) disposed while
             // still in the world's collections must not be dereferenced by
-            // subsequent Step() calls (, "per-ship removal becomes
-            // reachable soon").
+            // subsequent Step() calls.
             SimShip ship = Fc.Spawn(TwoBlockTemplate("A"), SpawnState.At(Vector3D.Zero));
             ship.Grid.Dispose();
             Assert.That(ship.Grid.Closed, Is.True);

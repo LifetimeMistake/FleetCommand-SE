@@ -12,25 +12,7 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (, /): the fixed thruster
-    /// block (<see cref="SimThrust"/>, real <see cref="IMyThrust"/>) and
-    /// the grid thrust aggregation (<see cref="ForceAggregator"/>) — the 
-    /// boundary. The tests prove the linear impulse response in vacuum and
-    /// in uniform gravity, asymmetric and missing-axis aggregation (by data,
-    /// no craft-type branches), power scaling through the bus's
-    /// <see cref="SimFunctionalBlock.DeliveredRatio"/> (single source of
-    /// truth), and that the ONE resultant force is applied at the grid COM
-    /// — so an off-center fixed thruster produces zero unintended torque
-    /// (the verified application point, MyThrusterBlockThrustComponent.cs:201).
-    /// Directions are game 1:1 (MyThrust.cs:188, 222, 276): a template's
-    /// thrust direction is the block's grid-body FORWARD (exhaust) axis and
-    /// the delivered force is applied along its negation
-    /// (ThrustForce = -ThrustForwardVector), so e.g. a forward of
-    /// Vector3I.Forward (-Z) pushes the grid along +Z.
-    /// Expectations are analytic (F t / m, exact shares), never derived
-    /// from the same Havok result (no circular validation).
-    /// </summary>
+    /// <summary>Conformance of the fixed thruster and grid thrust aggregation: linear impulse response, axis aggregation, power scaling, and COM application.</summary>
     [TestFixture]
     public class ThrusterConformanceTests : FleetTestFixture
     {
@@ -465,11 +447,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             return new ShipTemplate(name, 2.5f, blocks);
         }
 
-        /// <summary>
-        /// A fixed thruster template block with thruster params. The
-        /// direction is the block's grid-body FORWARD (exhaust) axis;
-        /// the grid is pushed opposite it (force = -forward).
-        /// </summary>
+        /// <summary>A fixed thruster template block; the direction is the block's grid-body FORWARD (exhaust) axis, and the grid is pushed opposite it.</summary>
         private static TemplateBlock Thruster(string name, Vector3I cell, Vector3I forward,
             float maxThrust, float effectiveness = 1f, float powerDemand = 0f)
         {
@@ -478,13 +456,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 effectiveness: effectiveness, powerDemand: powerDemand);
         }
 
-        /// <summary>
-        /// The asymmetric fixture: thrusters pushing +X (60 kN Main, 40 kN
-        /// Aux) and -Y (80 kN Down), and NO push on -X or Z — so
-        /// asymmetric and missing axes are expressed as data, with no
-        /// craft-type branch. Forwards are -X (Left, force +X) and +Y
-        /// (Up, force -Y) respectively.
-        /// </summary>
+        /// <summary>The asymmetric fixture: thrusters pushing +X (Main 60 kN, Aux 40 kN) and -Y (Down 80 kN), with no push on -X or Z, expressed as data.</summary>
         private static ShipTemplate AsymmetricCraft()
         {
             return HullPlusThrusters("asym", hullMass: 2000f,

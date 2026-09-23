@@ -9,20 +9,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// .5 Part 1 conformance (the brief's items 1-7): the ship
-    /// controller's inertia dampening actually runs in the thrust base path
-    /// — <see cref="BaseControlSystem"/> reproduces the game's
-    /// <c>MyEntityThrustComponent.ComputeBaseThrust</c>
-    /// (MyEntityThrustComponent.cs:1543-1656), driven by the controller
-    /// route (<c>MyShipController</c> :1780-1820:
-    /// <c>ControlThrust += Vector3.Transform(MoveIndicator,
-    /// blockOrientation)</c>, <c>Enabled = ControlThrusters</c>), and
-    /// feeds the same <see cref="ForceAggregator"/> group demand so
-    /// effectiveness + power + direction still apply (no divergence from
-    /// phase 4). Expectations are computed from the formula (analytic),
-    /// never from the same engine round-trip.
-    /// </summary>
+    /// <summary>Conformance of inertia dampening in the thrust base path, against the game's ComputeBaseThrust law.</summary>
     [TestFixture]
     public class DampeningConformanceTests : FleetTestFixture
     {
@@ -240,10 +227,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             };
         }
 
-        /// <summary>
-        /// A craft with a controller at the origin (a heavy hull) plus the
-        /// given thrusters. Dampeners default on; ControlThrusters on.
-        /// </summary>
+        /// <summary>A craft with a controller at the origin (heavy hull) plus the given thrusters; dampeners and ControlThrusters on.</summary>
         private static ShipTemplate DampeningCraft(string name, TemplateBlock[] thrusters, float hullMass = 2000f)
         {
             var blocks = new System.Collections.Generic.List<TemplateBlock>

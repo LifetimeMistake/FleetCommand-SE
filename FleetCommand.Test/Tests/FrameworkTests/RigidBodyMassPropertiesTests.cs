@@ -9,15 +9,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  mass-property conformance (, ): the rigid
-    /// body's mass, center of mass, and inertia — combined by
-    /// <see cref="HkInertiaTensorComputer"/> exactly as the game combines
-    /// block mass elements — are validated against independent analytic box
-    /// formulas and the parallel-axis theorem. Analytic expectations are
-    /// never derived from the Havok result being checked (no circular
-    /// validation).
-    /// </summary>
+    /// <summary>Conformance of the rigid body's mass, center of mass, and inertia against independent analytic formulas and the parallel-axis theorem.</summary>
     [TestFixture]
     public class RigidBodyMassPropertiesTests : FleetTestFixture
     {

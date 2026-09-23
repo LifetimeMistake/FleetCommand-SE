@@ -11,17 +11,7 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// The ship controller (and its remote-control / cockpit leaves)
-    /// implement the controller-facing
-    /// surface the autopilot adapter reads, with the load-bearing frame
-    /// conventions verified against ground truth — <see cref="GetShipVelocities"/>
-    /// returns WORLD-frame linear and angular velocity (no body transform,
-    /// MyShipController.cs:3233), <see cref="GetNaturalGravity"/> is the
-    /// world-frame vector applied to the body that tick (),
-    /// <see cref="WorldMatrix"/> is body-to-world, and
-    /// <see cref="CenterOfMass"/> is in world coordinates.
-    /// </summary>
+    /// <summary>Conformance of the ship controller surface, with the load-bearing frame conventions (world-frame velocities, gravity, body-to-world pose) verified against ground truth.</summary>
     [TestFixture]
     public class ShipControllerConformanceTests : FleetTestFixture
     {
@@ -168,8 +158,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         public void Controller_GetNaturalGravity_PointField_MatchesBodyApplicationPoint()
         {
             // In a non-uniform field, GetNaturalGravity must be the vector
-            // applied to the body (), i.e. sampled at the body's
-            // position — not a hypothetical elsewhere.
+            // applied to the body, i.e. sampled at the body's position —
+            // not a hypothetical elsewhere.
             Fc.World.SetGravity(SimGravityField.Point(
                 new Vector3D(0, 0, 0), intensity: 1.0, minRadius: 5.0, maxRadius: 500.0));
             SimShip ship = Fc.Spawn(ControllerTemplate("C"), SpawnState.At(new Vector3D(20, 0, 0)));

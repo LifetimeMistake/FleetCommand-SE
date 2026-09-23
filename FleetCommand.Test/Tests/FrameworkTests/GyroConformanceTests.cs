@@ -11,26 +11,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (, /): the gyro block
-    /// (<see cref="SimGyro"/>, real <see cref="IMyGyro"/>) and the grid
-    /// gyro-rate system (<see cref="GyroRateSystem"/>) — the  boundary.
-    /// The tests lock the source-verified <b>all-three-negated</b> ingame
-    /// gyro channel signs (each Yaw/Pitch/Roll setter stores the negation
-    /// of its value on the override-velocity axis, so
-    /// <c>m_gyroOverrideVelocity = (-Pitch, -Yaw, -Roll)</c>, MyGyro.cs:141-190)
-    /// including for gyros remounted in each of the six orientations
-    /// against <see cref="SimGyro.GyroOverrideVelocityGrid"/>; the SE
-    /// override acceleration-ramp policy (120 frames for a large error,
-    /// else (int)(|diff|²·48.23)+1, MyGridGyroSystem.cs:306-324);
-    /// override saturation to the aggregate gyro-force sphere; stopping a
-    /// spinning grid; and the grid angular-rate cap (the body's configured
-    /// <see cref="SimRigidBody.MaxAngularVelocity">), plus power scaling
-    /// through the bus's <see cref="SimFunctionalBlock.DeliveredRatio"/>
-    /// (single source of truth) and working-state gating. The ramp frame
-    /// counts are asserted analytically; the closed-loop expectations are
-    /// the source-verified signs and bounds (never circular).
-    /// </summary>
+    /// <summary>Conformance of the gyro block and grid gyro-rate system: channel signs, override ramp, saturation, angular-rate cap, and power scaling.</summary>
     [TestFixture]
     public class GyroConformanceTests : FleetTestFixture
     {
@@ -115,7 +96,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             // grid axes; a pure Pitch command (local override (-p,0,0))
             // must come out as -p along that grid axis. Locks the channel
             // signs end-to-end against GyroOverrideVelocityGrid for
-            // differently mounted gyros ( / ).
+            // differently mounted gyros.
             float pitch = 2.5f;
             foreach (Vector3 axis in new[] { Vector3.Right, Vector3.Left, Vector3.Up, Vector3.Down, Vector3.Forward, Vector3.Backward })
             {

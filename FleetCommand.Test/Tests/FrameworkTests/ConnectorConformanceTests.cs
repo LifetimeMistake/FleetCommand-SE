@@ -12,25 +12,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (, /): the connector block
-    /// (<see cref="SimShipConnector"/>, real <see cref="Sandbox.ModAPI.Ingame.IMyShipConnector"/>),
-    /// the docking capture gates (<see cref="ConnectorSystem"/>) and the Havok
-    /// fixed rigid constraint — the  boundary, the framework's first
-    /// multi-grid dynamic linkage. The tests lock the connector point
-    /// kinematics (world pose + point velocity derived from the body,
-    /// analytically), each capture gate individually rejecting when exceeded
-    /// (separation, opposing-axis angular error, relative linear velocity at
-    /// the connector points, relative angular velocity), constraint creation
-    /// only when connectable, disconnect returning both to a clean state,
-    /// and deterministic behavior. Thresholds come from the active
-    /// <see cref="SePhysicsProfile"/> (never silently retuned); the gate
-    /// checks are the profile's configured values, asserted <em>against</em>
-    /// them (never circular). Status follows the game mapping
-    /// (MyShipConnector.cs:599-611): Connected / (working AND captured)
-    /// Connectable / Unconnected, and <see cref="SimShipConnector.Connect"/>
-    /// does nothing unless Connectable (the interface contract).
-    /// </summary>
+    /// <summary>Conformance of the connector block, docking capture gates, and the fixed rigid linkage.</summary>
     [TestFixture]
     public class ConnectorConformanceTests : FleetTestFixture
     {
@@ -40,7 +22,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         public void ConnectorPoint_WorldPose_FromOwnedGridBody()
         {
             // The connection frame's world position is the block's world
-            // position: grid body pose * block local pose ().
+            // position: grid body pose * block local pose.
             SimShip ship = Fc.Spawn(
                 ConnectorCraft("pose", hullMass: 1000f),
                 SpawnState.At(new Vector3D(0, 0, 7)));
@@ -66,7 +48,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         public void ConnectorPoint_PointVelocity_FromOwnedGridBody()
         {
             // The connection point velocity is derived from the owning
-            // rigid body: v + ω × r, r = point − COM (). The COM
+            // rigid body: v + ω × r, r = point − COM. The COM
             // is offset from the connection point (hull mass at the grid
             // origin, connector at +X), so a spin about Y adds a
             // non-zero term in -Z at the point. Asserted analytically
@@ -457,7 +439,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             return Tuple.Create(pos, connected);
         }
 
-        // — .5: the two-stage connect (approach then lock) —
+        // — the two-stage connect (approach then lock) —
 
         [Test]
         public void Approach_NotAnInstantLock_Converges_ThenLocks_AndCoMoves()
@@ -604,20 +586,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             return (SimShipConnector)ship.TerminalSystem.GetBlockWithName("C");
         }
 
-        /// <summary>
-        /// A small-grid craft with a heavy hull at the origin and one
-        /// connector ("C") placed on the side it faces. <paramref name="connOrient"/>
-        /// sets the connection frame's orientation (which reorients the
-        /// connect face); the connector block is placed on the dominant
-        /// axis side of that forward so the connecting face is the craft's
-        /// leading surface and the heavy hull sits behind it — two opposed
-        /// crafts can then approach and meet the faces without the hulls
-        /// colliding (a physical docking approach needs the connect faces
-        /// to coincide). An identity/default mount (no <paramref name="connOrient"/>)
-        /// keeps the block at cell (2,0,0) for the single-craft
-        /// kinematics tests. <paramref name="reach"/> sets the block's own
-        /// capture reach (0 → use the profile).
-        /// </summary>
+        /// <summary>A small-grid craft with a heavy hull and one connector on the face it faces; connOrient reorients the connect face.</summary>
         private static ShipTemplate ConnectorCraft(string name, float hullMass, Quaternion? connOrient = null, float reach = 0f)
         {
             Vector3I connCell;
@@ -689,11 +658,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That((a - b).Length(), Is.LessThan(tol), message);
         }
 
-        /// <summary>
-        /// Steps the world until <paramref name="connector"/> (and its
-        /// approach partner) have converged and locked (Connected), or fails
-        /// after a generous deterministic timeout.
-        /// </summary>
+        /// <summary>Steps the world until the connector and its approach partner converge and lock (Connected).</summary>
         private static void ConvergeToConnected(SimShipConnector connector)
         {
             SimWorld world = connector.Grid.World;
@@ -706,8 +671,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "The approach must converge and lock within the deterministic timeout.");
         }
 
-        // — .5: the approach trajectory matches the analytic
-        //   off-COM magnet law (measurement-based, non-circular) —
+        // — the approach trajectory matches the analytic off-COM magnet law —
 
         [Test]
         public void Approach_Trajectory_Matches_Analytic_OffComPulledLaw()
@@ -797,12 +761,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }
         }
 
-        /// <summary>
-        /// An independent rigid-body state for the analytic off-COM law
-        /// integrator in <see cref="ApproachAnalytic"/> — captured from
-        /// the sim (body state + body-fixed connecting frame mount) so the
-        /// same initial condition and mounting drive both.
-        /// </summary>
+        /// <summary>An independent rigid-body state for the analytic off-COM law integrator in ApproachAnalytic.</summary>
         private struct AnalyticBody
         {
             public Vector3D Position;      // grid root, world
@@ -876,14 +835,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }
         }
 
-        /// <summary>
-        /// A first-principles integration of the connector magnet law,
-        /// written against the physical constants and rigid-body dynamics
-        /// (not the sim): a central spring between the two connection
-        /// frames applied off the center of mass (linear impulse plus the
-        /// torque r × F) and the fixed frame constraint's torsional tie.
-        /// Used to measure the sim's approach trajectory against.
-        /// </summary>
+        /// <summary>A first-principles integration of the connector magnet law (central off-COM spring + torsional tie), for measuring the sim's approach.</summary>
         private static class ApproachAnalytic
         {
             static readonly float Wn = ConnectorSystem.MagnetNaturalFrequency;

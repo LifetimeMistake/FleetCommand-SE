@@ -15,18 +15,7 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (, /): the deterministic
-    /// per-ship <see cref="SimPowerBus"/> and its
-    /// <see cref="SimBatteryBlock"/> (finite or ideal) supply. The tests
-    /// prove the delivered power ratio is computed exactly — priority
-    /// ordered, tier-fair, repeatable — and is the same value that
-    /// updates <c>IsWorking</c> and that  thrust /  gyro
-    /// will read; that block working state transitions under power
-    /// change; and that a finite battery's stored power depletes
-    /// deterministically until it is exhausted (and then supplies
-    /// nothing and is itself not working).
-    /// </summary>
+    /// <summary>Conformance of the deterministic per-ship power bus and battery supply: delivered ratio, working-state transitions, and finite depletion.</summary>
     [TestFixture]
     public class PowerBusConformanceTests : FleetTestFixture
     {
@@ -77,8 +66,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(low.DeliveredRatio, Is.EqualTo(0.5f).Within(1e-6),
                 "The lower-priority block must receive the exact remaining share (4/8).");
 
-            // The bus exposes the same delivered ratios Stages 7–8 will
-            // read to scale thrust/gyro output — one source of truth.
+            // The bus exposes the same delivered ratios thrust/gyro will
+            // read to scale their output — one source of truth.
             Assert.That(ship.Power.GetDeliveredRatio(high), Is.EqualTo(1f).Within(1e-6));
             Assert.That(ship.Power.GetDeliveredRatio(low), Is.EqualTo(0.5f).Within(1e-6));
 

@@ -8,21 +8,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// .6 Part 1 conformance: the controller's rotation control —
-    /// <see cref="SimShipController.RotationIndicator"/> /
-    /// <see cref="SimShipController.RollIndicator"/> actually rotate the
-    /// grid. <see cref="RotationControlSystem"/> reproduces
-    /// <c>MyShipController.MoveAndRotate</c> (:1816-1824) exactly — the
-    /// <c>/20</c> and <c>·0.2</c> scaling, the negation, the sphere clamp,
-    /// the block-orientation transform — into
-    /// <see cref="GyroRateSystem.ControlTorque"/>, and the gyro's manual
-    /// path (<c>MyGridGyroSystem.UpdateGyros</c>) turns that into a real
-    /// grid rotation. The manual path also covers the game's angular-
-    /// velocity slowdown for non-override gyros. Expectations are computed
-    /// from the source formula (analytic), and the end-to-end sign is
-    /// locked, never circular.
-    /// </summary>
+    /// <summary>Conformance of the controller's rotation control: RotationIndicator/RollIndicator rotate the grid via the game's MoveAndRotate path.</summary>
     [TestFixture]
     public class RotationControlConformanceTests : FleetTestFixture
     {

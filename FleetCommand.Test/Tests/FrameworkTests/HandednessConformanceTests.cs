@@ -7,17 +7,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (): "actual VRageMath body/world
-    /// transform and handedness checks". The framework reimplements no vector
-    /// or matrix types () — it uses the real VRageMath assemblies —
-    /// so this locks that the body's world transform is a proper,
-    /// right-handed, orthonormal rotation (determinant +1), that it maps
-    /// body axes to world axes (body→world = R) and back (world→body = Rᵀ),
-    /// and that the body-state pose round-trips through SetState/GetState.
-    /// These are algebraic facts about the transform — analytic, never
-    /// derived from a same-source Havok observation.
-    /// </summary>
+    /// <summary>Conformance that the body world transform is a proper right-handed orthonormal rotation (det +1) mapping body axes to world and back.</summary>
     [TestFixture]
     public class HandednessConformanceTests : FleetTestFixture
     {

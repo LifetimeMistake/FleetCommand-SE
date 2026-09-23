@@ -14,24 +14,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// .7 conformance (, , block-parity P2): the
-    /// battery's charging path / ChargeMode, reproduced from
-    /// <c>MyBatteryBlock.cs</c>. With a second producer (a
-    /// <see cref="SimReactorBlock"/>) present, <c>Recharge</c> disables
-    /// output and stores the grid's surplus; <c>Auto</c>
-    /// <c>TransferPower</c>s — stores the surplus when
-    /// <c>input &gt; output</c>, consumes the deficit when
-    /// <c>output &gt; input</c>; <c>Discharge</c> only consumes and
-    /// never charges. <see cref="SimBatteryBlock.CurrentInput"/> and
-    /// <see cref="SimBatteryBlock.IsCharging"/> are real computed
-    /// values, charged through the same <see cref="SimPowerBus"/> so the
-    /// delivered power and the banked stored power can never diverge. All
-    /// assertions are analytic: the per-step stored change is
-    /// <c>power · (1/60) / 3600</c> (<c>MW · h</c>, the game's
-    /// <c>ProductionToCapacityMultiplier = 3600</c>), locked by
-    /// explicit source-line-derived equations, never circular.
-    /// </summary>
+    /// <summary>Conformance of the battery charging path / ChargeMode, reproduced from MyBatteryBlock.cs.</summary>
     [TestFixture]
     public class BatteryChargeConformanceTests : FleetTestFixture
     {
@@ -193,7 +176,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(load.DeliveredRatio, Is.EqualTo(1f).Within(1e-6));
         }
 
-        // — depletion still modeled: a discharged battery fails over (no  regression) —
+        // — depletion still modeled: a discharged battery fails over —
 
         [Test]
         public void DepletedBattery_FailsOverToReactor_NoPowerLoss()
@@ -201,8 +184,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             // Battery (MaxOut 4, 0.002 MWh, full, MaxIn 0 so it cannot
             // charge) serves the load first, runs dry after 1.8 s, and
             // the reactor (4 MW) carries the load the whole time — the
-            // load never loses power ( depletion preserved, now
-            // with a peer producer to fail over to).
+            // load never loses power (depletion preserved, now with a
+            // peer producer to fail over to).
             SimShip ship = Fc.Spawn(ChargeTemplate("fo", reactorMaxOut: 4f, batteryMaxOut: 4f,
                 batteryMaxIn: 0f, batteryMaxStored: 0.002f, batteryInitial: 1f), SpawnState.At(Vector3D.Zero));
             SimBatteryBlock battery = Battery(ship);
@@ -219,7 +202,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(reactor.CurrentOutput, Is.EqualTo(4f).Within(1e-4),
                 "The reactor takes over the full load after the battery is spent.");
             Assert.That(load.DeliveredRatio, Is.EqualTo(1f).Within(1e-6),
-                "The load never loses power — no regression of  depletion.");
+                "The load never loses power — no regression of depletion.");
             Assert.That(load.IsWorking, Is.True);
         }
 
@@ -296,12 +279,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             block.PowerPriority = priority;
         }
 
-        /// <summary>
-        /// A reactor + battery + one fixed load. <c>batteryFirst</c>
-        /// controls supply registration (draw) order: when true the
-        /// battery serves loads before the reactor, so it both outputs
-        /// and charges in Auto (CurrentOutput &gt; 0 while charging).
-        /// </summary>
+        /// <summary>A reactor + battery + one fixed load; batteryFirst controls supply registration order.</summary>
         private static ShipTemplate ChargeTemplate(
             string name, float reactorMaxOut, float batteryMaxOut,
             float batteryMaxIn, float batteryMaxStored, float batteryInitial,

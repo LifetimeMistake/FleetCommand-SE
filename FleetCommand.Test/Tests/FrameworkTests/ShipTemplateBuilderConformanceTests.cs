@@ -12,15 +12,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// The validating <see cref="ShipTemplateBuilder"/>, the seven baseline
-    /// <see cref="ShipTemplates"/>, and the immutability / variant /
-    /// determinism guarantees. Every validation rule is asserted to throw
-    /// an <see cref="ArgumentException"/> naming the offending block;
-    /// template behavior is driven purely by template data (no craft-type
-    /// branches), verified by deriving a no-retro variant and confirming
-    /// forward authority but no reverse thrust.
-    /// </summary>
+    /// <summary>Conformance of the validating ShipTemplateBuilder, the seven baseline templates, and the immutability / variant / determinism guarantees.</summary>
     [TestFixture]
     public class ShipTemplateBuilderConformanceTests : FleetTestFixture
     {
