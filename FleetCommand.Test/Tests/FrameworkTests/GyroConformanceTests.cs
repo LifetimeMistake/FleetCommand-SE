@@ -436,14 +436,87 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "The grid's angular velocity must not exceed its configured angular-rate cap.");
         }
 
-        // — power shortfall scales gyro torque (the bus's DeliveredRatio) —
+        // — default angular cap is per-grid-size and effectively non-binding (game: MyGridPhysics —
+        // LargeShipMaxAngularVelocityLimit = ToRadians(18000) ≈ 314, SmallShip =
+        // ToRadians(36000) ≈ 628, each min'd with the env default of the same value) —
 
         [Test]
-        public void PowerShortfall_ScalesGyroTorque_AndResponse()
+        public void Default_AngularCap_IsPerGridSize()
         {
-            // A 10 MW gyro on a 5 MW battery delivers ratio 0.5; its
-            // response must be proportionally weaker than a fully powered
-            // twin.
+            // A default large grid (no template cap override) must carry the game's large-ship
+            // angular-rate limit. The old sim default of 10 rad/s tightly capped rotation; the
+            // game's ~314 rad/s cap is effectively non-binding under gyro command.
+            SimShip large = Fc.Spawn(GyroCubeCraft(gyroForce: 4e6f), SpawnState.At(Vector3D.Zero));
+            Assert.That(large.Grid.Body.MaxAngularVelocity, Is.EqualTo(100f * (float)Math.PI).Within(1e-3),
+                "Default large-grid angular cap must match the game's 18000 deg/s limit.");
+
+            // A default small grid (0.5 m cells) gets the small-ship limit.
+            SimShip small = Fc.Spawn(
+                new ShipTemplate("small", 0.5f,
+                    new[]
+                    {
+                        new TemplateBlock("G", Vector3I.Zero, 10f, 0.5f, kind: BlockKind.Gyro, gyroForce: 4e3f),
+                    }),
+                SpawnState.At(new Vector3D(0, 0, 40)));
+            Assert.That(small.Grid.Body.MaxAngularVelocity, Is.EqualTo(200f * (float)Math.PI).Within(1e-3),
+                "Default small-grid angular cap must match the game's 36000 deg/s limit.");
+        }
+
+        [Test]
+        public void Default_AngularCap_DoesNotClampGyroAtOldTightLimit()
+        {
+            // A strong gyro on a default large grid must spin the grid well past the old
+            // 10 rad/s default cap (which would clamp rotation far below the game's cap).
+            SimShip ship = Fc.Spawn(GyroCubeCraft(gyroForce: 4e6f), SpawnState.At(Vector3D.Zero));
+            IMyGyro g = (IMyGyro)ship.TerminalSystem.GetBlockWithName("G");
+            g.GyroOverride = true;
+            g.Pitch = 60f; // command far above 10 rad/s
+
+            Fc.RunFor(2.0);
+
+            float w = Math.Abs(ship.Grid.Body.AngularVelocity.X);
+            Assert.That(w, Is.GreaterThan(10f),
+                "The grid must be allowed to rotate well beyond the old 10 rad/s cap (the game cap is ~314).");
+            Assert.That(w, Is.LessThanOrEqualTo(100f * (float)Math.PI + 2.0f),
+                "The grid must still respect the game's large-ship angular cap.");
+        }
+
+        // — default angular damping is the game's 0.1 and actually damps a free spin —
+
+        [Test]
+        public void Default_AngularDamping_IsGameValue_AndShipsSpinDown()
+        {
+            SimShip ship = Fc.Spawn(
+                new ShipTemplate("free", 2.5f,
+                    new[] { new TemplateBlock("Hull", Vector3I.Zero, 2000f, 2.5f) }),
+                SpawnState.At(Vector3D.Zero).WithAngularVelocity(new Vector3(2f, 0, 0)));
+
+            Assert.That(ship.Grid.Body.AngularDamping, Is.EqualTo(0.1f).Within(1e-6),
+                "The default grid angular damping must match MyPerGameSettings.DefaultAngularDamping (MyGridPhysics.cs:436).");
+
+            // A free grid with no gyro must spin down under the non-zero angular damping
+            // (the game's grids damp; the old sim's 0 damping spun forever).
+            Fc.RunFor(2.0);
+            float remaining = Math.Abs(ship.Grid.Body.AngularVelocity.X);
+            Assert.That(remaining, Is.LessThan(1.9f),
+                "A free-spinning grid must decay from 2 rad/s under 0.1 angular damping.");
+            Assert.That(remaining, Is.GreaterThan(0.2f),
+                "The damping must be gentle (0.1/s), not stop the grid abruptly.");
+        }
+
+        // — power is a BINARY gate (any delivered ratio > 0 -> full force; 0 -> nothing) —
+
+        [Test]
+        public void PowerShortfall_AnyDeliveredPower_GyroAppliesFullForce()
+        {
+            // Power is binary for the gyro (MyGyro.cs:105 IsPowered is the
+            // resource sink's binary gate; a non-adaptible shortfall sets
+            // the supplied ratio to 0 and full supply to 1,
+            // MyResourceSinkComponent.cs:353-362): a gyro receiving any
+            // delivered power applies its FULL force. A 10 MW gyro on a
+            // 5 MW battery (ratio 0.5) must therefore reach the same
+            // response as a fully powered twin — there is no partial
+            // torque between full and none.
             SimShip weak = Fc.Spawn(
                 PoweredGyroCraft(maxOutput: 5f, gyroPowerDemand: 10f),
                 SpawnState.At(Vector3D.Zero));
@@ -462,8 +535,35 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(w.DeliveredRatio, Is.EqualTo(0.5f).Within(1e-6),
                 "The phase-4 bus must give the 10 MW gyro a 0.5 ratio from the 5 MW battery.");
             Assert.That(f.DeliveredRatio, Is.EqualTo(1f).Within(1e-6));
-            Assert.That(Math.Abs(weak.Grid.Body.AngularVelocity.Y), Is.LessThan(Math.Abs(full.Grid.Body.AngularVelocity.Y)),
-                "The power-scaled gyro must achieve a weaker response than the fully powered one.");
+            Assert.That(w.IsPowered, Is.True,
+                "A gyro receiving any delivered power is powered.");
+            Assert.That(Math.Abs(weak.Grid.Body.AngularVelocity.Y),
+                Is.EqualTo(Math.Abs(full.Grid.Body.AngularVelocity.Y)).Within(0.3),
+                "Power is binary: a powered gyro applies full force regardless of the delivered ratio, so a partial shortfall must NOT weaken the response.");
+        }
+
+        [Test]
+        public void Power_UnpoweredGyro_ContributesZero()
+        {
+            // An unpowered gyro (delivered ratio 0 -> IsPowered false)
+            // contributes nothing — the grid keeps rotating (MyGyro.cs:105,
+            // :236 CheckIsWorking requires IsPowered; the override loop
+            // returns when the supplied ratio is not > 0,
+            // MyGridGyroSystem.cs:276-277).
+            SimShip ship = Fc.Spawn(
+                PoweredGyroCraft(maxOutput: 5f, gyroPowerDemand: 10f),
+                SpawnState.At(Vector3D.Zero).WithAngularVelocity(new Vector3(1, 0, 0)));
+            SimGyro g = (SimGyro)ship.TerminalSystem.GetBlockWithName("G");
+            g.GyroOverride = true; // target 0 would stop the spin if powered
+            Fc.SetPowerAvailableRatio(ship, 0f); // starve the gyro fully -> ratio 0
+
+            Fc.RunFor(1.0);
+
+            Assert.That(g.DeliveredRatio, Is.EqualTo(0f).Within(1e-9),
+                "The starved gyro must receive a 0 delivered ratio.");
+            Assert.That(g.IsPowered, Is.False, "A 0-ratio gyro is unpowered.");
+            Assert.That(ship.Grid.Body.AngularVelocity.Length(), Is.GreaterThan(0.8f),
+                "An unpowered gyro must contribute no torque (the grid keeps rotating).");
         }
 
         // — aggregation: force-weighted override target — and working-state gating —

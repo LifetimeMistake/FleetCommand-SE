@@ -16,14 +16,23 @@ namespace FleetCommand.Test.Framework
         /// <summary>Maximum linear velocity (m/s) applied to each dynamic rigid body.</summary>
         public float MaxLinearVelocity { get; }
 
-        /// <summary>Maximum angular velocity (rad/s) applied to each dynamic rigid body.</summary>
-        public float MaxAngularVelocity { get; }
+        /// <summary>Maximum angular velocity (rad/s) applied to LARGE-grid dynamic bodies
+        /// (2.5 m cells), the game's large-ship angular-rate cap
+        /// (MyGridPhysics.LargeShipMaxAngularVelocityLimit, MyGridPhysics.cs:158).</summary>
+        public float MaxAngularVelocityLarge { get; }
+
+        /// <summary>Maximum angular velocity (rad/s) applied to SMALL-grid dynamic bodies
+        /// (0.5 m cells), the game's small-ship angular-rate cap
+        /// (MyGridPhysics.SmallShipMaxAngularVelocityLimit, MyGridPhysics.cs:159).</summary>
+        public float MaxAngularVelocitySmall { get; }
 
         /// <summary>Linear damping for dynamic bodies; zero unless a profile specifies
         /// it.</summary>
         public float LinearDamping { get; }
 
-        /// <summary>Angular damping for dynamic bodies; zero by default.</summary>
+        /// <summary>Angular damping for dynamic bodies; the game's default is
+        /// MyPerGameSettings.DefaultAngularDamping = 0.1 (MyPerGameSettings.cs:137,
+        /// applied in MyGridPhysics.cs:436).</summary>
         public float AngularDamping { get; }
 
         /// <summary>Whether rigid-body collision response is enabled by default.</summary>
@@ -60,7 +69,8 @@ namespace FleetCommand.Test.Framework
         public SePhysicsProfile(
             string name,
             float maxLinearVelocity = 0f,
-            float maxAngularVelocity = 0f,
+            float maxAngularVelocityLarge = 0f,
+            float maxAngularVelocitySmall = 0f,
             float linearDamping = 0f,
             float angularDamping = 0f,
             bool collisionResponse = true,
@@ -78,7 +88,8 @@ namespace FleetCommand.Test.Framework
             }
             Name = name;
             MaxLinearVelocity = maxLinearVelocity;
-            MaxAngularVelocity = maxAngularVelocity;
+            MaxAngularVelocityLarge = maxAngularVelocityLarge;
+            MaxAngularVelocitySmall = maxAngularVelocitySmall;
             LinearDamping = linearDamping;
             AngularDamping = angularDamping;
             CollisionResponse = collisionResponse;
@@ -91,14 +102,26 @@ namespace FleetCommand.Test.Framework
             AutopilotArrivalDistance = autopilotArrivalDistance;
         }
 
-        /// <summary>The initial, always-available profile: representative default speed caps, zero
+        /// <summary>The game's large-ship angular-rate limit (MyGridPhysics.cs:158),
+        /// ToRadians(18000) ≈ 314.159 rad/s; the env default takes the same value
+        /// (MyEnvironmentDefinition.cs:108-114) so the effective cap is this.</summary>
+        public static readonly float LargeShipMaxAngularSpeed = 100f * (float)Math.PI;
+
+        /// <summary>The game's small-ship angular-rate limit (MyGridPhysics.cs:159),
+        /// ToRadians(36000) ≈ 628.319 rad/s; the env default takes the same value
+        /// (MyEnvironmentDefinition.cs:108-114) so the effective cap is this.</summary>
+        public static readonly float SmallShipMaxAngularSpeed = 200f * (float)Math.PI;
+
+        /// <summary>The initial, always-available profile: the game's per-grid-size angular
+        /// rate caps (effectively non-binding under gyro command), the game's 0.1 angular
         /// damping, collision enabled.</summary>
         public static readonly SePhysicsProfile Default = new SePhysicsProfile(
             "SpaceEngineers-Default",
             maxLinearVelocity: 100f,
-            maxAngularVelocity: 10f,
+            maxAngularVelocityLarge: LargeShipMaxAngularSpeed,
+            maxAngularVelocitySmall: SmallShipMaxAngularSpeed,
             linearDamping: 0f,
-            angularDamping: 0f,
+            angularDamping: 0.1f,
             collisionResponse: true);
     }
 }

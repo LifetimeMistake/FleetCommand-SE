@@ -140,7 +140,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 TestContext.Out.WriteLine(
                     "active SE/Havok compatibility profile: " + world.Profile.Name
                     + " (maxLinear=" + world.Profile.MaxLinearVelocity
-                    + " maxAngular=" + world.Profile.MaxAngularVelocity
+                    + " maxAngularLarge=" + world.Profile.MaxAngularVelocityLarge
+                    + " maxAngularSmall=" + world.Profile.MaxAngularVelocitySmall
                     + " linearDamping=" + world.Profile.LinearDamping
                     + " angularDamping=" + world.Profile.AngularDamping
                     + " collisionResponse=" + world.Profile.CollisionResponse

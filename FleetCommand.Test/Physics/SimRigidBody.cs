@@ -61,6 +61,10 @@ namespace FleetCommand.Test.Physics
         /// </summary>
         public float MaxLinearVelocity => _maxLinearVelocity;
 
+        /// <summary>Configured angular damping, set on the Havok body at creation; the game
+        /// applies MyPerGameSettings.DefaultAngularDamping (MyGridPhysics.cs:436).</summary>
+        public float AngularDamping => _angularDamping;
+
         /// <summary>Inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in the grid-local frame,
         /// matching the game's read (MyGridGyroSystem.cs:293).</summary>
         public Vector3 InverseInertiaDiagonal => _inverseInertiaDiagonal;
@@ -98,6 +102,7 @@ namespace FleetCommand.Test.Physics
 
         private float _maxAngularVelocity;
         private float _maxLinearVelocity;
+        private float _angularDamping;
         private Vector3 _inverseInertiaDiagonal;
 
         private bool _disposed;
@@ -130,9 +135,15 @@ namespace FleetCommand.Test.Physics
             bool isDynamic = !template.IsStatic;
             var body = new SimRigidBody(id, scenarioOrigin, isDynamic);
 
-            // Per-grid velocity caps take precedence; the profile supplies the default when unset.
+            // Per-grid velocity caps take precedence; the profile supplies the default when
+            // unset. The angular default is the game's per-grid-size cap: large grids get
+            // LargeShipMaxAngularVelocityLimit, small grids SmallShipMaxAngularVelocityLimit
+            // (MyGridPhysics.GetShipMaxAngularVelocity, MyGridPhysics.cs:382-394). Cube size
+            // is the grid's cell size: large 2.5 m, small 0.5 m.
             float maxLinear = template.MaxLinearVelocity > 0f ? template.MaxLinearVelocity : profile.MaxLinearVelocity;
-            float maxAngular = template.MaxAngularVelocity > 0f ? template.MaxAngularVelocity : profile.MaxAngularVelocity;
+            float maxAngular = template.MaxAngularVelocity > 0f
+                ? template.MaxAngularVelocity
+                : (IsLargeGrid(template.GridSize) ? profile.MaxAngularVelocityLarge : profile.MaxAngularVelocitySmall);
 
             using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
             {
@@ -171,10 +182,11 @@ namespace FleetCommand.Test.Physics
                 body._linearVelocity = (Vector3)initialState.LinearVelocity;
                 body._angularVelocity = initialState.AngularVelocity;
 
-                // Retain the configured velocity caps and the grid-local inverse inertia
-                // diagonal for the gyro override loop.
+                // Retain the configured velocity caps, the angular damping, and the grid-local
+                // inverse inertia diagonal for the gyro override loop.
                 body._maxAngularVelocity = maxAngular;
                 body._maxLinearVelocity = maxLinear;
+                body._angularDamping = profile.AngularDamping;
                 body._inverseInertiaDiagonal = new Vector3(
                     mass.InverseInertiaTensor.M11,
                     mass.InverseInertiaTensor.M22,
@@ -398,6 +410,13 @@ namespace FleetCommand.Test.Physics
             _rigidBody = null;
             _shape = default(HkShape);
             _disposed = true;
+        }
+
+        private static bool IsLargeGrid(float gridSize)
+        {
+            // Large grid cells are 2.5 m, small grid cells are 0.5 m; the game selects the
+            // angular cap on this cube size (MyGridPhysics.GetShipMaxAngularVelocity).
+            return gridSize > 1f;
         }
 
         private static Quaternion ToQuaternion(QuaternionD value)

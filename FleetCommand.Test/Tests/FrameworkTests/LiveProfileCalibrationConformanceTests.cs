@@ -1,3 +1,4 @@
+using System;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.SpaceEngineers;
 using NUnit.Framework;
@@ -36,18 +37,21 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(p.Name, Is.EqualTo("SpaceEngineers-Default"),
                 "The active default compatibility profile name must be the recorded profile.");
 
-            // Representative caps (game value comes from the live sector
-            // environment; the recorded baseline locks this sim's default).
+            // Angular caps are the game's per-grid-size limits, effectively
+            // non-binding under gyro command (MyGridPhysics.cs:158-159, 382-394).
             Assert.That(p.MaxLinearVelocity, Is.EqualTo(100f).Within(1e-6),
                 "Default linear speed cap must match the recorded compatibility baseline.");
-            Assert.That(p.MaxAngularVelocity, Is.EqualTo(10f).Within(1e-6),
-                "Default angular speed cap must match the recorded compatibility baseline.");
+            Assert.That(p.MaxAngularVelocityLarge, Is.EqualTo(100f * (float)Math.PI).Within(1e-4),
+                "Default large-grid angular speed cap must match the game (ToRadians(18000)).");
+            Assert.That(p.MaxAngularVelocitySmall, Is.EqualTo(200f * (float)Math.PI).Within(1e-4),
+                "Default small-grid angular speed cap must match the game (ToRadians(36000)).");
 
-            // Source-aligned: zero damping unless a profile specifies it.
+            // Source-aligned: zero linear damping; angular damping is the game's 0.1
+            // (MyPerGameSettings.DefaultAngularDamping, MyPerGameSettings.cs:137).
             Assert.That(p.LinearDamping, Is.EqualTo(0f).Within(1e-9),
                 "The default profile must apply zero linear damping.");
-            Assert.That(p.AngularDamping, Is.EqualTo(0f).Within(1e-9),
-                "The default profile must apply zero angular damping.");
+            Assert.That(p.AngularDamping, Is.EqualTo(0.1f).Within(1e-9),
+                "The default profile must apply the game's 0.1 angular damping.");
             Assert.That(p.CollisionResponse, Is.EqualTo(true),
                 "The default profile must enable collision response.");
 
