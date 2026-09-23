@@ -5,14 +5,10 @@ using FleetCommand.Common;
 namespace FleetCommand.Test.Observations
 {
     /// <summary>
-    /// The short failure ring buffer (: "Nothing is recorded by
-    /// default except a short failure ring buffer"). It is the framework's
-    /// one always-on recorder: each tick it retains a short rolling window
-    /// of the recent actuator/state history, and an uncaught component
-    /// exception is added to it. The fixture surfaces its contents (recent
-    /// history) in NUnit output when a test fails. Bounded by a fixed
-    /// capacity — oldest entries drop when full. Storage is a
-    /// <see cref="RingBuffer{T}"/>.
+    /// The framework's one always-on recorder: a short rolling window of recent
+    /// actuator/state history, plus any uncaught component exception, that the fixture
+    /// surfaces in NUnit output when a test fails. Bounded by a fixed capacity —
+    /// oldest entries drop when full. Backed by a <see cref="RingBuffer{T}"/>.
     /// </summary>
     public sealed class FailureRingBuffer
     {

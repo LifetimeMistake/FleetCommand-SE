@@ -5,13 +5,9 @@ using VRageMath;
 namespace FleetCommand.Test.Templates
 {
     /// <summary>
-    /// The supported rigid-grid model bound: every block must lie within a
-    /// grid of cells in <c>[-MaxGridCells, MaxGridCells]</c> on each axis
-    /// (: "blocks outside the supported rigid-grid model" are
-    /// rejected by <see cref="Build"/>). A generous bound — no baseline
-    /// template is near it — but a finite one, so an out-of-range
-    /// placement is a first-class validation error rather than an
-    /// arithmetic surprise downstream.
+    /// The supported rigid-grid model bound: every block must lie within <c>[-MaxGridCells,
+    /// MaxGridCells]</c> on each axis, so an out-of-range placement is a first-class
+    /// validation error rather than an arithmetic surprise downstream.
     /// </summary>
     public static class ShipTemplateModel
     {
@@ -20,19 +16,12 @@ namespace FleetCommand.Test.Templates
     }
 
     /// <summary>
-    /// A validating, fluent builder for an immutable <see cref="ShipTemplate"/>
-    /// (). Entries mirror the design's API — <see cref="AddController"/>,
-    /// <see cref="AddGyro"/>, <see cref="AddThrusterGroup"/>,
-    /// <see cref="AddConnector"/> — plus the block kinds the framework
-    /// supports. <see cref="Build"/> validates the whole template (duplicate
-    /// names, invalid local transforms, non-positive physical mass,
-    /// non-cardinal fixed-thruster directions, a designated controller that
-    /// is missing, and blocks outside the supported rigid-grid model) before
-    /// producing the immutable result, throwing an
-    /// <see cref="ArgumentException"/> that names the offending
-    /// block/member. The returned template is reusable: entity IDs are
-    /// assigned at spawn, never baked in, so building once and spawning
-    /// many times is safe.
+    /// A validating, fluent builder for an immutable <see cref="ShipTemplate"/>.
+    /// <see cref="Build"/> validates the whole template (duplicate names, invalid local
+    /// transforms, non-positive mass, non-cardinal fixed-thruster directions, a missing
+    /// designated controller, and blocks outside the model bound), throwing an
+    /// <see cref="ArgumentException"/> that names the offender. The result is reusable:
+    /// entity IDs are assigned at spawn, never baked in.
     /// </summary>
     public sealed class ShipTemplateBuilder
     {
@@ -73,12 +62,9 @@ namespace FleetCommand.Test.Templates
         }
 
         /// <summary>
-        /// Begins a new builder seeded from an existing template (:
-        /// "tests may derive variants by copying a template through the
-        /// builder"). Every block, named axis, controller designation and
-        /// limit is copied so <see cref="Build"/> produces an equivalent
-        /// template; the caller then mutates the copy (e.g.
-        /// <see cref="RemoveBlock"/>) to derive a variant.
+        /// Begins a new builder seeded from an existing template (for deriving variants).
+        /// Everything is copied so <see cref="Build"/> produces an equivalent template;
+        /// the caller then mutates the copy (e.g. <see cref="RemoveBlock"/>).
         /// </summary>
         public static ShipTemplateBuilder From(ShipTemplate template)
         {
@@ -110,7 +96,7 @@ namespace FleetCommand.Test.Templates
 
         internal string Name => _name;
 
-        // — fluent block entries () —
+        // — fluent block entries —
 
         /// <summary>
         /// Adds an ordinary structural block (a Standard hull block): an
@@ -134,10 +120,9 @@ namespace FleetCommand.Test.Templates
         }
 
         /// <summary>
-        /// Adds a ship controller and, when none is yet designated, marks
-        /// it as the template's designated (primary) controller (the
-        /// grid's control reference, ). Use
-        /// <see cref="WithController"/> to choose a different one.
+        /// Adds a ship controller and, when none is yet designated, marks it as the
+        /// template's designated (primary) controller. Use <see cref="WithController"/>
+        /// to choose a different one.
         /// </summary>
         public ShipTemplateBuilder AddController(string blockName, Vector3I min, float dryMass = 400f,
             Quaternion? orientation = null)
@@ -158,11 +143,7 @@ namespace FleetCommand.Test.Templates
             return this;
         }
 
-        /// <summary>
-        /// Adds a gyroscope of the given maximum gyro force (N·m). The
-        /// block's grid-local orientation gives its grid-space override
-        /// axes ().
-        /// </summary>
+        /// <summary>Adds a gyroscope of the given maximum gyro force (N·m); its grid-local orientation gives its override axes.</summary>
         public ShipTemplateBuilder AddGyro(string blockName, Vector3I min, float gyroForce,
             float dryMass = 100f, Quaternion? orientation = null, float gyroPowerDemand = 0f)
         {
@@ -219,9 +200,9 @@ namespace FleetCommand.Test.Templates
         }
 
         /// <summary>
-        /// Adds a ship connector, whose connection frame is derived from
-        /// the block's grid-local orientation plus an optional extra
-        /// <paramref name="connectorOrientation"/> rotation ().
+        /// Adds a ship connector, whose connection frame is derived from the block's
+        /// grid-local orientation plus an optional extra
+        /// <paramref name="connectorOrientation"/> rotation.
         /// </summary>
         public ShipTemplateBuilder AddConnector(string blockName, Vector3I min, float dryMass = 200f,
             Quaternion? orientation = null, Quaternion? connectorOrientation = null,
@@ -241,7 +222,7 @@ namespace FleetCommand.Test.Templates
             return this;
         }
 
-        /// <summary>Adds a battery power producer with the given output/capacity ().</summary>
+        /// <summary>Adds a battery power producer with the given output/capacity.</summary>
         public ShipTemplateBuilder AddBattery(string blockName, Vector3I min, float maxOutput,
             float maxInput, float maxStoredPower, float dryMass = 100f, float initialStoredPower = 1f)
         {
@@ -260,7 +241,7 @@ namespace FleetCommand.Test.Templates
             return this;
         }
 
-        /// <summary>Adds a reactor power producer with the given maximum output (.7).</summary>
+        /// <summary>Adds a reactor power producer with the given maximum output.</summary>
         public ShipTemplateBuilder AddReactor(string blockName, Vector3I min, float maxOutput,
             float dryMass = 100f)
         {
@@ -311,10 +292,7 @@ namespace FleetCommand.Test.Templates
             return this;
         }
 
-        /// <summary>
-        /// Removes the block with the given name (used for variant
-        /// derivation, ). Throws if no such block exists.
-        /// </summary>
+        /// <summary>Removes the block with the given name (for variant derivation); throws if no such block exists.</summary>
         public ShipTemplateBuilder RemoveBlock(string blockName)
         {
             CheckNotFrozen();

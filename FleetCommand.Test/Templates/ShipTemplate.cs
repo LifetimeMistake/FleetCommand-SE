@@ -4,79 +4,48 @@ using VRageMath;
 
 namespace FleetCommand.Test.Templates
 {
-    /// <summary>
-    /// The block kind for physical construction in this stage. Only the
-    /// kind's effect on mass, shape, and (for fixed thrusters) the fact
-    /// that they contribute mass without applying torque is represented here;
-    /// thruster behaviour itself arrives in .
-    /// </summary>
+    /// <summary>The block kind for physical construction; the kind's effect on mass and shape is represented here.</summary>
     public enum BlockKind
     {
         /// <summary>An ordinary block; contributes an axis-aligned box to shape and mass.</summary>
         Standard,
 
-        /// <summary>
-        /// A fixed thruster: contributes an axis-aligned box to shape and
-        /// mass (fixed thrusters still affect mass and inertia even though
-        /// they apply no torque — ).
-        /// </summary>
+        /// <summary>A fixed thruster: contributes an axis-aligned box to shape and mass (applies no torque).</summary>
         FixedThruster,
 
-        /// <summary>
-        /// A gyroscope: contributes an axis-aligned box to shape and
-        /// mass, and () its local orientation gives the
-        /// grid-space override direction (<see cref="SimGyro"/>) via the
-        /// grid's <see cref="GyroRateSystem"/>.
-        /// </summary>
+        /// <summary>A gyroscope: contributes an axis-aligned box to shape and mass; its local orientation gives the grid-space override direction.</summary>
         Gyro,
 
-        /// <summary>An ordinary ship controller (IMyShipController). .</summary>
+        /// <summary>An ordinary ship controller (IMyShipController).</summary>
         ShipController,
 
-        /// <summary>A remote control (IMyRemoteControl). .</summary>
+        /// <summary>A remote control (IMyRemoteControl).</summary>
         RemoteControl,
 
-        /// <summary>A cockpit (IMyCockpit). .</summary>
+        /// <summary>A cockpit (IMyCockpit).</summary>
         Cockpit,
 
-        /// <summary>A programmable block (IMyProgrammableBlock). .</summary>
+        /// <summary>A programmable block (IMyProgrammableBlock).</summary>
         ProgrammableBlock,
 
-        /// <summary>A text panel / LCD (IMyTextPanel). .</summary>
+        /// <summary>A text panel / LCD (IMyTextPanel).</summary>
         TextPanel,
 
-        /// <summary>
-        /// A battery (IMyBatteryBlock): the ship's finite power supply for
-        /// its SimPowerBus (). Contributes an axis-aligned box to
-        /// shape and mass like any block.
-        /// </summary>
+        /// <summary>A battery (IMyBatteryBlock): the ship's finite power supply for its SimPowerBus.</summary>
         Battery,
 
-        /// <summary>
-        /// A reactor (IMyReactor): a second, finite power producer for
-        /// the ship's SimPowerBus (.7), giving a battery
-        /// something to charge from. Contributes an axis-aligned box to
-        /// shape and mass like any block.
-        /// </summary>
+        /// <summary>A reactor (IMyReactor): a second, finite power producer, giving a battery something to charge from.</summary>
         Reactor,
 
-        /// <summary>
-        /// A ship connector (IMyShipConnector): contributes an
-        /// axis-aligned box to shape and mass, and () its
-        /// connection frame — the body-fixed frame from which the
-        /// connector derives its world pose and capture geometry
-        /// (<see cref="SpaceEngineers.SimShipConnector"/>).
-        /// </summary>
+        /// <summary>A ship connector (IMyShipConnector): contributes mass, and its connection frame drives world pose and capture geometry.</summary>
         Connector,
     }
 
     /// <summary>
-    /// One block's physical description inside a <see cref="ShipTemplate"/>:
-    /// its grid-local placement (min cell plus cell size), dry mass,
-    /// optional inventory mass, orientation, and kind. Blocks are rigid,
-    /// axis-aligned boxes sized by <c>GridSize</c>; their center and half
-    /// extents (grid-local meters) drive both the compound shape and the
-    /// mass elements.
+    /// One block's physical description inside a <see cref="ShipTemplate"/>: grid-local
+    /// placement, dry mass, optional inventory mass, orientation, and kind. Blocks are
+    /// rigid axis-aligned boxes sized by <c>GridSize</c>; their center and half extents
+    /// drive both the compound shape and the mass elements.
     /// </summary>
     public sealed class TemplateBlock
     {
@@ -101,119 +70,60 @@ namespace FleetCommand.Test.Templates
         /// <summary>The block kind. Standard and fixed thrusters are physical; the rest arrive with their stages.</summary>
         public BlockKind Kind { get; }
 
-        /// <summary>
-        /// Battery / reactor maximum output power in MW (used when
-        /// <see cref="Kind"/> is <see cref="BlockKind.Battery"/> or
-        /// <see cref="BlockKind.Reactor"/>; default 0).  / 9.7.
-        /// </summary>
+        /// <summary>Battery / reactor maximum output power in MW (<see cref="BlockKind.Battery"/> or <see cref="BlockKind.Reactor"/>; default 0).</summary>
         public float MaxOutput { get; }
 
-        /// <summary>
-        /// Battery maximum charging input power in MW (used when
-        /// <see cref="Kind"/> is <see cref="BlockKind.Battery"/>;
-        /// default 0). .
-        /// </summary>
+        /// <summary>Battery maximum charging input power in MW (<see cref="BlockKind.Battery"/>; default 0).</summary>
         public float MaxInput { get; }
 
-        /// <summary>
-        /// Battery capacity in MWh (used when <see cref="Kind"/> is
-        /// <see cref="BlockKind.Battery"/>; default 0). .
-        /// </summary>
+        /// <summary>Battery capacity in MWh (<see cref="BlockKind.Battery"/>; default 0).</summary>
         public float MaxStoredPower { get; }
 
-        /// <summary>
-        /// Battery initial charge as a fraction of
-        /// <see cref="MaxStoredPower"/> (0..1, default 1 — a spawned
-        /// battery starts full). Used when <see cref="Kind"/> is
-        /// <see cref="BlockKind.Battery"/>. .
-        /// </summary>
+        /// <summary>Battery initial charge as a fraction of <see cref="MaxStoredPower"/> (0..1, default 1 — a spawned battery starts full).</summary>
         public float InitialStoredPower { get; }
 
         /// <summary>
-        /// Thruster: the block's grid-body FORWARD direction — the axis its
-        /// exhaust points along (one of the six cardinal unit axes, matching
-        /// the game's <c>MyThrust.ThrustForwardVector</c> /
-        /// <c>Orientation.Forward</c>). The grid is pushed OPPOSITE to
-        /// this direction (game: <c>ThrustForce = -ThrustForwardVector</c>,
-        /// MyThrust.cs:188). Used when <see cref="Kind"/> is
-        /// <see cref="BlockKind.FixedThruster"/>; null for non-thrusters.
-        ///  (<see cref="SimThrust.GridThrustDirection"/>).
+        /// Thruster: the grid-body FORWARD direction, the axis its exhaust points along
+        /// (a cardinal axis; the game's <c>MyThrust.ThrustForwardVector</c>). The grid is
+        /// pushed OPPOSITE to this (game: <c>ThrustForce = -ThrustForwardVector</c>,
+        /// MyThrust.cs:188). Null for non-thrusters.
         /// </summary>
         public Vector3I? ThrustDirection { get; }
 
-        /// <summary>
-        /// Thruster: maximum thrust at full effectiveness, in Newtons.
-        /// Used when <see cref="Kind"/> is <see cref="BlockKind.FixedThruster"/>;
-        /// default 0 (a block with no thruster params). .
-        /// </summary>
+        /// <summary>Thruster: maximum thrust at full effectiveness, in Newtons (default 0 — no thruster params).</summary>
         public float MaxThrust { get; }
 
         /// <summary>
-        /// Thruster: current effectiveness profile multiplier in [0, 1]
-        /// (1 = full effectiveness in this environment, 0 = no effect —
-        /// e.g. an atmospheric thruster in vacuum). <see cref="MaxEffectiveThrust"/>
-        /// is <see cref="MaxThrust"/> x this value. Used when
-        /// <see cref="Kind"/> is <see cref="BlockKind.FixedThruster"/>;
-        /// defaults to 1 (a thruster in its intended environment), the
-        /// game's full-effectiveness profile. .
+        /// Thruster: effectiveness profile multiplier in [0, 1] (1 = full in this
+        /// environment, 0 = none — e.g. an atmospheric thruster in vacuum). Defaults to 1.
         /// </summary>
         public float Effectiveness { get; }
 
-        /// <summary>
-        /// Thruster: power the block needs (MW) for full capability; the
-        /// grid's <see cref="SpaceEngineers.SimPowerBus"/> allocates this in
-        /// phase 4 and the delivered ratio scales the delivered thrust
-        /// (single source of truth). Default 0 (ideal source). .
-        /// </summary>
+        /// <summary>Thruster: power needed (MW) for full capability; the delivered ratio scales delivered thrust. Default 0 (ideal source).</summary>
         public float ThrusterPowerDemand { get; }
 
         /// <summary>
-        /// Thruster: the per-thruster definition's <c>SlowdownFactor</c> —
-        /// the multiplier on the delivered thrust envelope in the base
-        /// (manual + dampened) control path, <c>MyThrusterBlockThrustComponent</c>
-        /// sets it from the block definition (:225/:240/:250; default derive
-        /// from <c>MyThrustDefinition</c>, :106). Carried as template data
-        /// like <see cref="Effectiveness"/>, defaulting to the definition
-        /// value (1) when unspecified. .5 (<see cref="SimThrust.SlowdownFactor"/>).
+        /// Thruster: the definition's <c>SlowdownFactor</c> — the multiplier on the
+        /// delivered thrust envelope in the base (manual + dampened) path
+        /// (MyThrusterBlockThrustComponent :225/:240/:250; default from
+        /// <c>MyThrustDefinition</c>, :106). Defaults to 1 (see <see cref="SimThrust.SlowdownFactor"/>).
         /// </summary>
         public float SlowdownFactor { get; }
 
-        /// <summary>
-        /// Gyro: maximum gyroscopic force at full power (the template
-        /// value the game's <c>ForceMagnitude</c> would supply), in N·m.
-        /// <see cref="SimGyro.MaxGyroForce"/> is this value x the gyro's
-        /// <c>GyroPower</c> (in [0, 1]). Used when <see cref="Kind"/> is
-        /// <see cref="BlockKind.Gyro"/>; default 0 (a block with no gyro
-        /// params). .
-        /// </summary>
+        /// <summary>Gyro: maximum gyroscopic force at full power, in N·m; <see cref="SimGyro.MaxGyroForce"/> is this x the gyro's <c>GyroPower</c>.</summary>
         public float GyroForce { get; }
 
-        /// <summary>
-        /// Gyro: power the block needs (MW) at full power setting; the
-        /// grid's <see cref="SpaceEngineers.SimPowerBus"/> allocates this
-        /// in phase 4 (scaled by the gyro's <c>GyroPower</c>) and the
-        /// delivered ratio scales the delivered torque (single source of
-        /// truth). Default 0 (ideal source). .
-        /// </summary>
+        /// <summary>Gyro: power needed (MW) at full setting; the delivered ratio scales delivered torque. Default 0 (ideal source).</summary>
         public float GyroPowerDemand { get; }
 
         /// <summary>
-        /// Connector: additional rotation of the block's connection frame
-        /// relative to the block's own grid placement — i.e. the rotation
-        /// that reorients the connector's connect face (its local forward,
-        /// the direction it extends to meet a partner) without moving the
-        /// block. Default <c>Quaternion.Identity</c> (the connect face
-        /// follows the block's own orientation). Used when
-        /// <see cref="Kind"/> is <see cref="BlockKind.Connector"/>. .
+        /// Connector: additional rotation of the connection frame relative to the block's own
+        /// placement, reorienting the connect face without moving the block. Default
+        /// <c>Quaternion.Identity</c> (follows the block's orientation).
         /// </summary>
         public Quaternion ConnectorOrientation { get; }
 
-        /// <summary>
-        /// Connector: this block's own capture reach in meters (how far it
-        /// will reach for a partner). 0 (the default) means "use the
-        /// physics profile's <c>ConnectorReach</c>". Used when
-        /// <see cref="Kind"/> is <see cref="BlockKind.Connector"/>; .
-        /// </summary>
+        /// <summary>Connector: this block's own capture reach in meters; 0 (default) means use the physics profile's <c>ConnectorReach</c>.</summary>
         public float ConnectorReach { get; }
 
         /// <summary>
@@ -330,11 +240,9 @@ namespace FleetCommand.Test.Templates
     }
 
     /// <summary>
-    /// A named grid-local reference direction carried by a
-    /// <see cref="ShipTemplate"/> (: "controller and connector
-    /// reference frames"; e.g. OrbitGunship's named weapon reference axis).
-    /// Purely template data — craft identity comes from data, never from a
-    /// branch on craft type in the physics or block systems.
+    /// A named grid-local reference direction carried by a <see cref="ShipTemplate"/>
+    /// (e.g. a controller or weapon reference frame). Purely template data — craft
+    /// identity comes from data, never from a branch on craft type.
     /// </summary>
     public sealed class NamedReferenceAxis
     {
@@ -371,15 +279,10 @@ namespace FleetCommand.Test.Templates
     }
 
     /// <summary>
-    /// Immutable physical description of one rigid grid (): grid
-    /// size, the block list, static/dynamic collision mode, the designated
-    /// controller reference, named reference axes, and this stage's
-    /// physical scope (mass elements and compound shape from block defs with
-    /// local transforms). The full validating builder is
-    /// <see cref="ShipTemplateBuilder"/> (); this type is the
-    /// immutable result it returns — building a template once and spawning
-    /// from it many times never mutates it (entity IDs are assigned per
-    /// spawn, never baked into the template).
+    /// Immutable physical description of one rigid grid: grid size, block list,
+    /// static/dynamic collision mode, designated controller, and named reference axes.
+    /// Built by <see cref="ShipTemplateBuilder"/>; building once and spawning many times
+    /// never mutates it (entity IDs are assigned per spawn).
     /// </summary>
     public sealed class ShipTemplate
     {
@@ -401,20 +304,10 @@ namespace FleetCommand.Test.Templates
         /// <summary>Per-grid angular speed cap in rad/s.</summary>
         public float MaxAngularVelocity { get; }
 
-        /// <summary>
-        /// The name of the grid's designated (primary) controller, or null
-        /// when none is designated. When set it must resolve to a
-        /// controller-kind block in <see cref="Blocks"/> (validated at
-        /// <see cref="ShipTemplateBuilder.Build"/>). The designated
-        /// controller's frame is the grid's control reference ().
-        /// </summary>
+        /// <summary>The grid's designated (primary) controller name, or null when none; when set it must resolve to a controller-kind block.</summary>
         public string DesignatedControllerName { get; }
 
-        /// <summary>
-        /// Named grid-local reference directions (e.g. a weapon reference
-        /// axis). Empty when the template declares none. Immutable;
-        /// arbitrary nameless geometry carries no craft-type meaning.
-        /// </summary>
+        /// <summary>Named grid-local reference directions (e.g. a weapon reference axis); empty when none declared.</summary>
         public IReadOnlyList<NamedReferenceAxis> NamedAxes { get; }
 
         /// <summary>Total dry block mass in kilograms (without inventory).</summary>

@@ -4,14 +4,10 @@ using FleetCommand.Common;
 namespace FleetCommand.Test.Observations
 {
     /// <summary>
-    /// One Update1 callback invocation ( "callback cadence and
-    /// exact command-application intervals"). <see cref="SinceLastRun"/>
-    /// is the simulation interval since this callback last ran (which
-    /// accumulates over a missed Update1); <see cref="AppliedInterval"/>
-    /// is the exact fixed step this invocation's commands act over — the
-    /// phase 6–7 physics interval of the same tick — so observers can
-    /// always know the interval a command was actually applied over
-    /// without inferring it from a requested cadence.
+    /// One Update1 callback invocation. <see cref="SinceLastRun"/> is the interval since
+    /// this callback last ran (accumulating over a missed Update1);
+    /// <see cref="AppliedInterval"/> is the exact fixed step this invocation's commands
+    /// act over — the same tick's physics interval — so observers know the applied interval.
     /// </summary>
     public struct UpdateInvocation
     {
@@ -36,12 +32,7 @@ namespace FleetCommand.Test.Observations
         }
     }
 
-    /// <summary>
-    /// A short rolling log of recent <see cref="UpdateInvocation"/>s, kept by
-    /// the world so callback cadence and exact command-application intervals
-    /// are observable () and appear in failure output. Bounded.
-    /// Storage is a <see cref="RingBuffer{T}"/>.
-    /// </summary>
+    /// <summary>A short rolling log of recent <see cref="UpdateInvocation"/>s, keeping cadence and command-application intervals observable in failure output. Backed by a <see cref="RingBuffer{T}"/>.</summary>
     public sealed class UpdateCadenceLog
     {
         private readonly RingBuffer<UpdateInvocation> _ring;

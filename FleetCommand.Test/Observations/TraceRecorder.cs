@@ -5,12 +5,7 @@ using FleetCommand.Test.Framework;
 
 namespace FleetCommand.Test.Observations
 {
-    /// <summary>
-    /// A TickSampler the world invokes each tick in phase 9 so time-series
-    /// values can be captured. The failure ring buffer is the only always-on
-    /// sampler (); a <see cref="TraceRecorder{T}"/> is opt-in via
-    /// <see cref="FleetTestContext.Record"/>.
-    /// </summary>
+    /// <summary>A sampler the world invokes each tick in phase 9 so time-series values can be captured.</summary>
     internal interface ITickSampler
     {
         /// <summary>Samples the current completed state (tick phase 9).</summary>
@@ -18,15 +13,11 @@ namespace FleetCommand.Test.Observations
     }
 
     /// <summary>
-    /// A bounded time-series recorder (: "<c>TraceRecorder&lt;T&gt;</c>
-    /// uses a fixed or caller-specified capacity"). Records one sample per
-    /// tick from the time it is requested (registered) onward; when full it
-    /// drops the oldest sample (ring behaviour), so it is never unbounded.
-    /// Nothing is recorded unless the caller asks for a recorder. Numeric
-    /// convenience accessors (<see cref="MaximumOverLast"/>,
-    /// <see cref="MinimumOverLast"/>, <see cref="AverageOverLast"/>) let tests
-    /// assert on recent windows without importing the samples. Storage is a
-    /// <see cref="RingBuffer{T}"/>.
+    /// A bounded time-series recorder (opt-in via <see cref="FleetTestContext.Record"/>): one
+    /// sample per tick from request onward, dropping the oldest when full (ring behaviour).
+    /// Numeric accessors (<see cref="MaximumOverLast"/>, <see cref="MinimumOverLast"/>,
+    /// <see cref="AverageOverLast"/>) let tests assert on windows without importing samples.
+    /// Backed by a <see cref="RingBuffer{T}"/>.
     /// </summary>
     public sealed class TraceRecorder<T> : ITickSampler
     {

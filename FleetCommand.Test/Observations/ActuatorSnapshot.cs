@@ -6,12 +6,9 @@ using VRageMath;
 namespace FleetCommand.Test.Observations
 {
     /// <summary>
-    /// The per-tick per-grid actuator and state snapshot the world keeps in
-    /// its short failure ring buffer ( "recent actuator history"):
-    /// the delivered net thrust, the requested gyro target rate, the
-    /// delivered torque, and gyro saturation, at a completed tick. This is
-    /// the recent-history data the fixture surfaces when a test fails. It is
-    /// a plain value; rendering is <see cref="ToLine"/>.
+    /// The per-tick per-grid actuator state the world keeps in its short failure ring
+    /// buffer: delivered net thrust, requested gyro target rate, delivered torque, and
+    /// gyro saturation at a completed tick. A plain value; rendering is <see cref="ToLine"/>.
     /// </summary>
     public struct ActuatorSnapshot
     {
@@ -36,7 +33,7 @@ namespace FleetCommand.Test.Observations
         /// <summary>True when the last applied torque was clamped by the gyro-force sphere.</summary>
         public bool Saturated;
 
-        /// <summary>Captures the grid's current actuator state ().</summary>
+        /// <summary>Captures the grid's current actuator state.</summary>
         public static ActuatorSnapshot Capture(SimCubeGrid grid, long tick, double time)
         {
             return new ActuatorSnapshot

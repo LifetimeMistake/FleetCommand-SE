@@ -4,17 +4,12 @@ using VRageMath;
 namespace FleetCommand.Test.Templates
 {
     /// <summary>
-    /// The framework's seven baseline scenarios (). Each is a
-    /// <see cref="ShipTemplate"/> built through the validating
-    /// <see cref="ShipTemplateBuilder"/>, so constructing one exercises the
-    /// same validation any test template does. Craft identity is purely
-    /// template data — none of the physics or block systems branch on which
-    /// of these a grid was spawned from. Tests may derive variants by
-    /// calling <see cref="ShipTemplateBuilder.From"/> and mutating the
-    /// copy. Grid-local axes: +X forward, +Y up, +Z right (force = -
-    /// thruster forward, so a group whose forward is -X pushes +X).
-    /// Every block occupies a distinct grid cell (the grid is
-    /// position-keyed, so no two blocks share a cell).
+    /// The framework's baseline scenarios. Each is a <see cref="ShipTemplate"/> built
+    /// through the validating <see cref="ShipTemplateBuilder"/>; craft identity is purely
+    /// template data, never a branch on craft type. Tests may derive variants via
+    /// <see cref="ShipTemplateBuilder.From"/>. Axes: +X forward, +Y up, +Z right
+    /// (force = -thruster forward, so a group with forward -X pushes +X). Every block
+    /// occupies a distinct grid cell.
     /// </summary>
     public static class ShipTemplates
     {
