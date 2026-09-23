@@ -5,21 +5,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// Remote control block, implementing the real <see cref="IMyRemoteControl"/>
-    /// (from Sandbox.ModAPI.Ingame; , ). It extends
-    /// <see cref="SimShipController"/> (so it provides the full
-    /// ship-controller behavior and identity needed by
-    /// discovery/configuration) and adds the scriptable remote surface:
-    /// <see cref="SpeedLimit"/>, the autopilot-enabled flag, and minimal
-    /// waypoint storage (a list + current target) that the grid's
-    /// <see cref="AutopilotSystem"/> flies. When autopilot is enabled the
-    /// grid's gyros route to the non-override authority pool
-    /// (<see cref="GyroRateSystem.AutopilotEnabled"/>) and the remote is
-    /// treated as under control, mirroring the game's
-    /// <c>SetAutoPilotEnabled</c> routing (<c>ThrustComp.AutopilotEnabled</c>
-    /// → the <c>ComputeAiThrust</c> path, MyEntityThrustComponent.cs:1457-1478).
-    /// </summary>
+    /// <summary>A remote control implementing <see cref="IMyRemoteControl"/>: extends <see cref="SimShipController"/> and adds <see cref="SpeedLimit"/>, the autopilot-enabled flag, and minimal waypoint storage (a list + current target) that the grid's <see cref="AutopilotSystem"/> flies. When autopilot is enabled the grid's gyros route to the non-override authority pool (<see cref="GyroRateSystem.AutopilotEnabled"/>) and the remote is treated as under control (mirroring the game's <c>SetAutoPilotEnabled</c> routing — <c>ThrustComp.AutopilotEnabled</c> → the <c>ComputeAiThrust</c> path, MyEntityThrustComponent.cs:1457-1478).</summary>
     public sealed class SimRemoteControl : SimShipController, IMyRemoteControl
     {
         private bool _isAutoPilotEnabled;
@@ -35,25 +21,14 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public bool IsAutoPilotEnabled => _isAutoPilotEnabled;
 
-        /// <summary>
-        /// The autopilot speed limit (m/s): the cap on the forward
-        /// throttle. The game publishes it as <c>MovementBlockMaxSpeed</c>
-        /// and gates the thrust on <c>|v|² &lt; maxSpeed²</c>
-        /// (MyAutopilotComponent.cs:1322, :2805).
-        /// </summary>
+        /// <summary>The autopilot speed limit (m/s): the cap on the forward throttle. The game publishes it as <c>MovementBlockMaxSpeed</c> and gates the thrust on <c>|v|² &lt; maxSpeed²</c> (MyAutopilotComponent.cs:1322, :2805).</summary>
         public float SpeedLimit
         {
             get { return _speedLimit; }
             set { _speedLimit = value; }
         }
 
-        /// <summary>
-        /// Enables or disables the remote's autopilot. Enabling routes
-        /// the grid's thrust to the AI command path and its gyros to the
-        /// authority pool (the game's <c>MyAutopilotComponent.SetAutoPilotEnabled</c>
-        /// :3009 → <c>ThrustComp.AutopilotEnabled</c>), and marks the
-        /// remote under control; disabling coasts (no AI command).
-        /// </summary>
+        /// <summary>Enables or disables the remote's autopilot. Enabling routes the grid's thrust to the AI command path and its gyros to the authority pool (the game's <c>MyAutopilotComponent.SetAutoPilotEnabled</c> :3009 → <c>ThrustComp.AutopilotEnabled</c>) and marks the remote under control; disabling coasts (no AI command).</summary>
         public void SetAutoPilotEnabled(bool enabled)
         {
             if (_isAutoPilotEnabled == enabled)
@@ -66,8 +41,7 @@ namespace FleetCommand.Test.SpaceEngineers
         }
 
         /// <inheritdoc />
-        /// <summary>The current flight target waypoint, or
-        /// <see cref="MyWaypointInfo.Empty"/> when none is set/reached.</summary>
+        /// <summary>The current flight target waypoint, or <see cref="MyWaypointInfo.Empty"/> when none is set/reached.</summary>
         public MyWaypointInfo CurrentWaypoint =>
             _waypointIndex < _waypoints.Count ? _waypoints[_waypointIndex] : MyWaypointInfo.Empty;
 
@@ -107,11 +81,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>True while a target waypoint is set (for the <see cref="AutopilotSystem"/>).</summary>
         internal bool HasTarget => _waypointIndex < _waypoints.Count;
 
-        /// <summary>
-        /// Advances to the next waypoint (or stays on the last), called by
-        /// the <see cref="AutopilotSystem"/> when the current target is
-        /// reached.
-        /// </summary>
+        /// <summary>Advances to the next waypoint (or stays on the last), called by the <see cref="AutopilotSystem"/> when the current target is reached.</summary>
         internal void AdvanceWaypoint()
         {
             if (_waypointIndex < _waypoints.Count - 1)
@@ -120,7 +90,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        // — waypoint / autopilot members outside the  contract —
+        // — waypoint / autopilot members outside the implemented contract —
 
         /// <inheritdoc />
         public FlightMode FlightMode

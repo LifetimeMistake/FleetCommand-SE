@@ -4,27 +4,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// The grid's controller rotation control (.6 Part 1): the
-    /// rotational analog of <see cref="BaseControlSystem"/>. When a
-    /// (under-control, working) ship controller with the
-    /// <see cref="SimShipController.ControlGyros"/> gate on writes its
-    /// <see cref="SimShipController.RotationIndicator"/> /
-    /// <see cref="SimShipController.RollIndicator"/>, this converts them
-    /// into a grid-frame angular command exactly as
-    /// <c>MyShipController.MoveAndRotate</c> (:1816-1824) does —
-    /// <c>RotationIndicator/20</c> (ClampToSphere 1) and <c>RollIndicator · 0.2</c>,
-    /// negated, transformed by the block's orientation — and writes it
-    /// into <see cref="GyroRateSystem.ControlTorque"/>, the same sink the
-    /// game's controller uses (and the autopilot shares).
-    /// <para>
-    /// Last-under-control-wins matches the game's per-frame assignment
-    /// (<c>m_gridGyroSystem.ControlTorque = vector3</c>), not an
-    /// accumulation (unlike the translation route's
-    /// <c>ControlThrust +=</c>). With no contributing controller the
-    /// command is reset to zero so a stale rotation does not persist.
-    /// </para>
-    /// </summary>
+    /// <summary>The grid's controller rotation control: the rotational analog of <see cref="BaseControlSystem"/>. When an (under-control, working) ship controller with the <see cref="SimShipController.ControlGyros"/> gate on writes its <see cref="SimShipController.RotationIndicator"/> / <see cref="SimShipController.RollIndicator"/>, this converts them into a grid-frame angular command exactly as <c>MyShipController.MoveAndRotate</c> (:1816-1824) does — <c>RotationIndicator/20</c> (ClampToSphere 1) and <c>RollIndicator · 0.2</c>, negated, transformed by the block's orientation — and writes it into <see cref="GyroRateSystem.ControlTorque"/>. Last-under-control-wins matches the game's per-frame assignment (<c>m_gridGyroSystem.ControlTorque = vector3</c>), not an accumulation; with no contributing controller the command is reset to zero so a stale rotation does not persist.</summary>
     public sealed class RotationControlSystem
     {
         private readonly SimCubeGrid _grid;
@@ -70,13 +50,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Tick phase 5 (before <see cref="GyroRateSystem.ApplyTorque"/>):
-        /// reproduce <c>MyShipController.MoveAndRotate</c>'s rotation
-        /// block (:1816-1824) from the under-control controllers, gated on
-        /// <see cref="SimShipController.ControlGyros"/>, and write the
-        /// result into <see cref="GyroRateSystem.ControlTorque"/>.
-        /// </summary>
+        /// <summary>Tick phase 5 (before <see cref="GyroRateSystem.ApplyTorque"/>): reproduce <c>MyShipController.MoveAndRotate</c>'s rotation block (:1816-1824) from the under-control controllers, gated on <see cref="SimShipController.ControlGyros"/>, and write the result into <see cref="GyroRateSystem.ControlTorque"/>.</summary>
         public void ComputeControlTorque()
         {
             _lastControlTorque = Vector3.Zero;

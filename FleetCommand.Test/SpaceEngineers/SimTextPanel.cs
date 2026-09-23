@@ -7,18 +7,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// Text panel / LCD, implementing the real <see cref="IMyTextPanel"/>
-    /// (from Sandbox.ModAPI.Ingame; , ) — which extends
-    /// <see cref="IMyTextSurface"/> — for logger-compatible text writes and
-    /// reads. The implemented contract is the text model (<see cref="WriteText"/>,
-    /// <see cref="GetText"/>, <see cref="ReadText"/>, public title) plus
-    /// the stored surface attributes (font, colors, alignment, content
-    /// type, …). The sprite / drawing surface (images, sprites,
-    /// <see cref="DrawFrame"/>, pixel measurement) models rendering the
-    /// simulator does not provide, so those members throw a naming
-    /// <see cref="NotSupportedException"/>.
-    /// </summary>
+    /// <summary>A text panel / LCD implementing <see cref="IMyTextPanel"/> (which extends <see cref="IMyTextSurface"/>) for logger-compatible text writes and reads: the text model (<see cref="WriteText"/>, <see cref="GetText"/>, <see cref="ReadText"/>, public title) plus the stored surface attributes (font, colors, alignment, content type, …). The sprite / drawing surface (images, sprites, <see cref="DrawFrame"/>, pixel measurement) models rendering the simulator does not provide, so those members throw a naming <see cref="NotSupportedException"/>.</summary>
     public sealed class SimTextPanel : SimFunctionalBlock, IMyTextPanel
     {
         /// <summary>Cap on public text length (per the interface docs: 100000 symbols).</summary>

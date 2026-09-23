@@ -5,31 +5,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// A fixed grid thruster, implementing the real
-    /// <see cref="Sandbox.ModAPI.Ingame.IMyThrust"/> (from
-    /// Decompiled/Sandbox.Common/Sandbox/ModAPI/Ingame/IMyThrust.cs; ,
-    /// /). The thruster's template maximum and effectiveness
-    /// profile give <see cref="MaxThrust"/> and <see cref="MaxEffectiveThrust"/>;
-    /// <see cref="ThrustOverride"/> and <see cref="ThrustOverridePercentage"/>
-    /// are one shared override (like the game's single
-    /// <c>m_thrustOverride</c>), the per-thruster command the PB code
-    /// writes. <see cref="CurrentThrust"/> is the delivered force from the
-    /// previous physics interval, written by the grid's
-    /// <see cref="ForceAggregator"/> in tick phase 8 ( step 6) —
-    /// readable in the next tick's callbacks. Inherited working state from
-    /// <see cref="SimFunctionalBlock"/>; power scaling reads the
-    /// bus-computed <see cref="SimFunctionalBlock.DeliveredRatio"/>
-    /// (single source of truth, ). <see cref="GridThrustDirection"/>
-    /// is the thruster's grid-body forward (exhaust) axis — the value the
-    /// game returns — and the grid is pushed opposite to it, matching the
-    /// game's <c>ThrustForce = -ThrustForwardVector</c>. The aggregator
-    /// thus groups thrusters by forward axis and applies each force along
-    /// its negation, with no craft-type branches (asymmetric and missing
-    /// axes are supported by template data). Fixed grid thrusters generate
-    /// no torque from block position (the net force is applied at the grid
-    /// COM, ).
-    /// </summary>
+    /// <summary>A fixed grid thruster implementing <see cref="IMyThrust"/> (from Decompiled/Sandbox.Common/Sandbox/ModAPI/Ingame/IMyThrust.cs): the template maximum and effectiveness profile give <see cref="MaxThrust"/> and <see cref="MaxEffectiveThrust"/>; <see cref="ThrustOverride"/> and <see cref="ThrustOverridePercentage"/> are one shared override (the game's single <c>m_thrustOverride</c>). <see cref="CurrentThrust"/> is the delivered force from the previous physics interval, written by the grid's <see cref="ForceAggregator"/>. Power scaling reads the bus-computed <see cref="SimFunctionalBlock.DeliveredRatio"/>. <see cref="GridThrustDirection"/> is the grid-body forward (exhaust) axis and the grid is pushed opposite to it (<c>ThrustForce = -ThrustForwardVector</c>), so the aggregator groups thrusters by forward axis with no craft-type branches. Fixed grid thrusters generate no torque from block position (the net force is applied at the grid COM).</summary>
     public class SimThrust : SimFunctionalBlock, IMyThrust
     {
         private readonly Vector3I _direction;
@@ -100,21 +76,10 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public float MaxEffectiveThrust => _maxThrust * _effectiveness;
 
-        /// <summary>
-        /// The thruster definition's <c>SlowdownFactor</c> (template data,
-        /// default the definition value 1) — the multiplier on the
-        /// delivered-thrust envelope in the grid's base (manual + dampened)
-        /// control path (.5). Read by
-        /// <see cref="SpaceEngineers.BaseControlSystem"/> via the grid's
-        /// <see cref="ForceAggregator"/>.
-        /// </summary>
+        /// <summary>The thruster definition's <c>SlowdownFactor</c> (template data, default the definition value 1) — the multiplier on the delivered-thrust envelope in the grid's base (manual + dampened) control path. Read by <see cref="BaseControlSystem"/> via the grid's <see cref="ForceAggregator"/>.</summary>
         public float SlowdownFactor => _slowdownFactor;
 
-        /// <summary>
-        /// The delivered thrust from the last applied physics interval,
-        /// updated by the grid's <see cref="ForceAggregator"/> in tick
-        /// phase 8 (after the force was applied in phase 6). In Newtons.
-        /// </summary>
+        /// <summary>The delivered thrust from the last applied physics interval, written by the grid's <see cref="ForceAggregator"/> (after the force was applied). In Newtons.</summary>
         public float CurrentThrust => _currentThrust;
 
         /// <inheritdoc />
@@ -122,18 +87,7 @@ namespace FleetCommand.Test.SpaceEngineers
             ? (float)Math.Round(_currentThrust / _maxThrust, 3) * 100f
             : 0f;
 
-        /// <summary>
-        /// The thruster's grid-body forward direction (the template's
-        /// thruster direction): for a single rigid grid, the body axis the
-        /// thruster's exhaust points along. This is the value the game
-        /// returns — <c>MyThrust.cs:276</c> (<see cref="IMyThrust.GridThrustDirection"/>)
-        /// returns the block's forward vector, controller-relative; for a
-        /// single rigid grid that is the grid-body forward axis. The grid
-        /// is pushed OPPOSITE to this direction (game:
-        /// <c>ThrustForce = -ThrustForwardVector x ForceMagnitude</c>,
-        /// MyThrust.cs:188). Vector3I.Zero when the template supplied no
-        /// direction.
-        /// </summary>
+        /// <summary>The thruster's grid-body forward (exhaust) axis — the value the game returns (<c>MyThrust.cs:276</c>, controller-relative; the grid-body forward axis for a single rigid grid). The grid is pushed OPPOSITE to it (game: <c>ThrustForce = -ThrustForwardVector</c>, MyThrust.cs:188). Vector3I.Zero when the template supplied no direction.</summary>
         public Vector3I GridThrustDirection => _direction;
 
         // — aggregation surface (the grid ForceAggregator) —
@@ -150,10 +104,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _lastDelivered = delivered;
         }
 
-        /// <summary>
-        /// Commits the phase-5 delivered force to <see cref="CurrentThrust"/>
-        /// after the physics interval (tick phase 8,  step 6).
-        /// </summary>
+        /// <summary>Commits the phase-5 delivered force to <see cref="CurrentThrust"/> after the physics interval (tick phase 8).</summary>
         internal void CommitCurrentThrust()
         {
             _currentThrust = _lastDelivered;

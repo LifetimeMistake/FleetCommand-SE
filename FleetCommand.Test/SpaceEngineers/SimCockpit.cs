@@ -3,15 +3,7 @@ using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// Cockpit block, implementing the real <see cref="IMyCockpit"/> (from
-    /// Sandbox.ModAPI.Ingame; , ). It extends
-    /// <see cref="SimShipController"/> (so it provides the full
-    /// ship-controller behavior and identity needed by
-    /// discovery/configuration) and reports no modeled text surfaces.
-    /// Life-support (oxygen) is not modeled: those members throw a naming
-    /// <see cref="NotSupportedException"/>.
-    /// </summary>
+    /// <summary>A cockpit implementing <see cref="IMyCockpit"/>: extends <see cref="SimShipController"/> and has no modeled text surfaces; oxygen members throw <see cref="NotSupportedException"/>.</summary>
     public sealed class SimCockpit : SimShipController, IMyCockpit
     {
         public SimCockpit(long entityId, string name, SimCubeGrid grid, TemplateBlock template)
@@ -19,7 +11,7 @@ namespace FleetCommand.Test.SpaceEngineers
         {
         }
 
-        // — IMyCockpit members outside the  contract (no oxygen model) —
+        // — IMyCockpit members (no oxygen model) —
 
         /// <inheritdoc />
         public float OxygenCapacity => ThrowNotSupported<float>("IMyCockpit.OxygenCapacity");
@@ -32,7 +24,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public bool UseGenericLcd => false;
 
-        /// <summary>No modeled text surfaces on a cockpit this stage.</summary>
+        /// <summary>No modeled text surfaces on a cockpit.</summary>
         public int SurfaceCount => 0;
 
         /// <inheritdoc />

@@ -5,54 +5,16 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// The grid gyro-rate system (,  steps 1–9) — the
-    /// boundary where per-gyro override channels become one body-space
-    /// angular impulse, reproducing the game's override loop
-    /// (<c>MyGridGyroSystem.UpdateOverriddenGyros</c>). Owned by
-    /// <see cref="SimCubeGrid"/>; the world drives it in three tick phases:
-    /// <list type="number">
-    /// <item><b>Phase 5</b> <see cref="Aggregate"/> — for each used gyro
-    /// (enabled + functional, the game's <c>IsUsed</c>), divert
-    /// override gyros into the force-weighted grid-frame target rate (or,
-    /// when <see cref="AutopilotEnabled"/>, into the non-override
-    /// authority pool) and sum the authority pool, exactly as
-    /// <c>RecomputeGyroParameters</c> (MyGridGyroSystem.cs:447-476).</item>
-    /// <item><b>Phase 6</b> <see cref="ApplyTorque"/> — read the body's
-    /// world angular velocity into the grid frame, apply the SE override
-    /// acceleration-ramp policy, convert the rate error into a desired
-    /// torque via the inverse inertia diagonal, clamp to the aggregate
-    /// gyro-force sphere and supplied power, and apply ONE resultant
-    /// body-space angular impulse (steps 3–8). The grid angular-rate cap
-    /// (step 9) is the body's configured
-    /// <see cref="SimRigidBody.MaxAngularVelocity"/>, already applied by
-    /// Havok — not re-implemented here.</item>
-    /// <item><b>Phase 8</b> <see cref="UpdateGyroTelemetry"/> — write each
-    /// gyro's delivered torque and saturation ().</item>
-    /// </list>
-    /// The override is the autopilot's rate-command path: Yaw/Pitch/Roll
-    /// command a grid target rate and the loop closes the torque against it
-    /// at the gyro-force ceiling — no position servo. <see cref="ControlTorque"/>
-    /// is the scenario's non-override stabilization input (zero by
-    /// default), added as <c>ControlTorque * m_maxGyroForce</c>. Power
-    /// scaling reads the gyros' phase-4 <see cref="SimFunctionalBlock.DeliveredRatio"/>
-    /// (single source of truth), force-weighted into one gyro-system ratio —
-    /// the exact per-gyro phase-4 value when the gyros share a tier.
-    /// </summary>
+    /// <summary>The grid gyro-rate system — the boundary where per-gyro override channels become one body-space angular impulse, reproducing the game's override loop (<c>MyGridGyroSystem.UpdateOverriddenGyros</c>). Owned by <see cref="SimCubeGrid"/>; the world drives it in three tick phases: phase 5 <see cref="Aggregate"/> (for each used gyro — enabled + functional, the game's <c>IsUsed</c> — divert override gyros into the force-weighted grid-frame target rate, or into the non-override authority pool when <see cref="AutopilotEnabled"/>, and sum the authority pool, as <c>RecomputeGyroParameters</c> does, MyGridGyroSystem.cs:447-476); phase 6 <see cref="ApplyTorque"/> (read the body's world angular velocity into the grid frame, apply the SE override acceleration-ramp policy, convert the rate error into a desired torque via the inverse inertia diagonal, clamp to the aggregate gyro-force sphere and supplied power, and apply ONE resultant body-space angular impulse); phase 8 <see cref="UpdateGyroTelemetry"/> (write each gyro's delivered torque and saturation). <see cref="ControlTorque"/> is the scenario's non-override stabilization input (zero by default), added as <c>ControlTorque * m_maxGyroForce</c>; power scaling reads the gyros' phase-4 <see cref="SimFunctionalBlock.DeliveredRatio"/>, force-weighted into one gyro-system ratio.</summary>
     public sealed class GyroRateSystem
     {
         /// <summary>Tiny torque threshold below which nothing is applied (game: TorqueSqLenTh = 0.0001).</summary>
         public const float TorqueSqLenThreshold = 0.0001f;
 
-        /// <summary>
-        /// The manual path's angular-velocity dampening blend (game:
-        /// MyGridGyroSystem.MAX_SLOWDOWN = WELD_LANDING_GEARS ? 0.8 : 0.93).
-        /// </summary>
+        /// <summary>The manual path's angular-velocity dampening blend (game: MyGridGyroSystem.MAX_SLOWDOWN = WELD_LANDING_GEARS ? 0.8 : 0.93).</summary>
         public const float MaxSlowdown = 0.93f;
 
-        /// <summary>
-        /// Inertia-tensor-limit clamp divisor (game: MyGridGyroSystem.INV_TENSOR_MAX_LIMIT = 125000).
-        /// </summary>
+        /// <summary>Inertia-tensor-limit clamp divisor (game: MyGridGyroSystem.INV_TENSOR_MAX_LIMIT = 125000).</summary>
         public const float InvTensorMaxLimit = 125000f;
 
         /// <summary>Slowdown torque multiplier for small and large grids (game: MyFakes 5f / 2f).</summary>
@@ -85,41 +47,26 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid grid (ship) this rate system serves.</summary>
         public SimCubeGrid Grid => _grid;
 
-        /// <summary>
-        /// When true, override gyros are diverted into the non-override
-        /// authority pool instead of the override pool (the game's
-        /// <c>AutopilotEnabled</c>). Autopilot tests drive gyros through
-        /// the override path (flag false); this models the flag's only
-        /// effect here.
-        /// </summary>
+        /// <summary>When true, override gyros are diverted into the non-override authority pool instead of the override pool (the game's <c>AutopilotEnabled</c>). Autopilot tests drive gyros through the override path (flag false); this models the flag's only effect here.</summary>
         public bool AutopilotEnabled;
 
-        /// <summary>
-        /// The scenario's non-override stabilization input (the game's
-        /// <c>ControlTorque</c>), added as
-        /// <c>ControlTorque * m_maxGyroForce</c>. Zero by default.
-        /// </summary>
+        /// <summary>The scenario's non-override stabilization input (the game's <c>ControlTorque</c>), added as <c>ControlTorque * m_maxGyroForce</c>. Zero by default.</summary>
         public Vector3 ControlTorque
         {
             get { return _controlTorque; }
             set { _controlTorque = value; }
         }
 
-        /// <summary>The force-weighted grid-frame target rate from the most recent <see cref="Aggregate"/> ().</summary>
+        /// <summary>The force-weighted grid-frame target rate from the most recent <see cref="Aggregate"/> (observation).</summary>
         public Vector3 OverrideTargetVelocity => _lastOverrideTarget;
 
-        /// <summary>The grid-frame torque applied in the most recent <see cref="ApplyTorque"/> ().</summary>
+        /// <summary>The grid-frame torque applied in the most recent <see cref="ApplyTorque"/> (observation).</summary>
         public Vector3 LastTorque => _lastGridTorque;
 
         /// <summary>True when the last applied torque was clamped by the aggregate gyro-force sphere.</summary>
         public bool LastSaturated => _lastSaturated;
 
-        /// <summary>
-        /// The current override acceleration-ramp frame count (-1 = unset).
-        /// Observation surface () so conformance can lock the
-        /// game's cross-tick countdown (MyGridGyroSystem.cs:306-324): armed
-        /// once, counts down each tick, re-armed only on a gyro-set change.
-        /// </summary>
+        /// <summary>The current override acceleration-ramp frame count (-1 = unset). Observation surface so conformance can lock the game's cross-tick countdown (MyGridGyroSystem.cs:306-324): armed once, counts down each tick, re-armed only on a gyro-set change.</summary>
         internal int OverrideRampFrames => _overrideAccelerationRampFrames;
 
         internal GyroRateSystem(SimCubeGrid grid)
@@ -152,28 +99,13 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Marks the gyro set as changed so the next <see cref="Aggregate"/>
-        /// re-arms the override acceleration ramp (the game's
-        /// <c>MarkDirty()</c> → <c>RecomputeGyroParameters</c>, which resets
-        /// <c>m_overrideAccelerationRampFrames</c>). Called by <see cref="SimGyro"/>
-        /// when its override flag or override velocity changes.
-        /// </summary>
+        /// <summary>Marks the gyro set as changed so the next <see cref="Aggregate"/> re-arms the override acceleration ramp (the game's <c>MarkDirty()</c> → <c>RecomputeGyroParameters</c>, which resets <c>m_overrideAccelerationRampFrames</c>). Called by <see cref="SimGyro"/> when its override flag or override velocity changes.</summary>
         internal void MarkDirty()
         {
             _gyrosChanged = true;
         }
 
-        /// <summary>
-        /// Tick phase 5: aggregate the force-weighted override target rate
-        /// from overridden gyros and the non-override authority pool sum
-        /// ( step 2; the game's <c>RecomputeGyroParameters</c>,
-        /// MyGridGyroSystem.cs:447-476). Re-arms the acceleration ramp
-        /// ONLY when the gyro set changed (the game resets
-        /// <c>m_overrideAccelerationRampFrames</c> only on
-        /// <c>RecomputeGyroParameters</c>, not every tick) — so the ramp's
-        /// cross-tick countdown persists while the configuration is stable.
-        /// </summary>
+        /// <summary>Tick phase 5: aggregate the force-weighted override target rate from overridden gyros and the non-override authority pool sum (the game's <c>RecomputeGyroParameters</c>, MyGridGyroSystem.cs:447-476). Re-arms the acceleration ramp ONLY when the gyro set changed (the game resets <c>m_overrideAccelerationRampFrames</c> only on <c>RecomputeGyroParameters</c>, not every tick), so the ramp's cross-tick countdown persists while the configuration is stable.</summary>
         public void Aggregate()
         {
             _maxGyroForce = 0f;
@@ -213,16 +145,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _lastOverrideTarget = _overrideTargetVelocity;
         }
 
-        /// <summary>
-        /// Tick phase 6: reproduce the game's override loop
-        /// (<c>MyGridGyroSystem.UpdateOverriddenGyros</c>, lines 274-304):
-        /// read the body's world angular velocity into the grid frame, apply
-        /// the SE override acceleration-ramp policy, convert the rate error
-        /// into a desired torque via the inverse inertia diagonal, clamp to
-        /// the aggregate gyro-force sphere and supplied power, and apply ONE
-        /// resultant body-space angular impulse (matching how  applies
-        /// the resultant force).
-        /// </summary>
+        /// <summary>Tick phase 6: reproduce the game's override loop (<c>MyGridGyroSystem.UpdateOverriddenGyros</c>, lines 274-304): read the body's world angular velocity into the grid frame, apply the SE override acceleration-ramp policy, convert the rate error into a desired torque via the inverse inertia diagonal, clamp to the aggregate gyro-force sphere and supplied power, and apply ONE resultant body-space angular impulse.</summary>
         public void ApplyTorque(float dtSeconds)
         {
             if (_grid.IsDisposed)
@@ -252,12 +175,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// The game's override loop (<c>MyGridGyroSystem.UpdateOverriddenGyros</c>,
-        /// :274-304) — the override-acceleration-ramp policy when override
-        /// gyros are present. Extracted from the former single
-        /// <see cref="ApplyTorque"/> body.
-        /// </summary>
+        /// <summary>The game's override loop (<c>MyGridGyroSystem.UpdateOverriddenGyros</c>, :274-304) — the override-acceleration-ramp policy when override gyros are present. Extracted from the former single <see cref="ApplyTorque"/> body.</summary>
         private void ApplyOverrideTorque(SimRigidBody body, float dtSeconds)
         {
             // The gyro-system supplied power ratio: the force-weighted
@@ -309,20 +227,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// The game's manual path (<c>MyGridGyroSystem.UpdateGyros</c>,
-        /// :201-272), routed to when there are no override gyros: this is
-        /// what consumes the controller's rotation control (Part 1) and the
-        /// autopilot's turn (Part 2) — both write <see cref="ControlTorque"/>
-        /// and the single, non-override authority pool drives the grid. It
-        /// applies the angular-velocity slowdown (dampening) plus the
-        /// ControlTorque torque:
-        /// <c>torque = clamp(ControlTorque, ±1) · m_maxGyroForce /
-        /// max(1, num4·125000)</c>, scaled by the normalized inertia-per-
-        /// axis and the supplied power (:254-266), with the slowdown
-        /// dampening clamped per-gyro-force and gated off on axes the
-        /// control actively drives (:231-250).
-        /// </summary>
+        /// <summary>The game's manual path (<c>MyGridGyroSystem.UpdateGyros</c>, :201-272), routed to when there are no override gyros: this is what consumes the controller's rotation control (Part 1) and the autopilot's turn (Part 2) — both write <see cref="ControlTorque"/> and the single, non-override authority pool drives the grid. It applies the angular-velocity slowdown (dampening) plus the ControlTorque torque: <c>torque = clamp(ControlTorque, ±1) · m_maxGyroForce / max(1, num4·125000)</c>, scaled by the normalized inertia-per-axis and the supplied power (:254-266), with the slowdown dampening clamped per-gyro-force and gated off on axes the control actively drives (:231-250).</summary>
         private void ApplyManualTorque(SimRigidBody body, float dtSeconds)
         {
             float num = GyroPowerRatio();
@@ -391,12 +296,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _lastSaturated = false;
         }
 
-        /// <summary>
-        /// The game's <c>Vector3.IsZeroVector</c> on a vector of signed
-        /// axis differences (values in {-2,-1,0,1,2}): 1 where the
-        /// difference is exactly zero, else 0. Used for the manual path's
-        /// per-axis slowdown gating.
-        /// </summary>
+        /// <summary>The game's <c>Vector3.IsZeroVector</c> on a vector of signed axis differences (values in {-2,-1,0,1,2}): 1 where the difference is exactly zero, else 0. Used for the manual path's per-axis slowdown gating.</summary>
         private static Vector3 OneWhereZero(Vector3 signDiff)
         {
             return new Vector3(
@@ -419,13 +319,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return inv <= 1e-9f ? float.MaxValue : 1f / inv;
         }
 
-        /// <summary>
-        /// The game's normalized inertia-per-axis scale
-        /// (<c>scale = Abs(inertia / inertia.AbsMax())</c>, :256-257):
-        /// the largest inertia axis maps to 1, smaller axes are scaled
-        /// proportionally, so the torque follows the body's rotational
-        /// anisotropy. The sim models inertia as diagonal-only.
-        /// </summary>
+        /// <summary>The game's normalized inertia-per-axis scale (<c>scale = Abs(inertia / inertia.AbsMax())</c>, :256-257): the largest inertia axis maps to 1, smaller axes are scaled proportionally, so the torque follows the body's rotational anisotropy. The sim models inertia as diagonal-only.</summary>
         private static Vector3 NormalizedInertiaScale(Vector3 invInertia)
         {
             Vector3 inertia = new Vector3(
@@ -456,13 +350,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return b == 0f ? float.MaxValue : a / b;
         }
 
-        /// <summary>
-        /// Tick phase 8: publish each used gyro's delivered torque and
-        /// saturation for observation (). Override gyros receive
-        /// the aggregate torque scaled by their force share of the override
-        /// pool; non-override gyros report none (their force is pooled
-        /// into the authority, not an individual block torque).
-        /// </summary>
+        /// <summary>Tick phase 8: publish each used gyro's delivered torque and saturation for observation. Override gyros receive the aggregate torque scaled by their force share of the override pool; non-override gyros report none (their force is pooled into the authority, not an individual block torque).</summary>
         public void UpdateGyroTelemetry()
         {
             float torqueMag = _lastGridTorque.Length();
@@ -483,14 +371,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// The SE override acceleration-ramp frame count for a NEW
-        /// velocity difference (the game's
-        /// <c>UpdateOverrideAccelerationRampFrames</c> initial value,
-        /// MyGridGyroSystem.cs:306-324): 120 frames for a large error,
-        /// else (int)(|diff|² · 48.228886) + 1. Exposed for the 
-        /// ramp conformance.
-        /// </summary>
+        /// <summary>The SE override acceleration-ramp frame count for a NEW velocity difference (the game's <c>UpdateOverrideAccelerationRampFrames</c> initial value, MyGridGyroSystem.cs:306-324): 120 frames for a large error, else (int)(|diff|² · 48.228886) + 1. Exposed for ramp conformance.</summary>
         internal static int ComputeOverrideRampFrames(Vector3 velocityDiff)
         {
             float sq = velocityDiff.LengthSquared();
@@ -501,11 +382,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return (int)(sq * RampFrameScale) + 1;
         }
 
-        /// <summary>
-        /// The game's stateful ramp: on a NEW error the frame count is
-        /// <see cref="ComputeOverrideRampFrames"/>; on subsequent ticks it
-        /// counts down (but not below 1).
-        /// </summary>
+        /// <summary>The game's stateful ramp: on a NEW error the frame count is <see cref="ComputeOverrideRampFrames"/>; on subsequent ticks it counts down (but not below 1).</summary>
         private void UpdateOverrideAccelerationRampFrames(Vector3 velocityDiff)
         {
             if (_overrideAccelerationRampFrames == -1)
@@ -518,13 +395,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// The force-weighted phase-4 delivered power ratio of the used
-        /// gyros: (sum MaxGyroForce·DeliveredRatio) / (sum MaxGyroForce).
-        /// Reduces to the exact per-gyro phase-4 value when all gyros
-        /// share a tier (the common case); the single source of truth the
-        /// brief's "shared power shortfall scales available gyro force".
-        /// </summary>
+        /// <summary>The force-weighted phase-4 delivered power ratio of the used gyros: (sum MaxGyroForce·DeliveredRatio) / (sum MaxGyroForce). Reduces to the exact per-gyro phase-4 value when all gyros share a tier (the common case); the single source of truth scaling available gyro force under a shared power shortfall.</summary>
         private float GyroPowerRatio()
         {
             float weighted = 0f;

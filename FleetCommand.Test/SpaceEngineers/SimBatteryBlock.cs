@@ -4,33 +4,7 @@ using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// Battery block, implementing the real <see cref="IMyBatteryBlock"/>
-    /// (which extends <see cref="IMyPowerProducer"/>; , ) as
-    /// the ship's finite <em>and reversible</em> power supply. The battery
-    /// registers with the grid's <see cref="SimPowerBus"/> both as a
-    /// <em>supplier</em> (phase 4 draws its delivered output) and, in
-    /// <c>Recharge</c> / <c>Auto</c>, as a <em>charge sink</em> that
-    /// absorbs a peer producer's surplus. This reproduces the game's
-    /// charge model (<c>MyBatteryBlock</c>): <c>Recharge</c> disables
-    /// production and stores grid input; <c>Auto</c>
-    /// <c>TransferPower</c>s — stores the surplus
-    /// (<c>input − output &gt; 0</c>) or consumes the deficit
-    /// (<c>output − input &gt; 0</c>); <c>Discharge</c> only consumes its
-    /// own output and never charges. <see cref="CurrentInput"/> and
-    /// <see cref="IsCharging"/> are the real computed values:
-    /// <c>CurrentInput</c> is what the bus actually delivered to the
-    /// charge sink this tick, and <c>IsCharging</c> follows the game's
-    /// exact test <c>CurrentInput &gt; CurrentOutput &amp;&amp; CurrentInput
-    /// &gt; 0</c> (MyBatteryBlock.cs :235-245). Stored energy is changed
-    /// <em>only</em> by the per-tick net charge path (<c>StorePower</c> /
-    /// <c>ConsumePower</c>, :756-816) — the same <c>MW · h</c> conversion
-    /// (<c>ProductionToCapacityMultiplier = 3600</c>) the game uses — so
-    /// what the bus delivers and what the battery banks can never
-    /// diverge. An empty battery is not working (the game's
-    /// <c>CheckIsWorking</c> requires capacity) but can still absorb
-    /// charge, restoring working state as it fills.
-    /// </summary>
+    /// <summary>Battery block implementing <see cref="IMyBatteryBlock"/> (which extends <see cref="IMyPowerProducer"/>) as the ship's finite and reversible power supply: registers with the grid's <see cref="SimPowerBus"/> both as a supplier (phase 4 draws its delivered output) and, in <c>Recharge</c> / <c>Auto</c>, as a charge sink that absorbs a peer producer's surplus. Reproduces the game's charge model (<c>MyBatteryBlock</c>): <c>Recharge</c> disables production and stores grid input; <c>Auto</c> <c>TransferPower</c>s (store the surplus or consume the deficit); <c>Discharge</c> only consumes its own output. <see cref="CurrentInput"/> is what the bus delivered and <see cref="IsCharging"/> follows the game's exact test <c>CurrentInput &gt; CurrentOutput &amp;&amp; CurrentInput &gt; 0</c> (MyBatteryBlock.cs :235-245). Stored energy changes only via the per-tick net charge path (<c>StorePower</c> / <c>ConsumePower</c>, :756-816) with the same <c>MW · h</c> conversion (<c>ProductionToCapacityMultiplier = 3600</c>) the game uses. An empty battery is not working (the game's <c>CheckIsWorking</c> requires capacity) but can still absorb charge, restoring working state as it fills.</summary>
     public sealed class SimBatteryBlock : SimFunctionalBlock, IMyBatteryBlock, SimPowerSource
     {
         private const float SecondsPerHour = 3600f; // capacity conversion: MWh = MW · h (ProductionToCapacityMultiplier)
@@ -50,11 +24,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _currentStoredPower = ClampStored(template.MaxStoredPower * template.InitialStoredPower);
         }
 
-        /// <summary>
-        /// Battery charge efficiency multiplier (the game's
-        /// <c>BlockDefinition.RechargeMultiplier</c>, applied in
-        /// <c>StorePower</c>); default 1 (the game default). .7.
-        /// </summary>
+        /// <summary>Battery charge efficiency multiplier (the game's <c>BlockDefinition.RechargeMultiplier</c>, applied in <c>StorePower</c>); default 1 (the game default).</summary>
         public float RechargeMultiplier { get; set; } = 1f;
 
         // — IMyBatteryBlock —
@@ -62,11 +32,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public bool HasCapacityRemaining => CurrentStoredPower > 0f;
 
-        /// <summary>
-        /// Remaining stored energy in MWh. The setter clamps to
-        /// <c>[0, MaxStoredPower]</c>, matching the game's
-        /// <c>CurrentStoredPower</c> setter contract.
-        /// </summary>
+        /// <summary>Remaining stored energy in MWh. The setter clamps to [0, MaxStoredPower], matching the game's <c>CurrentStoredPower</c> setter contract.</summary>
         public float CurrentStoredPower
         {
             get { return _currentStoredPower; }
@@ -76,12 +42,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>Maximum stored energy in MWh (from the template).</summary>
         public float MaxStoredPower { get; }
 
-        /// <summary>
-        /// Current power input in MW: the power the grid actually
-        /// delivered to this battery's charge sink this tick (set by the
-        /// bus's charge path in phase 4). 0 when the battery is not
-        /// drawing charge (<c>Discharge</c>, full, or no surplus).
-        /// </summary>
+        /// <summary>Current power input in MW: the power the grid actually delivered to this battery's charge sink this tick (set by the bus's charge path in phase 4); 0 when the battery is not drawing charge (<c>Discharge</c>, full, or no surplus).</summary>
         public float CurrentInput => _currentInput;
 
         /// <summary>Maximum charging power input in MW (from the template).</summary>
@@ -134,12 +95,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
         // — supply behaviour (bus surface) —
 
-        /// <summary>
-        /// The maximum power this battery can serve on one fixed step:
-        /// its <see cref="MaxOutput"/> while enabled, functional, not in
-        /// Recharge, and holding capacity, and never more than its
-        /// remaining energy can supply over the step.
-        /// </summary>
+        /// <summary>The maximum power this battery can serve on one fixed step: its <see cref="MaxOutput"/> while enabled, functional, not in Recharge, and holding capacity, and never more than its remaining energy can supply over the step.</summary>
         public float AvailableOutput(float dtSeconds)
         {
             if (!Enabled || !IsFunctional)
@@ -160,17 +116,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return Math.Min(MaxOutput, byCapacity);
         }
 
-        /// <summary>
-        /// Supplies up to <paramref name="power"/> MW for this step:
-        /// records the actually delivered output and returns the power
-        /// actually supplied (bounded by <see cref="AvailableOutput"/>).
-        /// Output here is a <em>report</em>; the stored-power change it
-        /// represents is applied by the per-tick net charge path
-        /// (<see cref="ApplyCharge(float, float)"/>, the game's
-        /// <c>TransferPower</c>/<c>ConsumePower</c>), so the battery's
-        /// net energy always equals <c>input − output</c> — never a
-        /// double count.
-        /// </summary>
+        /// <summary>Supplies up to <paramref name="power"/> MW for this step: records the actually delivered output and returns the power actually supplied (bounded by <see cref="AvailableOutput"/>). Output here is a report; the stored-power change it represents is applied by the per-tick net charge path (<see cref="ApplyCharge(float, float)"/>, the game's <c>TransferPower</c>/<c>ConsumePower</c>), so the battery's net energy always equals <c>input − output</c> — never a double count.</summary>
         public float Draw(float power, float dtSeconds)
         {
             float cap = AvailableOutput(dtSeconds);
@@ -179,18 +125,9 @@ namespace FleetCommand.Test.SpaceEngineers
             return actual;
         }
 
-        // — charge behaviour (bus surface, .7) —
+        // — charge behaviour (bus surface) —
 
-        /// <summary>
-        /// The charge power this battery wants to draw this tick — the
-        /// game's <c>Sink_ComputeRequiredPower</c>
-        /// (MyBatteryBlock.cs :547-560): the smaller of
-        /// <c>(MaxStored − Current) · 0.6 · 3600 + CurrentOutput</c>
-        /// (an aggressive taper that approaches the battery's incoming
-        /// output as it fills) and <see cref="MaxInput"/>, active only
-        /// while enabled, functional, not full, and not in
-        /// <see cref="ChargeMode.Discharge"/>.
-        /// </summary>
+        /// <summary>The charge power this battery wants to draw this tick — the game's <c>Sink_ComputeRequiredPower</c> (MyBatteryBlock.cs :547-560): the smaller of <c>(MaxStored − Current) · 0.6 · 3600 + CurrentOutput</c> (an aggressive taper approaching the incoming output as it fills) and <see cref="MaxInput"/>, active only while enabled, functional, not full, and not in <see cref="ChargeMode.Discharge"/>.</summary>
         internal float ComputeChargeDemand()
         {
             if (!Enabled || !IsFunctional)
@@ -211,17 +148,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return result < 0f ? 0f : result;
         }
 
-        /// <summary>
-        /// Applies the delivered charge input for this tick and nets it
-        /// against the battery's output exactly as the game does
-        /// (<c>UpdateInternal</c> :613-626). Sets
-        /// <see cref="CurrentInput"/> to the delivered power, then:
-        /// <c>Recharge</c> → <c>StorePower(input)</c>; <c>Auto</c> →
-        /// <c>TransferPower(input, output)</c> (store input − output if
-        /// surplus, consume output − input if deficit); <c>Discharge</c> →
-        /// <c>ConsumePower(output)</c>. Stored energy is changed only
-        /// here, so bus delivery and stored power never diverge.
-        /// </summary>
+        /// <summary>Applies the delivered charge input for this tick and nets it against the battery's output exactly as the game does (<c>UpdateInternal</c> :613-626). Sets <see cref="CurrentInput"/> to the delivered power, then: <c>Recharge</c> → <c>StorePower(input)</c>; <c>Auto</c> → <c>TransferPower(input, output)</c> (store input − output if surplus, consume output − input if deficit); <c>Discharge</c> → <c>ConsumePower(output)</c>. Stored energy is changed only here, so bus delivery and stored power never diverge.</summary>
         internal void ApplyCharge(float input, float dtSeconds)
         {
             _currentInput = input;
@@ -247,12 +174,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Charges <c>input</c> MW into stored power this step, toward
-        /// <see cref="MaxStoredPower"/> (capped there), reproducing
-        /// <c>MyBatteryBlock.StorePower</c> :756-775 with the
-        /// <c>RechargeMultiplier</c> applied.
-        /// </summary>
+        /// <summary>Charges <c>input</c> MW into stored power this step, toward <see cref="MaxStoredPower"/> (capped there), reproducing <c>MyBatteryBlock.StorePower</c> :756-775 with the <c>RechargeMultiplier</c> applied.</summary>
         private void StorePower(float input, float dtSeconds)
         {
             if (input <= 0f)
@@ -274,10 +196,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Drains <c>output</c> MW from stored power this step, to zero,
-        /// reproducing <c>MyBatteryBlock.ConsumePower</c> :784-816.
-        /// </summary>
+        /// <summary>Drains <c>output</c> MW from stored power this step, to zero, reproducing <c>MyBatteryBlock.ConsumePower</c> :784-816.</summary>
         private void ConsumePower(float output, float dtSeconds)
         {
             if (output <= 0f)
@@ -299,11 +218,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// An empty battery is not working, matching the game's
-        /// <c>MyBatteryBlock.CheckIsWorking</c> (it requires
-        /// <c>HasCapacityRemaining</c>).
-        /// </summary>
+        /// <summary>An empty battery is not working, matching the game's <c>MyBatteryBlock.CheckIsWorking</c> (it requires <c>HasCapacityRemaining</c>).</summary>
         protected override bool WorkingRequirementSatisfied => HasCapacityRemaining;
 
         private float ClampStored(float value)

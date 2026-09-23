@@ -8,35 +8,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// A ship connector, implementing the real
-    /// <see cref="Sandbox.ModAPI.Ingame.IMyShipConnector"/> member by member
-    /// (ground truth: Decompiled/Sandbox.Common/Sandbox/ModAPI/Ingame/IMyShipConnector.cs —
-    /// <c>ThrowOut</c>, <c>CollectAll</c>, <c>PullStrength</c>, obsolete
-    /// <c>IsLocked</c>, <c>IsConnected</c>, <c>Status</c>, <c>OtherConnector</c>,
-    /// <c>IsParkingEnabled</c>, <c>Connect()</c>, <c>Disconnect()</c>,
-    /// <c>ToggleConnect()</c>). Inherits the working-state + power stack from
-    /// <see cref="SimFunctionalBlock"/>.
-    /// <para>
-    /// 's  boundary (design , ): the connector
-    /// exposes a body-fixed <b>connection frame</b> — world pose (position +
-    /// orientation) and point velocity derived from the owning rigid body —
-    /// and supports docking: two unconnected connectors become
-    /// <see cref="Status"/> <c>Connectable</c> when all configured capture
-    /// gates pass (evaluated deterministically each tick by
-    /// <see cref="SimWorld"/>; thresholds from
-    /// <see cref="SePhysicsProfile"/>, ). <see cref="Connect()"/>
-    /// succeeds only while connectable and creates a Havok fixed rigid
-    /// constraint at the two connection frames (the game's
-    /// <c>RecreateConstraintInternal</c>, MyShipConnector.cs:2030-2042); the
-    /// two grids then move as one. <see cref="Disconnect()"/> removes it and
-    /// returns both connectors to a clean state. <see cref="Status"/> follows
-    /// the game mapping (MyShipConnector.cs:599-611): Connected when
-    /// connected; else Connectable when working AND the capture gates pass
-    /// (the game's <c>IsWorking &amp;&amp; InConstraint</c>); else Unconnected.
-    /// No magnetic attraction / inventory / trading / conveyor modeling.
-    /// </para>
-    /// </summary>
+    /// <summary>A ship connector implementing <see cref="IMyShipConnector"/> member by member (ground truth: Decompiled/Sandbox.Common/Sandbox/ModAPI/Ingame/IMyShipConnector.cs — ThrowOut, CollectAll, PullStrength, obsolete IsLocked, IsConnected, Status, OtherConnector, IsParkingEnabled, Connect(), Disconnect(), ToggleConnect()); inherits the working-state + power stack from <see cref="SimFunctionalBlock"/>. Exposes a body-fixed connection frame (world pose and point velocity derived from the owning rigid body) and supports docking: two unconnected connectors become <see cref="Status"/> Connectable when all configured capture gates pass (evaluated deterministically each tick by <see cref="SimWorld"/>; thresholds from <see cref="SePhysicsProfile"/>). <see cref="Connect()"/> succeeds only while connectable and creates a Havok fixed rigid constraint at the two connection frames (the game's <c>RecreateConstraintInternal</c>, MyShipConnector.cs:2030-2042); <see cref="Disconnect()"/> removes it and returns both connectors to a clean state. <see cref="Status"/> follows the game mapping (MyShipConnector.cs:599-611): Connected when connected; else Connectable when working AND the capture gates pass (the game's <c>IsWorking &amp;&amp; InConstraint</c>); else Unconnected. No magnetic attraction / inventory / trading / conveyor modeling.</summary>
     public class SimShipConnector : SimFunctionalBlock, IMyShipConnector
     {
         /// <summary>Local forward axis of the connection frame (VRageMath: Forward = (0, 0, -1)).</summary>
@@ -60,14 +32,14 @@ namespace FleetCommand.Test.SpaceEngineers
         private SimShipConnector _partner;
         private HkConstraint _constraint;  // valid on the master while connected
 
-        // .5 approach state (the game's two-stage connect): between
-        // "connectable" (capture) and the final rigid lock, Connect() begins
-        // the approach — the two free grids are pulled together and their
-        // connect axes aligned (matching CreateConstraint's magnetic
-        // convergence), and only on meet is the final fixed constraint
-        // created (Connected). While approaching, Status stays Connectable
-        // (the game's InConstraint); the master (higher EntityId) is the
-        // approach driver (the game's GetMaster).
+        // Two-stage connect (approach then lock): between "connectable"
+        // (capture) and the final rigid lock, Connect() begins the approach —
+        // the two free grids are pulled together and their connect axes
+        // aligned (matching CreateConstraint's magnetic convergence), and only
+        // on meet is the final fixed constraint created (Connected). While
+        // approaching, Status stays Connectable (the game's InConstraint);
+        // the master (higher EntityId) is the approach driver (the game's
+        // GetMaster).
         private bool _approaching;
         private SimShipConnector _approachMaster;
         private SimShipConnector _approachPartner;
@@ -94,13 +66,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
         // — connection frame (derived from the owning rigid body) —
 
-        /// <summary>
-        /// World position of the connection point (the body-fixed
-        /// connection frame's origin): the block's world position plus an
-        /// offset along the connect axis to the connector's mating face,
-        /// derived from the owning grid's rigid body plus the block local
-        /// pose (the game's <c>ConstraintPositionWorld</c>, MyShipConnector.cs:1939).
-        /// </summary>
+        /// <summary>World position of the connection point (the body-fixed connection frame's origin): the block's world position plus an offset along the connect axis to the connector's mating face, derived from the owning grid's rigid body plus the block local pose (the game's <c>ConstraintPositionWorld</c>, MyShipConnector.cs:1939).</summary>
         public Vector3D WorldPosition
         {
             get
@@ -110,11 +76,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// World orientation of the connection frame: the grid body's
-        /// rotation applied to the block's layout rotation and the
-        /// connector's own <see cref="TemplateBlock.ConnectorOrientation"/>.
-        /// </summary>
+        /// <summary>World orientation of the connection frame: the grid body's rotation applied to the block's layout rotation and the connector's own <see cref="TemplateBlock.ConnectorOrientation"/>.</summary>
         public MatrixD WorldOrientation
         {
             get
@@ -124,12 +86,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// The connect axis in world space: the direction the connector
-        /// extends to meet a partner (the connection frame's local forward
-        /// — the body-fixed face). Two connectors are aligned for docking
-        /// when their connect axes are (nearly) opposing.
-        /// </summary>
+        /// <summary>The connect axis in world space: the direction the connector extends to meet a partner (the connection frame's local forward — the body-fixed face). Two connectors are aligned for docking when their connect axes are (nearly) opposing.</summary>
         public Vector3D ConnectAxisWorld
         {
             get
@@ -139,10 +96,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// The connect axis in grid-body coordinates (the block's local
-        /// forward transformed by the layout and connector rotations).
-        /// </summary>
+        /// <summary>The connect axis in grid-body coordinates (the block's local forward transformed by the layout and connector rotations).</summary>
         public Vector3 ConnectAxisGrid
         {
             get
@@ -151,13 +105,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// World linear velocity of the connection point: the body's linear
-        /// velocity plus the rotational contribution, <c>v + ω × r</c>,
-        /// where r is the connection point relative to the grid's center of
-        /// mass ( "connector-point velocities"). Derived from the
-        /// owning rigid body.
-        /// </summary>
+        /// <summary>World linear velocity of the connection point: the body's linear velocity plus the rotational contribution, v + ω × r, where r is the connection point relative to the grid's center of mass. Derived from the owning rigid body.</summary>
         public Vector3D PointVelocityWorld
         {
             get
@@ -171,11 +119,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// This connector's effective capture reach: its own
-        /// <see cref="TemplateBlock.ConnectorReach"/> when set, else the
-        /// physics profile's <c>ConnectorReach</c> ().
-        /// </summary>
+        /// <summary>This connector's effective capture reach: its own <see cref="TemplateBlock.ConnectorReach"/> when set, else the physics profile's <c>ConnectorReach</c>.</summary>
         public float EffectiveReach => _blockReach > 0f ? _blockReach : Grid.World.Profile.ConnectorReach;
 
         // — connection state (sim surface for tests and the world capture) —
@@ -282,9 +226,7 @@ namespace FleetCommand.Test.SpaceEngineers
         public IMyShipConnector OtherConnector => _partner;
 
         /// <inheritdoc />
-        /// <summary>A plain stored value (default true), parity with the
-        /// game which merely stores it and never uses it in connect logic
-        /// (MyShipConnector.cs:436-446; representation-only).</summary>
+        /// <summary>A plain stored value (default true), parity with the game which merely stores it and never uses it in connect logic (MyShipConnector.cs:436-446; representation-only).</summary>
         public bool IsParkingEnabled
         {
             get { return _parkingEnabled; }
@@ -307,10 +249,10 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return;
             }
-            // Two-stage connect (.5): a connectable-but-not-yet-
-            // converged pair begins the approach (the game's CreateConstraint
-            // magnetic convergence); the pair only becomes Connected once
-            // the connectors physically meet and the axes are aligned.
+            // Two-stage connect: a connectable-but-not-yet-converged pair
+            // begins the approach (the game's CreateConstraint magnetic
+            // convergence); the pair only becomes Connected once the
+            // connectors physically meet and the axes are aligned.
             ConnectorSystem.BeginApproach(this, other);
         }
 
@@ -360,12 +302,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
         // — Havok constraint —
 
-        /// <summary>
-        /// Creates a Havok fixed rigid constraint tying this body to
-        /// <paramref name="slave"/>'s body at the two connection frames
-        /// (mirroring the game's <c>RecreateConstraintInternal</c>,
-        /// MyShipConnector.cs:2030-2042) and adds it to the world.
-        /// </summary>
+        /// <summary>Creates a Havok fixed rigid constraint tying this body to <paramref name="slave"/>'s body at the two connection frames (mirroring the game's <c>RecreateConstraintInternal</c>, MyShipConnector.cs:2030-2042) and adds it to the world.</summary>
         private void CreateConstraint(SimShipConnector slave)
         {
             MatrixD frame = ConnectionFrameWorld;
@@ -391,10 +328,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Clears this connector's connection state (idempotent). Also
-        /// clears any approach role.
-        /// </summary>
+        /// <summary>Clears this connector's connection state (idempotent), including any approach role.</summary>
         private void ClearConnection()
         {
             _constraint = null;
@@ -406,14 +340,7 @@ namespace FleetCommand.Test.SpaceEngineers
             ClearApproach();
         }
 
-        /// <summary>
-        /// The final lock of an approach pair: this connector is the master
-        /// (higher EntityId, per <c>MyShipConnector.GetMaster</c>), creates
-        /// the Havok fixed rigid constraint (the game's
-        /// <c>RecreateConstraintInternal</c>, :2030-2042), and marks both
-        /// connectors Connected. Called by <see cref="ConnectorSystem"/>
-        /// once the approach has converged.
-        /// </summary>
+        /// <summary>The final lock of an approach pair: this connector is the master (higher EntityId, per <c>MyShipConnector.GetMaster</c>), creates the Havok fixed rigid constraint (the game's <c>RecreateConstraintInternal</c>, :2030-2042), and marks both connectors Connected. Called by <see cref="ConnectorSystem"/> once the approach has converged.</summary>
         internal void LockTo(SimShipConnector slave)
         {
             _isMaster = true;
@@ -443,7 +370,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private static NotSupportedException ThrowSet(string member)
         {
             return new NotSupportedException(
-                "SimShipConnector does not implement '" + member + "' (stored scenario state only — no magnetic/inventory model, ).");
+                "SimShipConnector does not implement '" + member + "' (stored scenario state only — no magnetic/inventory model).");
         }
     }
 }

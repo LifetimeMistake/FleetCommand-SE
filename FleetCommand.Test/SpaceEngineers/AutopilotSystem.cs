@@ -6,28 +6,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// The grid's remote-control autopilot flight (.6 Part 2): when
-    /// the grid's designated remote (<see cref="SimRemoteControl.IsAutoPilotEnabled"/>)
-    /// has a target waypoint, it turns the grid toward the target
-    /// (<c>UpdateGyro</c> → <c>gyroSystem.ControlTorque</c>,
-    /// MyAutopilotComponent.cs:2472-2497) and translates toward it through
-    /// the AI thrust command path (<c>UpdateThrust</c> →
-    /// <c>AutoPilotControlThrust</c> → <c>MyEntityThrustComponent.ComputeAiThrust</c>,
-    /// :2878 / MyEntityThrustComponent.cs:1657), with <see cref="SimRemoteControl.SpeedLimit"/>
-    /// capping the forward throttle (<c>|v|² &lt; maxSpeed²</c>, :2805). Waypoints
-    /// live on the remote; the system advances to the next once the current
-    /// one is within the profile's arrival distance.
-    /// <para>
-    /// The flight is the source's no-collision-avoidance, single-fuel-group
-    /// core: no evasion, no docking, no path-centering — those are absent
-    /// here exactly as they are in the game's default straight-line no-CA
-    /// path (the framework has no collision model for the autopilot to
-    /// avoid). <see cref="ControlTorque"/> flows through the SAME gyro
-    /// channel as the controller's rotation control (Part 1), so the two
-    /// are mutually exclusive on the grid the way the game's last-writer-
-    /// wins per-frame write is.
-    /// </summary>
+    /// <summary>The grid's remote-control autopilot flight: when the grid's designated remote (<see cref="SimRemoteControl.IsAutoPilotEnabled"/>) has a target waypoint, it turns the grid toward the target (<c>UpdateGyro</c> → <c>gyroSystem.ControlTorque</c>, MyAutopilotComponent.cs:2472-2497) and translates toward it through the AI thrust command path (<c>UpdateThrust</c> → <c>AutoPilotControlThrust</c> → <c>MyEntityThrustComponent.ComputeAiThrust</c>, :2878 / MyEntityThrustComponent.cs:1657), with <see cref="SimRemoteControl.SpeedLimit"/> capping the forward throttle (<c>|v|² &lt; maxSpeed²</c>, :2805). <see cref="ControlTorque"/> flows through the SAME gyro channel as the controller's rotation control, so the two are mutually exclusive on the grid the way the game's last-writer-wins per-frame write is.</summary>
     public sealed class AutopilotSystem
     {
         /// <summary>Proportional rotation gain (per-second), remapped through the gyro torque channel.</summary>
@@ -36,13 +15,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>Maximum commanded rotation (rad/s), clamped into the gyro's unit control sphere.</summary>
         private const double MaxRotationSpeed = 4.0;
 
-        /// <summary>
-        /// Velocity damping on the turn: the command is reduced by this
-        /// factor times the current grid-frame rotation about the error
-        /// axis, so the turn decelerates as it approaches the target —
-        /// the rotational analog of the game's
-        /// <c>GetAngleVelocity</c> smooth-rotation deceleration.
-        /// </summary>
+        /// <summary>Velocity damping on the turn: the command is reduced by this factor times the current grid-frame rotation about the error axis, so the turn decelerates as it approaches the target — the rotational analog of the game's <c>GetAngleVelocity</c> smooth-rotation deceleration.</summary>
         private const double RotationDamping = 0.5;
 
         /// <summary>Rotation deadzone (rad): below this the turn is considered aligned and stops.</summary>
@@ -71,18 +44,10 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The turn command written to <see cref="GyroRateSystem.ControlTorque"/> (grid frame).</summary>
         public Vector3 LastControlTorque => _lastControlTorque;
 
-        /// <summary>
-        /// The grid-frame AI thrust force (N) fed to the aggregator on the
-        /// last <see cref="ComputeAutopilot"/> (the game's <c>FuelTypeData.CurrentThrust</c>
-        /// from <c>ComputeAiThrust</c>), before normalization to group demand.
-        /// </summary>
+        /// <summary>The grid-frame AI thrust force (N) fed to the aggregator on the last <see cref="ComputeAutopilot"/> (the game's <c>FuelTypeData.CurrentThrust</c> from <c>ComputeAiThrust</c>), before normalization to group demand.</summary>
         public Vector3 LastAutoPilotThrust => _lastAutoPilotThrust;
 
-        /// <summary>
-        /// The published <c>MovementBlockMaxSpeed</c> (the remote's
-        /// <see cref="SimRemoteControl.SpeedLimit"/>) while the autopilot
-        /// flies, else 0 (MyAutopilotComponent.cs:1322/1333).
-        /// </summary>
+        /// <summary>The published <c>MovementBlockMaxSpeed</c> (the remote's <see cref="SimRemoteControl.SpeedLimit"/>) while the autopilot flies, else 0 (MyAutopilotComponent.cs:1322/1333).</summary>
         public float MovementBlockMaxSpeed => _movementBlockMaxSpeed;
 
         internal AutopilotSystem(SimCubeGrid grid)
@@ -113,16 +78,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Tick phase 5 (after <see cref="BaseControlSystem"/>, before
-        /// <see cref="ForceAggregator.Aggregate"/> and
-        /// <see cref="GyroRateSystem.Aggregate"/>): fly the enabled
-        /// remote's autopilot — write the turn into
-        /// <see cref="GyroRateSystem.ControlTorque"/> and the AI thrust
-        /// force into the <see cref="ForceAggregator"/> group demand. With
-        /// no enabled remote (or no target) it contributes nothing (the
-        /// ship coasts and the controller's rotation stands).
-        /// </summary>
+        /// <summary>Tick phase 5 (after <see cref="BaseControlSystem"/>, before <see cref="ForceAggregator.Aggregate"/> and <see cref="GyroRateSystem.Aggregate"/>): fly the enabled remote's autopilot — write the turn into <see cref="GyroRateSystem.ControlTorque"/> and the AI thrust force into the <see cref="ForceAggregator"/> group demand. With no enabled remote (or no target) it contributes nothing (the ship coasts and the controller's rotation stands).</summary>
         public void ComputeAutopilot()
         {
             _flightActive = false;
@@ -180,19 +136,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _grid.ForceAggregator.SetGroupDemand(MathHelpers.Normalize(aiForce, maxPos, maxNeg));
         }
 
-        /// <summary>
-        /// Tick phase 8 (after the physics interval): clamp the grid's
-        /// velocity to the enabled remote's <see cref="SimRemoteControl.SpeedLimit"/>
-        /// — the game's <c>MovementBlockMaxSpeed = SpeedLimit</c>
-        /// (MyAutopilotComponent.cs:1322) plus the per-frame grid
-        /// velocity clamp (enforced by Havok via
-        /// <c>RigidBody.MaxLinearVelocity</c>,
-        /// MyGridPhysics.SetDefaultRigidBodyMaxVelocities :538-555).
-        /// Applied after physics so
-        /// the cap is tight on the observed post-step velocity (the
-        /// per-tick thrust alone can overshoot by one frame's impulse).
-        /// With no enabled remote (autopilot off) it is a no-op.
-        /// </summary>
+        /// <summary>Tick phase 8 (after the physics interval): clamp the grid's velocity to the enabled remote's <see cref="SimRemoteControl.SpeedLimit"/> — the game's <c>MovementBlockMaxSpeed = SpeedLimit</c> (MyAutopilotComponent.cs:1322) plus the per-frame grid velocity clamp (enforced by Havok via <c>RigidBody.MaxLinearVelocity</c>, MyGridPhysics.SetDefaultRigidBodyMaxVelocities :538-555). Applied after physics so the cap is tight on the observed post-step velocity (the per-tick thrust alone can overshoot by one frame's impulse). With no enabled remote (autopilot off) it is a no-op.</summary>
         public void ApplySpeedLimitAfterPhysics()
         {
             SimRemoteControl remote = EnabledRemote();
@@ -213,14 +157,7 @@ namespace FleetCommand.Test.SpaceEngineers
             body.ClampLinearSpeed(limit);
         }
 
-        /// <summary>
-        /// The turn: an angular command about the rotation-from-current-
-        /// forward-to-target axis, magnitude proportional to the remaining
-        /// angle (capped, with a deadzone), written into the gyro's
-        /// ControlTorque channel. This is the game's end state — "drive
-        /// ControlTorque to turn toward the target" (:2472-2497) — using a
-        /// proportional-rate law for the required rotation.
-        /// </summary>
+        /// <summary>The turn: an angular command about the rotation-from-current-forward-to-target axis, magnitude proportional to the remaining angle (capped, with a deadzone), written into the gyro's ControlTorque channel. This is the game's end state — "drive ControlTorque to turn toward the target" (:2472-2497) — using a proportional-rate law for the required rotation.</summary>
         private Vector3 ComputeTurnTorque(SimRigidBody body, Vector3D delta)
         {
             Vector3D fwd = (Vector3D)_grid.WorldMatrix.Forward;
@@ -252,13 +189,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return cmd;
         }
 
-        /// <summary>
-        /// The forward thrust command — the game's <c>UpdateThrust</c>
-        /// (:2732-2885) no-CA core, in the grid frame: a unit direction
-        /// toward the target minus the cross-track velocity, gated by the
-        /// stopping-time vs time-to-target braking rule and the
-        /// <c>|v|² &lt; maxSpeed²</c> speed cap (:2805).
-        /// </summary>
+        /// <summary>The forward thrust command — the game's <c>UpdateThrust</c> (:2732-2885) no-CA core, in the grid frame: a unit direction toward the target minus the cross-track velocity, gated by the stopping-time vs time-to-target braking rule and the <c>|v|² &lt; maxSpeed²</c> speed cap (:2805).</summary>
         private Vector3 ComputeAutoPilotControlThrust(SimRigidBody body, Vector3D delta, float maxSpeed)
         {
             if (maxSpeed <= 0f)
@@ -313,15 +244,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return Vector3.Zero;
         }
 
-        /// <summary>
-        /// The AI thrust force (grid frame, N) — the game's
-        /// <c>ComputeAiThrust</c> (MyEntityThrustComponent.cs:1657) for the
-        /// framework's single-fuel-group case: the direction's thrust plus
-        /// gravity compensation, with the cross-track velocity-dampening
-        /// term (<c>applyDampeners</c> always true for autopilot control —
-        /// AutoPilotControlThrustDampenersEnabled, :329-363), all clamped to
-        /// ±Max·SlowdownFactor.
-        /// </summary>
+        /// <summary>The AI thrust force (grid frame, N) — the game's <c>ComputeAiThrust</c> (MyEntityThrustComponent.cs:1657) for the framework's single-fuel-group case: the direction's thrust plus gravity compensation, with the cross-track velocity-dampening term (applyDampeners always true for autopilot control — AutoPilotControlThrustDampenersEnabled, :329-363), all clamped to ±Max·SlowdownFactor.</summary>
         private Vector3 ComputeAiThrust(Vector3 direction, SimRigidBody body, SimRemoteControl remote)
         {
             Matrix worldToGrid = _grid.WorldToLocal;

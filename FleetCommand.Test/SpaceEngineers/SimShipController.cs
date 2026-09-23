@@ -7,33 +7,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// The ship control seat, implementing the real
-    /// <see cref="IMyShipController"/> (from Sandbox.ModAPI.Ingame; ,
-    /// ). This is the controller-facing surface the production
-    /// autopilot adapter reads, so the frame conventions are load-bearing
-    /// and match the game (source-verified: MyShipController.cs:3233-3238
-    /// returns linear AND angular velocity straight from the physics body
-    /// with NO body-frame transform; :3212 returns world-frame natural
-    /// gravity):
-    /// <list type="bullet">
-    /// <item><see cref="GetShipVelocities"/> returns world-frame linear and
-    /// angular velocity — an adapter that needs body-frame converts
-    /// ω_B = Rᵀ·ω_W itself.</item>
-    /// <item><see cref="GetNaturalGravity"/> returns the world-frame
-    /// gravity vector — the same vector the tick's phase 6 applied to the
-    /// body (), so sign conventions (F* = m(a_cmd − g)) hold.</item>
-    /// <item><see cref="CenterOfMass"/> is in world coordinates.</item>
-    /// </list>
-    /// The implemented contract is the control flags
-    /// (<see cref="DampenersOverride"/>, <see cref="ControlThrusters"/>),
-    /// the scenario control inputs (<see cref="MoveIndicator"/>,
-    /// <see cref="RotationIndicator"/>, <see cref="RollIndicator"/>),
-    /// <see cref="CanControlShip"/>, <see cref="IsUnderControl"/> and
-    /// <see cref="IsMainCockpit"/>, plus the block's inherited world pose.
-    /// Every other member throws a naming
-    /// <see cref="NotSupportedException"/> (no silent defaults).
-    /// </summary>
+    /// <summary>The ship control seat, implementing <see cref="IMyShipController"/> — the controller-facing surface the production autopilot adapter reads, so the frame conventions are load-bearing and match the game (source-verified: MyShipController.cs:3233-3238 returns linear AND angular velocity straight from the physics body with NO body-frame transform; :3212 returns world-frame natural gravity). <see cref="GetShipVelocities"/> is world-frame (adapters needing body-frame convert ω_B = Rᵀ·ω_W themselves); <see cref="GetNaturalGravity"/> returns the same world-frame vector the tick's phase 6 applied to the body, so sign conventions (F* = m(a_cmd − g)) hold; <see cref="CenterOfMass"/> is in world coordinates. Implements the control flags (<see cref="DampenersOverride"/>, <see cref="ControlThrusters"/>), the scenario control inputs (<see cref="MoveIndicator"/>, <see cref="RotationIndicator"/>, <see cref="RollIndicator"/>), <see cref="CanControlShip"/>, <see cref="IsUnderControl"/>, <see cref="IsMainCockpit"/>, plus the block's inherited world pose; every other member throws a naming <see cref="NotSupportedException"/> (no silent defaults).</summary>
     public class SimShipController : SimFunctionalBlock, IMyShipController
     {
         private bool _isUnderControl;
@@ -53,11 +27,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public bool CanControlShip => IsWorking;
 
-        /// <summary>
-        /// Whether the ship is locally or remotely controlled. No player model
-        /// exists in the simulator, so this is a scenario flag (default
-        /// false).
-        /// </summary>
+        /// <summary>Whether the ship is locally or remotely controlled. No player model exists in the simulator, so this is a scenario flag (default false).</summary>
         public bool IsUnderControl
         {
             get { return _isUnderControl; }
@@ -78,23 +48,14 @@ namespace FleetCommand.Test.SpaceEngineers
             set { _dampenersOverride = value; }
         }
 
-        /// <summary>
-        /// Whether this controller drives the grid gyros (the game's
-        /// <c>m_controlGyros</c>, which gates the whole rotation-control
-        /// block in <c>MyShipController.MoveAndRotate</c> :1816-1824.
-        /// Defaults on, matching the game's controller default.
-        /// </summary>
+        /// <summary>Whether this controller drives the grid gyros (the game's <c>m_controlGyros</c>, which gates the whole rotation-control block in <c>MyShipController.MoveAndRotate</c> :1816-1824). Defaults on, matching the game's controller default.</summary>
         public bool ControlGyros
         {
             get { return _controlGyros; }
             set { _controlGyros = value; }
         }
 
-        /// <summary>
-        /// Directional control input (scenario-set; a plain stored value the
-        /// autopilot may write or a test may observe). Raw — no frame
-        /// convention is attached to it.
-        /// </summary>
+        /// <summary>Directional control input (scenario-set; a plain stored value the autopilot may write or a test may observe). Raw — no frame convention is attached to it.</summary>
         public Vector3 MoveIndicator
         {
             get { return _moveIndicator; }
@@ -115,11 +76,7 @@ namespace FleetCommand.Test.SpaceEngineers
             set { _rollIndicator = value; }
         }
 
-        /// <summary>
-        /// Center of mass in world coordinates, from the grid body's local
-        /// COM (game: IMyShipController.CenterOfMass →
-        /// CubeGrid.Physics.CenterOfMassWorld).
-        /// </summary>
+        /// <summary>Center of mass in world coordinates, from the grid body's local COM (game: IMyShipController.CenterOfMass → CubeGrid.Physics.CenterOfMassWorld).</summary>
         public Vector3D CenterOfMass
         {
             get
@@ -129,12 +86,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// True while this controller is the ship's main one. Setting it
-        /// true demotes any other controller on the same grid, matching the
-        /// property's contract ("setter checks if there is any other main
-        /// cockpit on the ship before proceeding").
-        /// </summary>
+        /// <summary>True while this controller is the ship's main one. Setting it true demotes any other controller on the same grid, matching the property's contract ("setter checks if there is any other main cockpit on the ship before proceeding").</summary>
         public bool IsMainCockpit
         {
             get { return _isMainCockpit; }
@@ -160,32 +112,20 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// World-frame natural gravity at the ship's position — the same
-        /// vector the tick's phase 6 applied to the body (), so an
-        /// adapter's sign convention (F* = m(a_cmd − g)) matches the game.
-        /// Sampled at the body's world position, the same point phase 6
-        /// samples, at the current world gravity field.
-        /// </summary>
+        /// <summary>World-frame natural gravity at the ship's position — the same vector the tick's phase 6 applied to the body, so an adapter's sign convention (F* = m(a_cmd − g)) matches the game. Sampled at the body's world position at the current world gravity field.</summary>
         public Vector3D GetNaturalGravity()
         {
             Vector3 gravity = Grid.World.Gravity.GetNaturalGravity(Grid.Body.PositionWorld);
             return new Vector3D(gravity);
         }
 
-        /// <summary>
-        /// Artificial gravity at the current location. The simulator has no
-        /// artificial-gravity generators, so this is genuinely zero.
-        /// </summary>
+        /// <summary>Artificial gravity at the current location. The simulator has no artificial-gravity generators, so this is genuinely zero.</summary>
         public Vector3D GetArtificialGravity()
         {
             return Vector3D.Zero;
         }
 
-        /// <summary>
-        /// Total gravity (natural + artificial). With no artificial
-        /// gravity generators this equals <see cref="GetNaturalGravity"/>.
-        /// </summary>
+        /// <summary>Total gravity (natural + artificial). With no artificial gravity generators this equals <see cref="GetNaturalGravity"/>.</summary>
         public Vector3D GetTotalGravity()
         {
             return GetNaturalGravity();
@@ -197,23 +137,14 @@ namespace FleetCommand.Test.SpaceEngineers
             return Grid.Body.LinearVelocity.Length();
         }
 
-        /// <summary>
-        /// The ship's linear and angular velocity, both in the WORLD frame
-        /// — returned straight from the body with no body-frame transform
-        /// (source: MyShipController.cs:3233-3238). Consumers needing
-        /// body-frame convert ω_B = Rᵀ·ω_W.
-        /// </summary>
+        /// <summary>The ship's linear and angular velocity, both in the WORLD frame — returned straight from the body with no body-frame transform (source: MyShipController.cs:3233-3238). Consumers needing body-frame convert ω_B = Rᵀ·ω_W.</summary>
         public MyShipVelocities GetShipVelocities()
         {
             SimRigidBodyState state = Grid.Body.GetState();
             return new MyShipVelocities(state.LinearVelocity, new Vector3D(state.AngularVelocity));
         }
 
-        /// <summary>
-        /// Ship mass from the body: total mass is the physics mass;
-        /// base mass is the total minus inventory. There is no inventory
-        /// multiplier in the simulator, so physical mass equals total mass.
-        /// </summary>
+        /// <summary>Ship mass from the body: total mass is the physics mass; base mass is the total minus inventory. There is no inventory multiplier in the simulator, so physical mass equals total mass.</summary>
         public MyShipMass CalculateShipMass()
         {
             float totalMass = Grid.Body.Mass;
@@ -234,7 +165,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return sum;
         }
 
-        // — IMyShipController members outside the  contract —
+        // — IMyShipController members outside the implemented contract —
 
         /// <inheritdoc />
         public bool HasWheels => ThrowNotSupported<bool>("IMyShipController.HasWheels");

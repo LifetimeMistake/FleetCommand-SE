@@ -4,19 +4,7 @@ using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// Programmable block, implementing the real <see cref="IMyProgrammableBlock"/>
-    /// (from Sandbox.ModAPI.Ingame; , ). It provides the
-    /// identity a Program-composition root needs (all the
-    /// <see cref="SimFunctionalBlock"/> identity) plus the explicit
-    /// execution hooks the design's  asks for: tests attach the
-    /// program's entry to <see cref="RunHandler"/> and invoke
-    /// <see cref="TryRun"/> directly instead of a live game loop, and use
-    /// <see cref="Storage"/> as the storage-facing context passed to the
-    /// root. <see cref="Runtime"/> exposes the program's
-    /// <see cref="SimRuntimeInfo"/>. No modeled text surface (0), and
-    /// terminals helper methods are the terminal surface itself.
-    /// </summary>
+    /// <summary>A programmable block implementing <see cref="IMyProgrammableBlock"/>: provides the identity a Program-composition root needs plus explicit execution hooks (<see cref="RunHandler"/> via <see cref="TryRun"/>) and <see cref="Storage"/> as the storage-facing context; no modeled text surface.</summary>
     public sealed class SimProgrammableBlock : SimFunctionalBlock, IMyProgrammableBlock
     {
         private bool _isRunning;
@@ -27,15 +15,10 @@ namespace FleetCommand.Test.SpaceEngineers
             Runtime = new SimRuntimeInfo(grid.World);
         }
 
-        /// <summary>The program's runtime information ().</summary>
+        /// <summary>The program's runtime information.</summary>
         public SimRuntimeInfo Runtime { get; }
 
-        /// <summary>
-        /// The program's storage string ('s "storage" service;
-        /// the game's MyGridProgram exposes <c>string Storage</c>). Not an
-        /// IMyProgrammableBlock member — provided as the storage-facing
-        /// context for the composition root.
-        /// </summary>
+        /// <summary>The program's storage string (MyGridProgram exposes <c>string Storage</c>), provided as the storage-facing context for the composition root.</summary>
         public string Storage { get; set; } = string.Empty;
 
         /// <summary>The default terminal run argument.</summary>
@@ -44,25 +27,10 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>True while the program is executing (between TryRun enter and leave).</summary>
         public bool IsRunning => _isRunning;
 
-        /// <summary>
-        /// The explicit execution hook (): the program's
-        /// composition-root entry, invoked synchronously by
-        /// <see cref="TryRun"/>.
-        /// </summary>
+        /// <summary>The explicit execution hook: the program's composition-root entry, invoked synchronously by <see cref="TryRun"/>.</summary>
         public Action<string> RunHandler { get; set; }
 
-        /// <summary>
-        /// Runs the program synchronously with <paramref name="argument"/>
-        /// (the explicit-execution model,  — no live game loop). When
-        /// the explicit argument is null or empty the default terminal run
-        /// argument (<see cref="TerminalRunArgument"/>) is forwarded
-        /// instead, matching the game's Run-with-default front ends
-        /// (<c>MyProgrammableBlock.cs:552-555</c>, <c>OnRunDefaultApplied</c>).
-        /// An already-running programmable block cannot be run again,
-        /// matching the interface contract. Records the run on
-        /// <see cref="Runtime"/> so <see cref="SimRuntimeInfo.TimeSinceLastRun"/>
-        /// reflects the elapsed interval from the fixed clock.
-        /// </summary>
+        /// <summary>Runs the program synchronously with <paramref name="argument"/> (no live game loop); forwards <see cref="TerminalRunArgument"/> when the argument is null/empty (the game's <c>OnRunDefaultApplied</c>, MyProgrammableBlock.cs:552-555) and refuses to re-run while already running. Records the run on <see cref="Runtime"/>.</summary>
         public bool TryRun(string argument)
         {
             if (_isRunning)
@@ -87,12 +55,12 @@ namespace FleetCommand.Test.SpaceEngineers
             return true;
         }
 
-        // — IMyTextSurfaceProvider (no modeled screen this stage) —
+        // — IMyTextSurfaceProvider (no modeled screen) —
 
         /// <inheritdoc />
         public bool UseGenericLcd => false;
 
-        /// <summary>No modeled text surface on a programmable block this stage.</summary>
+        /// <summary>No modeled text surface on a programmable block.</summary>
         public int SurfaceCount => 0;
 
         /// <inheritdoc />

@@ -3,16 +3,7 @@ using System.Collections.Generic;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// A finite power source the bus can draw from: a battery or a
-    /// reactor. <see cref="AvailableOutput"/> is the maximum MW the
-    /// source can serve this step; <see cref="Draw"/> records the
-    /// actually delivered output (returns it, so the bus can track how
-    /// much delivered power remains). Batteries are reversible — their
-    /// stored change is applied by the net charge path, not by
-    /// <see cref="Draw"/>, so what the bus delivers and what the battery
-    /// banks never diverge.
-    /// </summary>
+    /// <summary>A finite power source the bus can draw from: a battery or a reactor. <see cref="AvailableOutput"/> is the maximum MW the source can serve this step; <see cref="Draw"/> records the actually delivered output (returns it, so the bus can track how much delivered power remains). Batteries are reversible — their stored change is applied by the net charge path, not by <see cref="Draw"/>, so what the bus delivers and what the battery banks never diverge.</summary>
     internal interface SimPowerSource
     {
         /// <summary>Max power this source can serve on one fixed step (MW).</summary>
@@ -23,46 +14,8 @@ namespace FleetCommand.Test.SpaceEngineers
         float Draw(float power, float dtSeconds);
     }
 
-    /// <summary>
-    /// The deterministic per-ship power model (, 
-    /// <c>SimShip.Power</c> and ). Functional blocks register a power
-    /// demand and a priority with their grid's bus; in tick phase 4 the
-    /// bus computes the delivered ratio for every registered consumer and
-    /// draws the delivered energy from the finite supply (batteries and
-    /// reactors). Each functional block's <c>IsPowered</c> derives from
-    /// its delivered ratio, so <c>IsWorking</c> (recomputed in the same
-    /// phase) follows before actuation — phases 5–8 read the state this
-    /// phase produced.
-    /// </summary>
-    /// <remarks>
-    /// Allocation semantics (): the available supply is the sum of
-    /// the grid's producer outputs, or effectively unlimited when the
-    /// template provides no producer (the "ideal source"). Consumers are
-    /// processed from the highest priority tier to the lowest; every block
-    /// in a tier receives the same delivered ratio
-    /// <c>min(1, available / tierDemand)</c>, so blocks of equal
-    /// priority share a shortfall fairly and deterministically. The
-    /// constant per-tier ratio, the fixed 1/60 s step, and the absence
-    /// of wall-clock reads and noise make the bus exact and repeatable.
-    /// The delivered ratio is the single source of truth that 
-    /// (thrust) and  (gyro) will read to scale output and that
-    /// updates <c>IsWorking</c> — no divergence between what phase 4
-    /// computes and what actuation consumes.
-    ///
-    /// .7 charging: after the real consumers (grid loads) are
-    /// served, the bus routes the remaining (surplus) supply to
-    /// <strong>charging batteries</strong> in registration order, each up
-    /// to its charge demand (<see cref="SimBatteryBlock.ComputeChargeDemand"/>
-    /// — the game's <c>Sink_ComputeRequiredPower</c>). The charge power
-    /// actually delivered becomes the battery's real
-    /// <see cref="SimBatteryBlock.CurrentInput"/> and is netted against
-    /// its output (<see cref="SimBatteryBlock.ApplyCharge(float, float)"/>,
-    /// the game's <c>TransferPower</c> / <c>StorePower</c> /
-    /// <c>ConsumePower</c>), so a battery in <c>Auto</c> charges from
-    /// surplus after grid demand and discharges into a deficit, exactly
-    /// as the source specifies. Charge is strictly lower priority than
-    /// grid loads: batteries sink the surplus, they never starve a load.
-    /// </remarks>
+    /// <summary>The deterministic per-ship power model. Functional blocks register a power demand and a priority with their grid's bus; in tick phase 4 the bus computes the delivered ratio for every registered consumer and draws the delivered energy from the finite supply (batteries and reactors). Each functional block's <c>IsPowered</c> derives from its delivered ratio, so <c>IsWorking</c> (recomputed in the same phase) follows before actuation — phases 5-8 read the state this phase produced.</summary>
+    /// <remarks>Allocation semantics: the available supply is the sum of the grid's producer outputs, or effectively unlimited when the template provides no producer (the "ideal source"). Consumers are processed from the highest priority tier to the lowest; every block in a tier receives the same delivered ratio <c>min(1, available / tierDemand)</c>, so blocks of equal priority share a shortfall fairly and deterministically. The constant per-tier ratio, the fixed 1/60 s step, and the absence of wall-clock reads and noise make the bus exact and repeatable — no divergence between what phase 4 computes and what actuation consumes. Charging: after the real consumers (grid loads) are served, the bus routes the remaining (surplus) supply to charging batteries in registration order, each up to its charge demand (<see cref="SimBatteryBlock.ComputeChargeDemand"/> — the game's <c>Sink_ComputeRequiredPower</c>). The charge power actually delivered becomes the battery's real <see cref="SimBatteryBlock.CurrentInput"/> and is netted against its output (<see cref="SimBatteryBlock.ApplyCharge(float, float)"/>, the game's <c>TransferPower</c> / <c>StorePower</c> / <c>ConsumePower</c>), so a battery in <c>Auto</c> charges from surplus after grid demand and discharges into a deficit. Charge is strictly lower priority than grid loads: batteries sink the surplus, they never starve a load.</remarks>
     public sealed class SimPowerBus
     {
         private readonly SimCubeGrid _grid;
@@ -74,28 +27,13 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid grid (ship) this bus serves.</summary>
         public SimCubeGrid Grid => _grid;
 
-        /// <summary>
-        /// True when the template provided finite production (a battery
-        /// and/or reactor); false when the ship has the ideal
-        /// (unlimited) source.
-        /// </summary>
+        /// <summary>True when the template provided finite production (a battery and/or reactor); false when the ship has the ideal (unlimited) source.</summary>
         public bool IsBatterySupply => _sources.Count > 0;
 
-        /// <summary>
-        /// The supply available for the most recent <see cref="Recompute"/>:
-        /// the summed producer output (finite) or
-        /// <see cref="float.PositiveInfinity"/> for the ideal source.
-        /// </summary>
+        /// <summary>The supply available for the most recent <see cref="Recompute"/>: the summed producer output (finite) or <see cref="float.PositiveInfinity"/> for the ideal source.</summary>
         public float TotalSupply { get; private set; }
 
-        /// <summary>
-        /// Scenario-side electrical availability in [0, 1] (
-        /// "change available electrical ratio"): a multiplier applied to
-        /// the grid's finite supply each phase 4 (a degraded bus, e.g. a
-        /// shared shortfall). No effect on the ideal source (infinite).
-        /// Default 1. A ratio change reproduces the  delivered
-        /// ratio law <c>min(1, available / tierDemand)</c>.
-        /// </summary>
+        /// <summary>Scenario-side electrical availability in [0, 1]: a multiplier applied to the grid's finite supply each phase 4 (a degraded bus, e.g. a shared shortfall); no effect on the ideal source (infinite). Default 1.</summary>
         public float AvailableRatio { get; set; } = 1f;
 
         internal SimPowerBus(SimCubeGrid grid)
@@ -167,13 +105,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Recomputes the delivered power ratio for every registered
-        /// consumer from the ideal or finite supply and this tick's
-        /// demands, then draws the delivered energy from the producers
-        /// and routes the surplus to charging batteries. Called by the
-        /// world in tick phase 4, before actuation.
-        /// </summary>
+        /// <summary>Recomputes the delivered power ratio for every registered consumer from the ideal or finite supply and this tick's demands, then draws the delivered energy from the producers and routes the surplus to charging batteries. Called by the world in tick phase 4, before actuation.</summary>
         /// <param name="dtSeconds">The fixed step interval in seconds (one 1/60 s tick).</param>
         public void Recompute(float dtSeconds)
         {
@@ -246,10 +178,10 @@ namespace FleetCommand.Test.SpaceEngineers
                 delivered = Math.Max(0f, delivered - source.Draw(delivered, dtSeconds));
             }
 
-            // .7 — charging: route the surplus (what grid loads
-            // did not consume) to charging batteries in registration
-            // order, each up to its charge demand. The power actually
-            // delivered is CurrentInput and is netted against output.
+            // Charging: route the surplus (what grid loads did not consume)
+            // to charging batteries in registration order, each up to its
+            // charge demand. The power actually delivered is CurrentInput
+            // and is netted against output.
             float surplus = remaining;
             for (int i = 0; i < _batteries.Count; i++)
             {
@@ -269,14 +201,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// The delivered power ratio for <paramref name="block"/>: the
-        /// fraction of its demand the supply allocated in phase 4 (1 when
-        /// fully satisfied or when the block demands nothing). This is the
-        /// value  thrust and  gyro will read to scale
-        /// output, and the value that drives the block's
-        /// <c>IsPowered</c> / <c>IsWorking</c>.
-        /// </summary>
+        /// <summary>The delivered power ratio for <paramref name="block"/>: the fraction of its demand the supply allocated in phase 4 (1 when fully satisfied or when the block demands nothing); the value that drives the block's <c>IsPowered</c> / <c>IsWorking</c>.</summary>
         public float GetDeliveredRatio(SimFunctionalBlock block)
         {
             if (block == null)
@@ -299,7 +224,7 @@ namespace FleetCommand.Test.SpaceEngineers
                 total += _sources[i].AvailableOutput(dtSeconds);
             }
             // The scenario electrical availability ratio scales the finite
-            // supply (); ideal supply stays infinite.
+            // supply; ideal supply stays infinite.
             float ratio = AvailableRatio < 0f ? 0f : AvailableRatio > 1f ? 1f : AvailableRatio;
             return total * ratio;
         }

@@ -4,13 +4,7 @@ using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// A named group of terminal blocks, implementing the real
-    /// <see cref="IMyBlockGroup"/> (from Sandbox.ModAPI.Ingame). Groups are
-    /// created through <see cref="SimGridTerminalSystem.CreateGroup"/> for
-    /// fixtures (); members are enumerated live, skipping blocks
-    /// that have been closed.
-    /// </summary>
+    /// <summary>A named group of terminal blocks, implementing <see cref="IMyBlockGroup"/>; members are enumerated live, skipping closed blocks.</summary>
     public sealed class SimBlockGroup : IMyBlockGroup
     {
         private readonly List<SimTerminalBlock> _members = new List<SimTerminalBlock>();

@@ -6,41 +6,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// The grid's controller-driven base thrust demand (.5): the
-    /// MoveIndicator (manual control) + inertia dampening + anti-gravity
-    /// that occupied ship controllers feed into the thrust base path — the
-    /// game's <c>MyEntityThrustComponent.ComputeBaseThrust</c>
-    /// (Decompiled/Sandbox.Game/Sandbox/Game/GameSystems/MyEntityThrustComponent.cs,
-    /// lines 1543–1656) driven by the controller route
-    /// (<c>MyShipController.MoveAndRotate</c>, :1780–1820 —
-    /// <c>EntityThrustComponent.ControlThrust += Vector3.Transform(MoveIndicator,
-    /// blockOrientation)</c>, <c>Enabled = ControlThrusters</c>).
-    /// <para>
-    /// It reproduces <c>ComputeBaseThrust</c> exactly: the dampening term
-    /// cancels the grid-frame velocity error plus half of gravity (the
-    /// <c>+ g/2</c> inside <c>vector2</c>), weighted per axis by the
-    /// manual-control share <c>zero = 1 − |controlThrust|</c> scaled by
-    /// <c>zero3/zero2</c> (the fraction of that axis's total thrust this
-    /// fuel group can deliver in the needed direction — 1 for the single
-    /// group), with the proportional constant <c>/0.5f</c> (a ~0.5 s time
-    /// constant) scaled by <see cref="SimRigidBody.Mass"/>, and the
-    /// whole demand clamped to <c>±Max · SlowdownFactor</c>. The resulting
-    /// per-direction base force is normalized back to the grid-body group
-    /// demand the <see cref="ForceAggregator"/> consumes, so effectiveness,
-    /// power, and direction all apply exactly as for any group demand — no
-    /// divergence between the base demand and phase 4.
-    /// </para>
-    /// <para>
-    /// Gating: only an under-control (<see cref="SimShipController.IsUnderControl"/>,
-    /// working) controller contributes; its <see cref="SimShipController.MoveIndicator"/>
-    /// (transformed to the grid frame) becomes <c>ControlThrust</c>, its
-    /// <see cref="SimShipController.ControlThrusters"/> gates the whole base
-    /// computation (<c>EntityThrustComponent.Enabled</c>), and its
-    /// <see cref="SimShipController.DampenersOverride"/> turns the
-    /// dampening term on or off. With no under-control controller there is
-    /// no base thrust — a free drifting ship stays drifting.
-    /// </summary>
+    /// <summary>The grid's controller-driven base thrust demand: the MoveIndicator (manual control) + inertia dampening + anti-gravity that occupied ship controllers feed into the thrust base path — reproducing the game's <c>MyEntityThrustComponent.ComputeBaseThrust</c> (Decompiled/Sandbox.Game/Sandbox/Game/GameSystems/MyEntityThrustComponent.cs, lines 1543-1656) driven by the controller route (<c>MyShipController.MoveAndRotate</c>, :1780-1820 — <c>ControlThrust += Transform(MoveIndicator)</c>, <c>Enabled = ControlThrusters</c>). It reproduces the dampening term exactly (cancel grid-frame velocity error plus half of gravity, weighted by the manual-control share, with the /0.5 proportional constant scaled by <see cref="SimRigidBody.Mass"/>), then normalizes the result back to the grid-body group demand the <see cref="ForceAggregator"/> consumes (so effectiveness, power, and direction apply exactly as for any group demand). Gating: only an under-control, working controller contributes; with none there is no base thrust — a free drifting ship stays drifting.</summary>
     public sealed class BaseControlSystem
     {
         private readonly SimCubeGrid _grid;
@@ -54,32 +20,16 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid grid (ship) this base-control system serves.</summary>
         public SimCubeGrid Grid => _grid;
 
-        /// <summary>
-        /// The grid-frame manual control throttle from the last
-        /// <see cref="ComputeBaseDemand"/> (the summed, transformed
-        /// MoveIndicator of under-control controllers). Observation surface
-        /// for conformance.
-        /// </summary>
+        /// <summary>The grid-frame manual control throttle from the last <see cref="ComputeBaseDemand"/> (the summed, transformed MoveIndicator of under-control controllers); observation surface.</summary>
         public Vector3 LastControlThrust => _lastControlThrust;
 
-        /// <summary>
-        /// The grid-frame dampening force (N) from the last
-        /// <see cref="ComputeBaseDemand"/> (the game's <c>slowdownThrust</c>).
-        /// </summary>
+        /// <summary>The grid-frame dampening force (N) from the last <see cref="ComputeBaseDemand"/> (the game's <c>slowdownThrust</c>).</summary>
         public Vector3 LastSlowdownThrust => _lastSlowdownThrust;
 
-        /// <summary>
-        /// The grid-frame delivered base force (N) from the last
-        /// <see cref="ComputeBaseDemand"/> (the game's <c>CurrentThrust</c>),
-        /// the demand the aggregator then turns into per-thruster delivery.
-        /// </summary>
+        /// <summary>The grid-frame delivered base force (N) from the last <see cref="ComputeBaseDemand"/> (the game's <c>CurrentThrust</c>), the demand the aggregator then turns into per-thruster delivery.</summary>
         public Vector3 LastBaseForce => _lastBaseForce;
 
-        /// <summary>
-        /// True when the last <see cref="ComputeBaseDemand"/> produced a
-        /// base demand (an under-control controller with ControlThrusters);
-        /// false when no controller was driving the base path.
-        /// </summary>
+        /// <summary>True when the last <see cref="ComputeBaseDemand"/> produced a base demand (an under-control controller with ControlThrusters); false when no controller was driving the base path.</summary>
         public bool BaseActive => _baseActive;
 
         internal BaseControlSystem(SimCubeGrid grid)
@@ -110,16 +60,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Tick phase 5 (before <see cref="ForceAggregator.Aggregate"/>):
-        /// recompute the grid's directional thrust capacity, then reproduce
-        /// <c>ComputeBaseThrust</c> from the under-control controllers'
-        /// MoveIndicator, the body velocity, gravity, mass, and capacities,
-        /// and set the aggregator's group demand from the normalized base
-        /// force. With no under-control controller the base path is idle:
-        /// the group demand is left as set (a free drifting ship stays
-        /// drifting).
-        /// </summary>
+        /// <summary>Tick phase 5 (before <see cref="ForceAggregator.Aggregate"/>): recompute the grid's directional thrust capacity, then reproduce <c>ComputeBaseThrust</c> from the under-control controllers' MoveIndicator, the body velocity, gravity, mass, and capacities, and set the aggregator's group demand from the normalized base force. With no under-control controller the base path is idle (a free drifting ship stays drifting).</summary>
         public void ComputeBaseDemand()
         {
             _lastControlThrust = Vector3.Zero;

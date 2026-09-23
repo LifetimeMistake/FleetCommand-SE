@@ -5,18 +5,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// Root of the simulator entity hierarchy (, ). Implements
-    /// the real <see cref="IMyEntity"/> from VRage.Game and provides the
-    /// identity, naming, and world-matrix surface shared by grids and blocks.
-    /// The world transform owner differs per subclass: a grid's transform is
-    /// owned by its rigid body, a block's is derived from the grid body plus
-    /// its local pose — so <see cref="WorldMatrix"/> is left abstract here.
-    /// Members outside this stage's implemented contract (identity, names,
-    /// world matrix, position, closed state) throw
-    /// <see cref="NotSupportedException"/> naming the member; they never
-    /// silently return a plausible default.
-    /// </summary>
+    /// <summary>Root of the simulator entity hierarchy, implementing <see cref="IMyEntity"/>: provides the identity, naming, and world-matrix surface shared by grids and blocks. <see cref="WorldMatrix"/> is abstract (a grid's transform is owned by its rigid body, a block's is derived from the grid body plus its local pose). Members outside the implemented contract throw a naming <see cref="NotSupportedException"/> rather than returning a default.</summary>
     public abstract class SimEntity : IMyEntity
     {
         /// <inheritdoc />
@@ -53,9 +42,8 @@ namespace FleetCommand.Test.SpaceEngineers
             return WorldMatrix.Translation;
         }
 
-        // Members outside the  contract (): component
-        // containers, inventories, and bounding volumes are not part of the
-        // identity/transform/position surface this stage implements.
+        // Members outside the implemented contract: component containers,
+        // inventories, and bounding volumes are not modeled.
 
         /// <inheritdoc />
         public virtual IMyEntityComponentContainer Components => ThrowNotSupported<IMyEntityComponentContainer>("IMyEntity.Components");
@@ -84,15 +72,11 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public virtual IMyInventory GetInventory(int index) => ThrowNotSupported<IMyInventory>("IMyEntity.GetInventory(int)");
 
-        /// <summary>
-        /// Builds the canonical not-implemented exception naming the member,
-        /// per  ("Members outside the implemented contract throw
-        /// NotSupportedException naming the interface member").
-        /// </summary>
+        /// <summary>Builds the canonical not-implemented exception naming the member.</summary>
         protected static NotSupportedException NotSupported(string member)
         {
             return new NotSupportedException(
-                "SimEntity does not implement '" + member + "' (outside the  contract, ).");
+                "SimEntity does not implement '" + member + "' (outside the implemented contract).");
         }
 
         /// <summary>Throws <see cref="NotSupportedException"/> naming <paramref name="member"/>.</summary>

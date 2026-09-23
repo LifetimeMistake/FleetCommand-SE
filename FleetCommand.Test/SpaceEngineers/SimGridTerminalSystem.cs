@@ -5,16 +5,7 @@ using VRage.Game.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// The grid terminal system for one rigid grid, implementing the real
-    /// <see cref="IMyGridTerminalSystem"/> (from Sandbox.ModAPI.Ingame; plan
-    /// , ). Provides exact-name lookup, typed enumeration,
-    /// predicate filtering, id lookup, access checks, and block groups. All
-    /// enumeration works over the grid's blocks in deterministic spawn
-    /// order and never returns blocks from other grids (same-grid
-    /// filtering). Closed (disposed) blocks are skipped, so a grid whose
-    /// blocks were removed mid-world stays safe to enumerate.
-    /// </summary>
+    /// <summary>The grid terminal system for one rigid grid, implementing <see cref="IMyGridTerminalSystem"/>: exact-name lookup, typed enumeration, predicate filtering, id lookup, access checks, and block groups. All enumeration works over the grid's blocks in deterministic spawn order, never returns blocks from other grids (same-grid filtering), and skips closed (disposed) blocks, so a grid whose blocks were removed mid-world stays safe to enumerate.</summary>
     public sealed class SimGridTerminalSystem : IMyGridTerminalSystem
     {
         private readonly SimCubeGrid _grid;
@@ -53,20 +44,13 @@ namespace FleetCommand.Test.SpaceEngineers
 
         // — block groups (fixtures) —
 
-        /// <summary>
-        /// Creates a named, empty block group and registers it with this
-        /// terminal system (sim surface for fixtures, ).
-        /// </summary>
+        /// <summary>Creates a named, empty block group and registers it (sim surface for fixtures).</summary>
         public SimBlockGroup CreateGroup(string name)
         {
             return CreateGroup(name, null);
         }
 
-        /// <summary>
-        /// Creates a named block group containing <paramref name="members"/>
-        /// and registers it with this terminal system (sim surface for
-        /// fixtures, ).
-        /// </summary>
+        /// <summary>Creates a named block group containing <paramref name="members"/> and registers it (sim surface for fixtures).</summary>
         public SimBlockGroup CreateGroup(string name, IEnumerable<SimTerminalBlock> members)
         {
             SimBlockGroup group = new SimBlockGroup(name);

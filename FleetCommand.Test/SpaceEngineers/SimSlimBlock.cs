@@ -7,15 +7,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// Thin slim-block view returned by <see cref="SimCubeGrid.GetCubeBlock"/>
-    /// for the grid's block-membership surface (, ). It
-    /// wraps the fat terminal block and reports position, grid, fat block,
-    /// and mass — the members this stage's contract covers. Integrity,
-    /// damage, deformation, stockpile, color, and skin data need the damage
-    /// model that arrives in , so those members throw a naming
-    /// <see cref="NotSupportedException"/>.
-    /// </summary>
+    /// <summary>Thin slim-block view returned by <see cref="SimCubeGrid.GetCubeBlock"/> for the grid's block-membership surface: wraps the fat terminal block and reports position, grid, fat block, and mass. Integrity, damage, deformation, stockpile, color, and skin data are not modeled (no damage model) and those members throw a naming <see cref="NotSupportedException"/>.</summary>
     public sealed class SimSlimBlock : IMySlimBlock
     {
         private readonly SimTerminalBlock _fat;
@@ -100,7 +92,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private static NotSupportedException NotSupported(string member)
         {
             return new NotSupportedException(
-                "SimSlimBlock does not implement '" + member + "' (outside the  contract, ).");
+                "SimSlimBlock does not implement '" + member + "' (outside the implemented contract).");
         }
 
         private static T ThrowNotSupported<T>(string member)

@@ -5,47 +5,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>
-    /// The grid thrust aggregation step (,  steps 1–6): the
-    /// boundary where per-thruster commands (override or group demand) become
-    /// one resultant body-space force applied at the grid's center of mass.
-    /// Owned by <see cref="SimCubeGrid"/>; the world drives it in three
-    /// tick phases:
-    /// <list type="number">
-    /// <item><b>Phase 5</b> <see cref="Aggregate"/> — for each thruster,
-    /// determine enabled / functional / powered / environmentally effective,
-    /// compute <see cref="SimThrust.MaxEffectiveThrust"/> (template maximum
-    /// x effectiveness profile), convert the override or the per-axis
-    /// normalized group demand into delivered thrust (scaled by the
-    /// block's <see cref="SimFunctionalBlock.DeliveredRatio"/> — the
-    /// bus-computed value from phase 4), and sum delivered thrust by
-    /// grid-body direction into one resultant force.</item>
-    /// <item><b>Phase 6</b> <see cref="ApplyThrust"/> — apply ONE
-    /// resultant body-space linear impulse at the grid COM (the source
-    /// verified application point:
-    /// MyThrusterBlockThrustComponent.cs:201 AddForce at the grid's
-    /// CoM). Because the force is applied at the COM, fixed grid
-    /// thrusters generate no torque from block position ().</item>
-    /// <item><b>Phase 8</b> <see cref="UpdateThrusterTelemetry"/> — update
-    /// each thruster's <see cref="SimThrust.CurrentThrust"/> after the
-    /// physics interval.</item>
-    /// </list>
-    /// A thruster's <see cref="SimThrust.GridThrustDirection"/> is its
-    /// grid-body FORWARD (exhaust) axis — the value the game returns —
-    /// and the force axis is its negation: delivered is applied along
-    /// <c>-forward</c>, matching the game's <c>ThrustForce =
-    /// -ThrustForwardVector x ForceMagnitude</c> (MyThrust.cs:188). Both
-    /// the override and group demand paths resolve the group demand
-    /// against this force axis (game 1:1).
-    /// The group demand is a normalized per-body-axis throttle in [-1, 1] —
-    /// the "control input" side of the control boundary. It is scenario
-    /// input (there is no control system yet); overridden thrusters answer
-    /// their override instead of the group demand, matching the game
-    /// (MyEntityThrustComponent.IsOverridden / IsUsed). Asymmetric and
-    /// missing axes need no craft-type branches: thrusters carry their push
-    /// direction as data, so a grid simply has no thruster where there is
-    /// no thrust.
-    /// </summary>
+    /// <summary>The grid thrust aggregation step: the boundary where per-thruster commands (override or group demand) become one resultant body-space force applied at the grid's center of mass. Owned by <see cref="SimCubeGrid"/>; the world drives it in three tick phases: phase 5 <see cref="Aggregate"/> (compute <see cref="SimThrust.MaxEffectiveThrust"/>, convert override or normalized group demand into delivered thrust scaled by <see cref="SimFunctionalBlock.DeliveredRatio"/>, and sum by grid-body direction); phase 6 <see cref="ApplyThrust"/> (apply ONE resultant body-space linear impulse at the grid COM — the source-verified application point: MyThrusterBlockThrustComponent.cs:201 AddForce at the grid's CoM, so fixed grid thrusters generate no torque from block position); phase 8 <see cref="UpdateThrusterTelemetry"/> (commit each thruster's <see cref="SimThrust.CurrentThrust"/>). A thruster's <see cref="SimThrust.GridThrustDirection"/> is its grid-body FORWARD (exhaust) axis and the force is applied along its negation, matching the game's <c>ThrustForce = -ThrustForwardVector</c> (MyThrust.cs:188). The group demand is a normalized per-body-axis throttle in [-1, 1]; overridden thrusters answer their override instead of the group demand (matching the game's IsOverridden / IsUsed). Asymmetric and missing axes need no craft-type branches — thrusters carry their push direction as data.</summary>
     public sealed class ForceAggregator
     {
         private readonly SimCubeGrid _grid;
@@ -54,9 +14,9 @@ namespace FleetCommand.Test.SpaceEngineers
         private Vector3 _groupDemand;
         private Vector3 _netBodyForce;
 
-        // Per-direction delivered-thrust capacity of the grid (.5),
-        // recomputed from the registered thrusters so the base-control path
-        // (BaseControlSystem) can reproduce the game's ComputeBaseThrust.
+        // Per-direction delivered-thrust capacity, recomputed from the
+        // registered thrusters so the base-control path (BaseControlSystem)
+        // can reproduce the game's ComputeBaseThrust.
         private Vector3 _maxPositiveThrust;
         private Vector3 _maxNegativeThrust;
         private float _slowdownFactor = 1f;
@@ -64,44 +24,19 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid grid (ship) this aggregator serves.</summary>
         public SimCubeGrid Grid => _grid;
 
-        /// <summary>
-        /// The normalized group (control) demand, body-frame, components in
-        /// [-1, 1]: a positive component fires the thrusters pushing along
-        /// that axis at the given throttle; a negative component fires the
-        /// opposite axis. Scenario-set (the control system arrives later).
-        /// </summary>
+        /// <summary>The normalized group (control) demand, body-frame, components in [-1, 1]: a positive component fires the thrusters pushing along that axis at the given throttle; a negative component fires the opposite axis. Scenario-set.</summary>
         public Vector3 GroupDemand => _groupDemand;
 
-        /// <summary>
-        /// The resultant body-space thrust force (N) from the most recent
-        /// <see cref="Aggregate"/>: the net of every thruster's delivered
-        /// thrust summed by body direction. Zero when nothing fired. (Design
-        ///  "delivered thrust per block and direction" observation.)
-        /// </summary>
+        /// <summary>The resultant body-space thrust force (N) from the most recent <see cref="Aggregate"/>: the net of every thruster's delivered thrust summed by body direction; zero when nothing fired.</summary>
         public Vector3 LastNetForce => _netBodyForce;
 
-        /// <summary>
-        /// The grid's maximum deliverable force along each +body axis (N),
-        /// summed from the registered thrusters' <see cref="SimThrust.MaxEffectiveThrust"/>
-        /// (the game's per-group <c>MaxPositiveThrust</c>, summed from
-        /// <c>ForceMagnitude</c>). Recomputed by
-        /// <see cref="RecalculateCapacities"/>; .5.
-        /// </summary>
+        /// <summary>The grid's maximum deliverable force along each +body axis (N), summed from the registered thrusters' <see cref="SimThrust.MaxEffectiveThrust"/> (the game's per-group <c>MaxPositiveThrust</c>, summed from <c>ForceMagnitude</c>). Recomputed by <see cref="RecalculateCapacities"/>.</summary>
         public Vector3 MaxPositiveThrust => _maxPositiveThrust;
 
-        /// <summary>
-        /// The grid's maximum deliverable force along each -body axis (N),
-        /// the counterpart of <see cref="MaxPositiveThrust"/>.
-        /// </summary>
+        /// <summary>The grid's maximum deliverable force along each -body axis (N); the counterpart of <see cref="MaxPositiveThrust"/>.</summary>
         public Vector3 MaxNegativeThrust => _maxNegativeThrust;
 
-        /// <summary>
-        /// The grid's representative thrust-definition <c>SlowdownFactor</c>
-        /// (default 1), used by the base-control path's final clamp
-        /// (<c>MyEntityThrustComponent.ComputeBaseThrust</c> :1648). Set by
-        /// <see cref="RecalculateCapacities"/> from the first functional
-        /// thruster's definition value.
-        /// </summary>
+        /// <summary>The grid's representative thrust-definition <c>SlowdownFactor</c> (default 1), used by the base-control path's final clamp (<c>MyEntityThrustComponent.ComputeBaseThrust</c> :1648). Set by <see cref="RecalculateCapacities"/> from the first functional thruster's definition value.</summary>
         public float SlowdownFactor => _slowdownFactor;
 
         internal ForceAggregator(SimCubeGrid grid)
@@ -113,10 +48,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _grid = grid;
         }
 
-        /// <summary>
-        /// Sets the normalized group (control) demand that non-overridden
-        /// thrusters answer, clamping each body-axis component to [-1, 1].
-        /// </summary>
+        /// <summary>Sets the normalized group (control) demand that non-overridden thrusters answer, clamping each body-axis component to [-1, 1].</summary>
         public void SetGroupDemand(Vector3 bodyDemand)
         {
             _groupDemand = ClampComponents(bodyDemand);
@@ -141,13 +73,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>
-        /// Tick phase 5: gate each thruster, convert its override or group
-        /// demand into delivered thrust (scaled by the bus's delivered
-        /// ratio), sum by grid-body direction, and return the one
-        /// resultant body-space force. Also stashes each thruster's
-        /// delivered force for the phase-8 CurrentThrust write.
-        /// </summary>
+        /// <summary>Tick phase 5: gate each thruster, convert its override or group demand into delivered thrust (scaled by the bus's delivered ratio), sum by grid-body direction, and return the one resultant body-space force. Also stashes each thruster's delivered force for the phase-8 CurrentThrust write.</summary>
         public Vector3 Aggregate()
         {
             Vector3 net = Vector3.Zero;
@@ -174,12 +100,7 @@ namespace FleetCommand.Test.SpaceEngineers
             return net;
         }
 
-        /// <summary>
-        /// Tick phase 6: apply the phase-5 resultant as ONE body-space
-        /// linear impulse at the grid center of mass — transformed to the
-        /// world frame and timed by the fixed step. Applied at the COM,
-        /// so no torque arises from any thruster's block position.
-        /// </summary>
+        /// <summary>Tick phase 6: apply the phase-5 resultant as ONE body-space linear impulse at the grid center of mass — transformed to the world frame and timed by the fixed step. Applied at the COM, so no torque arises from any thruster's block position.</summary>
         public void ApplyThrust(float dtSeconds)
         {
             if (_grid.IsDisposed)
@@ -203,11 +124,7 @@ namespace FleetCommand.Test.SpaceEngineers
             body.ApplyLinearImpulse(worldForce * dtSeconds);
         }
 
-        /// <summary>
-        /// Tick phase 8: after the physics interval, publish each
-        /// thruster's phase-5 delivered force as its
-        /// <see cref="SimThrust.CurrentThrust"/>.
-        /// </summary>
+        /// <summary>Tick phase 8: after the physics interval, publish each thruster's phase-5 delivered force as its <see cref="SimThrust.CurrentThrust"/>.</summary>
         public void UpdateThrusterTelemetry()
         {
             for (int i = 0; i < _thrusters.Count; i++)
@@ -230,9 +147,8 @@ namespace FleetCommand.Test.SpaceEngineers
                 return 0f;
             }
             // The template effectiveness is scaled by the world's
-            // atmosphere effectiveness ( "change atmosphere
-            // effectiveness"): an atmo thruster in vacuum (ratio 0) has no
-            // effect.
+            // atmosphere effectiveness: an atmo thruster in vacuum
+            // (ratio 0) has no effect.
             float effectiveness = thruster.Effectiveness * _grid.World.AtmosphereEffectiveness;
             if (effectiveness <= 0f)
             {
@@ -261,7 +177,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
             // Delivered force = demand x effectiveness x the bus's
             // delivered power ratio (this block's phase-4 value — the
-            // single source of truth, ).
+            // single source of truth).
             return demand * effectiveness * thruster.DeliveredRatio;
         }
 
@@ -294,17 +210,7 @@ namespace FleetCommand.Test.SpaceEngineers
                 ClampComponent(value.Z));
         }
 
-        /// <summary>
-        /// Recomputes the grid's per-direction thrust capacity and the
-        /// representative <see cref="SlowdownFactor"/> from the registered
-        /// thrusters (the game's <c>RecomputeTypeThrustParameters</c>:
-        /// <c>MaxPositiveThrust</c>/<c>MaxNegativeThrust</c> summed from
-        /// <c>ForceMagnitude</c>=effective thrust over used, powered
-        /// thrusters). Called by <see cref="BaseControlSystem"/> each
-        /// phase 5 before it computes the base demand, so the game's
-        /// <c>ComputeBaseThrust</c> sees the same capacities the
-        /// aggregation consumes (no divergence).
-        /// </summary>
+        /// <summary>Recomputes the grid's per-direction thrust capacity and the representative <see cref="SlowdownFactor"/> from the registered thrusters (the game's <c>RecomputeTypeThrustParameters</c>: MaxPositiveThrust / MaxNegativeThrust summed from effective thrust over used, powered thrusters). Called by <see cref="BaseControlSystem"/> each phase 5 before it computes the base demand, so <c>ComputeBaseThrust</c> sees the same capacities the aggregation consumes (no divergence).</summary>
         internal void RecalculateCapacities()
         {
             Vector3 pos = Vector3.Zero;
@@ -314,9 +220,9 @@ namespace FleetCommand.Test.SpaceEngineers
             for (int i = 0; i < _thrusters.Count; i++)
             {
                 SimThrust thruster = _thrusters[i];
-                // Atmosphere scales effective thrust in the capacity too, so
-                // the base-control path's capacities match what aggregation
-                // delivers under the current atmosphere ().
+                // Atmosphere scales effective thrust in the capacity too,
+                // so the base-control path's capacities match what
+                // aggregation delivers under the current atmosphere.
                 float effective = thruster.Effectiveness * _grid.World.AtmosphereEffectiveness;
                 if (thruster.Closed || !thruster.IsFunctional || effective <= 0f)
                 {
