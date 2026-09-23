@@ -5,13 +5,15 @@ namespace FleetCommand.Test.Physics
 {
     /// <summary>
     /// Natural gravity owned by <see cref="Framework.SimWorld"/>; the vector it returns for
-    /// a world point is what <see cref="Sandbox.ModAPI.Ingame.IMyShipController.GetNaturalGravity"/> reports.
+    /// a world point is what
+    /// <see cref="Sandbox.ModAPI.Ingame.IMyShipController.GetNaturalGravity"/> reports.
     /// Profiles: zero, uniform, and analytic point gravity (mirroring
     /// MySphericalNaturalGravityComponent).
     /// </summary>
     public abstract class SimGravityField
     {
-        /// <summary>World-frame gravitational acceleration (m/s²) at <paramref name="worldPoint"/>.</summary>
+        /// <summary>World-frame gravitational acceleration (m/s²) at
+        /// <paramref name="worldPoint"/>.</summary>
         public abstract Vector3 GetNaturalGravity(Vector3D worldPoint);
 
         /// <summary>Field with no gravity anywhere.</summary>

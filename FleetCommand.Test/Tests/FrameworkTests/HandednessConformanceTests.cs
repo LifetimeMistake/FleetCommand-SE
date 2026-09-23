@@ -7,7 +7,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance that the body world transform is a proper right-handed orthonormal rotation (det +1) mapping body axes to world and back.</summary>
+    /// <summary>Conformance that the body world transform is a proper right-handed orthonormal
+    /// rotation (det +1) mapping body axes to world and back.</summary>
     [TestFixture]
     public class HandednessConformanceTests : FleetTestFixture
     {

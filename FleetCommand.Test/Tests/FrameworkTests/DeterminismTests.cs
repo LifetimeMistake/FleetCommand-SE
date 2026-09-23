@@ -5,7 +5,8 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Verifies two runs of the same scenario on the same build step identically.</summary>
+    /// <summary>Verifies two runs of the same scenario on the same build step
+    /// identically.</summary>
     [TestFixture]
     public class DeterminismTests : FleetTestFixture
     {
@@ -70,7 +71,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
     }
 
-    /// <summary>Verifies that same-tick scheduled mutations run in stable registration order.</summary>
+    /// <summary>Verifies that same-tick scheduled mutations run in stable registration
+    /// order.</summary>
     [TestFixture]
     public class MutationOrderingTests : FleetTestFixture
     {

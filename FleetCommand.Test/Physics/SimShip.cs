@@ -30,7 +30,8 @@ namespace FleetCommand.Test.Physics
         /// <summary>The live rigid-body state of the ship's grid.</summary>
         public SimRigidBodyState Body => Grid.Body.GetState();
 
-        /// <summary>The template-designated controller (first controller-kind block), or null when none.</summary>
+        /// <summary>The template-designated controller (first controller-kind block), or null when
+        /// none.</summary>
         public IMyShipController Controller { get; }
 
         internal SimShip(long id, SimCubeGrid grid, IMyShipController controller)
@@ -40,7 +41,8 @@ namespace FleetCommand.Test.Physics
             Controller = controller;
         }
 
-        /// <summary>Writes the ship's rigid body back from a world state (scenario setup and observation injection).</summary>
+        /// <summary>Writes the ship's rigid body back from a world state (scenario setup and
+        /// observation injection).</summary>
         public void SetState(in SimRigidBodyState state)
         {
             Grid.Body.SetState(state);

@@ -14,14 +14,16 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the battery charging path / ChargeMode, reproduced from MyBatteryBlock.cs.</summary>
+    /// <summary>Conformance of the battery charging path / ChargeMode, reproduced from
+    /// MyBatteryBlock.cs.</summary>
     [TestFixture]
     public class BatteryChargeConformanceTests : FleetTestFixture
     {
         // MW·h per MW per fixed 1/60 s step: power · dt / 3600.
         private const float StepCharge = 1f / (3600f * 60f);
 
-        // — Recharge: disable output and store surplus (MyBatteryBlock :520-560, :613-626, :756-775) —
+        // — Recharge: disable output and store surplus (MyBatteryBlock :520-560, :613-626,
+        // :756-775) —
 
         [Test]
         public void RechargeStoresSurplus_RaisesStored_Analytic()
@@ -279,7 +281,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             block.PowerPriority = priority;
         }
 
-        /// <summary>A reactor + battery + one fixed load; batteryFirst controls supply registration order.</summary>
+        /// <summary>A reactor + battery + one fixed load; batteryFirst controls supply registration
+        /// order.</summary>
         private static ShipTemplate ChargeTemplate(
             string name, float reactorMaxOut, float batteryMaxOut,
             float batteryMaxIn, float batteryMaxStored, float batteryInitial,

@@ -12,7 +12,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the validating ShipTemplateBuilder, the seven baseline templates, and the immutability / variant / determinism guarantees.</summary>
+    /// <summary>Conformance of the validating ShipTemplateBuilder, the seven baseline templates,
+    /// and the immutability / variant / determinism guarantees.</summary>
     [TestFixture]
     public class ShipTemplateBuilderConformanceTests : FleetTestFixture
     {

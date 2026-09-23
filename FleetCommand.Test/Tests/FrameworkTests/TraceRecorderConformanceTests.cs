@@ -5,7 +5,8 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of TraceRecorder: bounded (fixed or caller-specified capacity, oldest dropped) and opt-in — nothing is recorded by default.</summary>
+    /// <summary>Conformance of TraceRecorder: bounded (fixed or caller-specified capacity, oldest
+    /// dropped) and opt-in — nothing is recorded by default.</summary>
     [TestFixture]
     public class TraceRecorderConformanceTests : FleetTestFixture
     {

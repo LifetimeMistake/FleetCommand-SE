@@ -6,7 +6,8 @@ using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Verifies the clock contract: time is an exact multiple of the fixed 1/60 s step, and Update1/10/100 cadence derives from the monotonic tick counter.</summary>
+    /// <summary>Verifies the clock contract: time is an exact multiple of the fixed 1/60 s step,
+    /// and Update1/10/100 cadence derives from the monotonic tick counter.</summary>
     [TestFixture]
     public class TickClockTests
     {

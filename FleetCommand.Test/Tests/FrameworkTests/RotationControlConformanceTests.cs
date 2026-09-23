@@ -8,7 +8,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the controller's rotation control: RotationIndicator/RollIndicator rotate the grid via the game's MoveAndRotate path.</summary>
+    /// <summary>Conformance of the controller's rotation control: RotationIndicator/RollIndicator
+    /// rotate the grid via the game's MoveAndRotate path.</summary>
     [TestFixture]
     public class RotationControlConformanceTests : FleetTestFixture
     {

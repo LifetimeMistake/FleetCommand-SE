@@ -10,7 +10,11 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>The rigid grid: owns its <see cref="SimRigidBody"/> and its blocks, and implements the real <see cref="IMyCubeGrid"/> from VRage.Game plus its <see cref="IMyEntity"/> parent. The grid's world transform is owned by the body; block membership, position queries, and same-grid / construct identity are backed by this grid's block list. This stage inverts the scene: <c>SimCubeGrid</c> is the grid that owns blocks.</summary>
+    /// <summary>The rigid grid: owns its <see cref="SimRigidBody"/> and its blocks, and implements
+    /// the real <see cref="IMyCubeGrid"/> from VRage.Game plus its <see cref="IMyEntity"/> parent.
+    /// The grid's world transform is owned by the body; block membership, position queries, and
+    /// same-grid / construct identity are backed by this grid's block list. This stage inverts the
+    /// scene: <c>SimCubeGrid</c> is the grid that owns blocks.</summary>
     public sealed class SimCubeGrid : SimEntity, IMyCubeGrid
     {
         private readonly Dictionary<Vector3I, SimTerminalBlock> _blockByPosition = new Dictionary<Vector3I, SimTerminalBlock>();
@@ -27,22 +31,45 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The grid terminal system used to discover this grid's blocks.</summary>
         public SimGridTerminalSystem TerminalSystem { get; }
 
-        /// <summary>The grid's deterministic power bus (the ship's <c>SimShip.Power</c>): functional blocks register as consumers and batteries as supply when added to the grid; the world recomputes it in tick phase 4.</summary>
+        /// <summary>The grid's deterministic power bus (the ship's <c>SimShip.Power</c>):
+        /// functional blocks register as consumers and batteries as supply when added to the grid;
+        /// the world recomputes it in tick phase 4.</summary>
         public SimPowerBus PowerBus { get; }
 
-        /// <summary>The grid's thrust aggregation step: the world calls <see cref="ForceAggregator.Aggregate"/> in phase 5, <see cref="ForceAggregator.ApplyThrust"/> in phase 6 (one resultant body-space linear impulse at the grid COM), and <see cref="ForceAggregator.UpdateThrusterTelemetry"/> in phase 8 (thrusters register when added to the grid).</summary>
+        /// <summary>The grid's thrust aggregation step: the world calls
+        /// <see cref="ForceAggregator.Aggregate"/> in phase 5,
+        /// <see cref="ForceAggregator.ApplyThrust"/> in phase 6 (one resultant body-space linear
+        /// impulse at the grid COM), and <see cref="ForceAggregator.UpdateThrusterTelemetry"/> in
+        /// phase 8 (thrusters register when added to the grid).</summary>
         public ForceAggregator ForceAggregator { get; }
 
-        /// <summary>The grid's gyro-rate system: the world calls <see cref="GyroRateSystem.Aggregate"/> in phase 5, <see cref="GyroRateSystem.ApplyTorque"/> in phase 6 (one resultant body-space angular impulse), and <see cref="GyroRateSystem.UpdateGyroTelemetry"/> in phase 8 (gyros register when added to the grid).</summary>
+        /// <summary>The grid's gyro-rate system: the world calls
+        /// <see cref="GyroRateSystem.Aggregate"/> in phase 5,
+        /// <see cref="GyroRateSystem.ApplyTorque"/> in phase 6 (one resultant body-space angular
+        /// impulse), and <see cref="GyroRateSystem.UpdateGyroTelemetry"/> in phase 8 (gyros
+        /// register when added to the grid).</summary>
         public GyroRateSystem GyroRateSystem { get; }
 
-        /// <summary>The grid's controller-driven base thrust demand: the world calls <see cref="BaseControlSystem.ComputeBaseDemand"/> in phase 5 (before <see cref="ForceAggregator.Aggregate"/>) to run the occupied controllers' MoveIndicator + inertia dampening + anti-gravity through the game's <c>ComputeBaseThrust</c> and set the aggregator's group demand. Controllers register when added to the grid.</summary>
+        /// <summary>The grid's controller-driven base thrust demand: the world calls
+        /// <see cref="BaseControlSystem.ComputeBaseDemand"/> in phase 5 (before
+        /// <see cref="ForceAggregator.Aggregate"/>) to run the occupied controllers' MoveIndicator
+        /// + inertia dampening + anti-gravity through the game's <c>ComputeBaseThrust</c> and set
+        /// the aggregator's group demand. Controllers register when added to the grid.</summary>
         public BaseControlSystem BaseControl { get; }
 
-        /// <summary>The grid's controller rotation control: the world calls <see cref="RotationControlSystem.ComputeControlTorque"/> in phase 5 to convert under-control controllers' RotationIndicator/RollIndicator into <see cref="GyroRateSystem.ControlTorque"/> (the game's <c>MyShipController.MoveAndRotate</c> :1816-1824). Controllers register when added to the grid.</summary>
+        /// <summary>The grid's controller rotation control: the world calls
+        /// <see cref="RotationControlSystem.ComputeControlTorque"/> in phase 5 to convert
+        /// under-control controllers' RotationIndicator/RollIndicator into
+        /// <see cref="GyroRateSystem.ControlTorque"/> (the game's
+        /// <c>MyShipController.MoveAndRotate</c> :1816-1824). Controllers register when added to
+        /// the grid.</summary>
         public RotationControlSystem RotationControl { get; }
 
-        /// <summary>The grid's remote-control autopilot: the world calls <see cref="AutopilotSystem.ComputeAutopilot"/> in phase 5 to fly an enabled remote toward its waypoint through the same <see cref="GyroRateSystem.ControlTorque"/> channel and the <see cref="ForceAggregator"/> AI thrust path. Remotes register when added to the grid.</summary>
+        /// <summary>The grid's remote-control autopilot: the world calls
+        /// <see cref="AutopilotSystem.ComputeAutopilot"/> in phase 5 to fly an enabled remote
+        /// toward its waypoint through the same <see cref="GyroRateSystem.ControlTorque"/> channel
+        /// and the <see cref="ForceAggregator"/> AI thrust path. Remotes register when added to the
+        /// grid.</summary>
         public AutopilotSystem Autopilot { get; }
 
         /// <summary>Also the grid's user-visible terminal name (settable).</summary>
@@ -78,7 +105,9 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public override MatrixD WorldMatrix => Body.WorldMatrix;
 
-        /// <summary>The world-&gt;grid rotation matrix (R^T) for transforming vectors from the world frame into the grid (body) frame — the game's <c>WorldMatrixNormalizedInv</c> rotation part used at every world-to-local control read.</summary>
+        /// <summary>The world-&gt;grid rotation matrix (R^T) for transforming vectors from the
+        /// world frame into the grid (body) frame — the game's <c>WorldMatrixNormalizedInv</c>
+        /// rotation part used at every world-to-local control read.</summary>
         public Matrix WorldToLocal => Matrix.Transpose(((Matrix)WorldMatrix).GetOrientation());
 
         /// <inheritdoc />
@@ -226,7 +255,11 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>Removes a block from this grid: disconnects it if a connector, deregisters it from every system it joined on add (terminal system, power bus, force aggregator, gyro system, base / rotation control, autopilot, world registries), removes it from the position map, disposes it, and rebuilds the body's mass. Idempotent for an already-closed block.</summary>
+        /// <summary>Removes a block from this grid: disconnects it if a connector, deregisters it
+        /// from every system it joined on add (terminal system, power bus, force aggregator, gyro
+        /// system, base / rotation control, autopilot, world registries), removes it from the
+        /// position map, disposes it, and rebuilds the body's mass. Idempotent for an
+        /// already-closed block.</summary>
         public void RemoveBlock(SimTerminalBlock block)
         {
             if (block == null)
@@ -293,7 +326,10 @@ namespace FleetCommand.Test.SpaceEngineers
             RebuildBodyMass();
         }
 
-        /// <summary>Rebuilds the grid body's mass properties from the current live block set. Mirrors <c>MyPhysicsBody.UpdateMassProps</c> — combines the box mass elements with Havok and applies via <c>RigidBody.SetMassProperties</c> — so total mass, COM, and inertia ground truth follow the live block inventory.</summary>
+        /// <summary>Rebuilds the grid body's mass properties from the current live block set.
+        /// Mirrors <c>MyPhysicsBody.UpdateMassProps</c> — combines the box mass elements with Havok
+        /// and applies via <c>RigidBody.SetMassProperties</c> — so total mass, COM, and inertia
+        /// ground truth follow the live block inventory.</summary>
         internal void RebuildBodyMass()
         {
             var elements = new List<HkMassElement>();
@@ -327,7 +363,9 @@ namespace FleetCommand.Test.SpaceEngineers
             Body.UpdateMassProperties(MassProperties.FromMassElements(elements));
         }
 
-        /// <summary>Disposes the grid's owned body and closes all its blocks. Idempotent; subsequent enumeration over the terminal system and the world's tick continue to work (closed items are skipped).</summary>
+        /// <summary>Disposes the grid's owned body and closes all its blocks. Idempotent;
+        /// subsequent enumeration over the terminal system and the world's tick continue to work
+        /// (closed items are skipped).</summary>
         public void Dispose()
         {
             if (IsDisposed)

@@ -9,7 +9,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the autopilot prerequisite gate: the NUnit x64 host can run a production-style scenario, and no production project references the test project.</summary>
+    /// <summary>Conformance of the autopilot prerequisite gate: the NUnit x64 host can run a
+    /// production-style scenario, and no production project references the test project.</summary>
     [TestFixture]
     public class PrerequisiteGateConformanceTests : FleetTestFixture
     {

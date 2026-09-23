@@ -4,7 +4,9 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Locks source-derived behaviour constants and the compatibility profile to the live-profile calibration record so neither can silently drift (source-derived values asserted exactly; representative values matched to the recorded baseline).</summary>
+    /// <summary>Locks source-derived behaviour constants and the compatibility profile to the
+    /// live-profile calibration record so neither can silently drift (source-derived values
+    /// asserted exactly; representative values matched to the recorded baseline).</summary>
     [TestFixture]
     public class LiveProfileCalibrationConformanceTests
     {

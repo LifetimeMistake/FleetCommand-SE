@@ -47,7 +47,8 @@ namespace FleetCommand.Test.Physics
 
                 using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
                 {
-                    // 16 MiB memory, log writer, profiling off, shared critical section (MySandboxGame.LoadData()).
+                    // 16 MiB memory, log writer, profiling off, shared critical section
+                    // (MySandboxGame.LoadData()).
                     HkBaseSystem.Init(16 * 1024 * 1024, s_logWriter, false, SharedSection);
                 }
 
@@ -56,7 +57,8 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>Shuts down Havok once per process; no-op on repeat calls (safe under repeated teardown).</summary>
+        /// <summary>Shuts down Havok once per process; no-op on repeat calls (safe under repeated
+        /// teardown).</summary>
         public static void Shutdown()
         {
             lock (s_lock)
@@ -76,7 +78,8 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>Minimal <see cref="ISharedCriticalSection"/>; a monitor equals the game's mutex on the single-threaded test host.</summary>
+        /// <summary>Minimal <see cref="ISharedCriticalSection"/>; a monitor equals the game's mutex
+        /// on the single-threaded test host.</summary>
         private static readonly ISharedCriticalSection SharedSection = new MonitorSharedSection();
 
         private sealed class MonitorSharedSection : ISharedCriticalSection

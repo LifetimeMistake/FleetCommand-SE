@@ -5,7 +5,12 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>Root of the simulator entity hierarchy, implementing <see cref="IMyEntity"/>: provides the identity, naming, and world-matrix surface shared by grids and blocks. <see cref="WorldMatrix"/> is abstract (a grid's transform is owned by its rigid body, a block's is derived from the grid body plus its local pose). Members outside the implemented contract throw a naming <see cref="NotSupportedException"/> rather than returning a default.</summary>
+    /// <summary>Root of the simulator entity hierarchy, implementing <see cref="IMyEntity"/>:
+    /// provides the identity, naming, and world-matrix surface shared by grids and blocks.
+    /// <see cref="WorldMatrix"/> is abstract (a grid's transform is owned by its rigid body, a
+    /// block's is derived from the grid body plus its local pose). Members outside the implemented
+    /// contract throw a naming <see cref="NotSupportedException"/> rather than returning a
+    /// default.</summary>
     public abstract class SimEntity : IMyEntity
     {
         /// <inheritdoc />
@@ -79,7 +84,8 @@ namespace FleetCommand.Test.SpaceEngineers
                 "SimEntity does not implement '" + member + "' (outside the implemented contract).");
         }
 
-        /// <summary>Throws <see cref="NotSupportedException"/> naming <paramref name="member"/>.</summary>
+        /// <summary>Throws <see cref="NotSupportedException"/> naming
+        /// <paramref name="member"/>.</summary>
         protected static T ThrowNotSupported<T>(string member)
         {
             throw NotSupported(member);

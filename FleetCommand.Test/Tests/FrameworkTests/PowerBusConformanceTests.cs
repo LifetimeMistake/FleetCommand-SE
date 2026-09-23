@@ -15,7 +15,8 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the deterministic per-ship power bus and battery supply: delivered ratio, working-state transitions, and finite depletion.</summary>
+    /// <summary>Conformance of the deterministic per-ship power bus and battery supply: delivered
+    /// ratio, working-state transitions, and finite depletion.</summary>
     [TestFixture]
     public class PowerBusConformanceTests : FleetTestFixture
     {
@@ -278,14 +279,16 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
         // — helpers —
 
-        /// <summary>Scenario-set a functional load's demand and priority on the sim surface.</summary>
+        /// <summary>Scenario-set a functional load's demand and priority on the sim
+        /// surface.</summary>
         private static void SetLoad(SimFunctionalBlock block, float demand, int priority)
         {
             block.PowerDemand = demand;
             block.PowerPriority = priority;
         }
 
-        /// <summary>An empty battery template with two functional loads at distinct cells.</summary>
+        /// <summary>An empty battery template with two functional loads at distinct
+        /// cells.</summary>
         private static ShipTemplate FiniteTwoLoadTemplate(float maxOutput, float maxStored = 100f)
         {
             return new ShipTemplate(

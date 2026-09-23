@@ -10,7 +10,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>End-to-end conformance of the remote-control autopilot and SpeedLimit, with analytic expectations.</summary>
+    /// <summary>End-to-end conformance of the remote-control autopilot and SpeedLimit, with
+    /// analytic expectations.</summary>
     [TestFixture]
     public class AutopilotConformanceTests : FleetTestFixture
     {
@@ -145,7 +146,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That((actual - expected).Length(), Is.LessThan(1e-6), message);
         }
 
-        /// <summary>A craft with a remote control, a strong gyro, and six-axis thrusters so the autopilot can translate and turn in any direction.</summary>
+        /// <summary>A craft with a remote control, a strong gyro, and six-axis thrusters so the
+        /// autopilot can translate and turn in any direction.</summary>
         private static ShipTemplate AutopilotCraft(string name)
         {
             var blocks = new List<TemplateBlock>
@@ -161,7 +163,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         private static IEnumerable<TemplateBlock> AllAxisThrusters(float max)
         {
             // forward = -axis to push +axis (force = -forward).
-            Vector3I[] pushes = { new Vector3I(1,0,0), new Vector3I(-1,0,0), new Vector3I(0,1,0), new Vector3I(0,-1,0), new Vector3I(0,0,1), new Vector3I(0,0,-1) };
+            Vector3I[] pushes = { new Vector3I(1, 0, 0), new Vector3I(-1, 0, 0), new Vector3I(0, 1, 0), new Vector3I(0, -1, 0), new Vector3I(0, 0, 1), new Vector3I(0, 0, -1) };
             string[] names = { "PX", "NX", "PY", "NY", "PZ", "NZ" };
             int idx = 3; // offset so hull/RC/G occupy 0-2
             for (int i = 0; i < pushes.Length; i++)

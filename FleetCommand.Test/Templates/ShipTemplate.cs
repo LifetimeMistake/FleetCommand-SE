@@ -4,16 +4,19 @@ using VRageMath;
 
 namespace FleetCommand.Test.Templates
 {
-    /// <summary>The block kind for physical construction; the kind's effect on mass and shape is represented here.</summary>
+    /// <summary>The block kind for physical construction; the kind's effect on mass and shape is
+    /// represented here.</summary>
     public enum BlockKind
     {
         /// <summary>An ordinary block; contributes an axis-aligned box to shape and mass.</summary>
         Standard,
 
-        /// <summary>A fixed thruster: contributes an axis-aligned box to shape and mass (applies no torque).</summary>
+        /// <summary>A fixed thruster: contributes an axis-aligned box to shape and mass (applies no
+        /// torque).</summary>
         FixedThruster,
 
-        /// <summary>A gyroscope: contributes an axis-aligned box to shape and mass; its local orientation gives the grid-space override direction.</summary>
+        /// <summary>A gyroscope: contributes an axis-aligned box to shape and mass; its local
+        /// orientation gives the grid-space override direction.</summary>
         Gyro,
 
         /// <summary>An ordinary ship controller (IMyShipController).</summary>
@@ -31,13 +34,16 @@ namespace FleetCommand.Test.Templates
         /// <summary>A text panel / LCD (IMyTextPanel).</summary>
         TextPanel,
 
-        /// <summary>A battery (IMyBatteryBlock): the ship's finite power supply for its SimPowerBus.</summary>
+        /// <summary>A battery (IMyBatteryBlock): the ship's finite power supply for its
+        /// SimPowerBus.</summary>
         Battery,
 
-        /// <summary>A reactor (IMyReactor): a second, finite power producer, giving a battery something to charge from.</summary>
+        /// <summary>A reactor (IMyReactor): a second, finite power producer, giving a battery
+        /// something to charge from.</summary>
         Reactor,
 
-        /// <summary>A ship connector (IMyShipConnector): contributes mass, and its connection frame drives world pose and capture geometry.</summary>
+        /// <summary>A ship connector (IMyShipConnector): contributes mass, and its connection frame
+        /// drives world pose and capture geometry.</summary>
         Connector,
     }
 
@@ -64,22 +70,27 @@ namespace FleetCommand.Test.Templates
         /// <summary>Optional inventory cargo mass in kilograms (0 = none).</summary>
         public float InventoryMass { get; }
 
-        /// <summary>Grid-local orientation (no effect on box mass; carried for later stages).</summary>
+        /// <summary>Grid-local orientation (no effect on box mass; carried for later
+        /// stages).</summary>
         public Quaternion Orientation { get; }
 
-        /// <summary>The block kind. Standard and fixed thrusters are physical; the rest arrive with their stages.</summary>
+        /// <summary>The block kind. Standard and fixed thrusters are physical; the rest arrive with
+        /// their stages.</summary>
         public BlockKind Kind { get; }
 
-        /// <summary>Battery / reactor maximum output power in MW (<see cref="BlockKind.Battery"/> or <see cref="BlockKind.Reactor"/>; default 0).</summary>
+        /// <summary>Battery / reactor maximum output power in MW (<see cref="BlockKind.Battery"/>
+        /// or <see cref="BlockKind.Reactor"/>; default 0).</summary>
         public float MaxOutput { get; }
 
-        /// <summary>Battery maximum charging input power in MW (<see cref="BlockKind.Battery"/>; default 0).</summary>
+        /// <summary>Battery maximum charging input power in MW (<see cref="BlockKind.Battery"/>;
+        /// default 0).</summary>
         public float MaxInput { get; }
 
         /// <summary>Battery capacity in MWh (<see cref="BlockKind.Battery"/>; default 0).</summary>
         public float MaxStoredPower { get; }
 
-        /// <summary>Battery initial charge as a fraction of <see cref="MaxStoredPower"/> (0..1, default 1 — a spawned battery starts full).</summary>
+        /// <summary>Battery initial charge as a fraction of <see cref="MaxStoredPower"/> (0..1,
+        /// default 1 — a spawned battery starts full).</summary>
         public float InitialStoredPower { get; }
 
         /// <summary>
@@ -90,7 +101,8 @@ namespace FleetCommand.Test.Templates
         /// </summary>
         public Vector3I? ThrustDirection { get; }
 
-        /// <summary>Thruster: maximum thrust at full effectiveness, in Newtons (default 0 — no thruster params).</summary>
+        /// <summary>Thruster: maximum thrust at full effectiveness, in Newtons (default 0 — no
+        /// thruster params).</summary>
         public float MaxThrust { get; }
 
         /// <summary>
@@ -99,21 +111,25 @@ namespace FleetCommand.Test.Templates
         /// </summary>
         public float Effectiveness { get; }
 
-        /// <summary>Thruster: power needed (MW) for full capability; the delivered ratio scales delivered thrust. Default 0 (ideal source).</summary>
+        /// <summary>Thruster: power needed (MW) for full capability; the delivered ratio scales
+        /// delivered thrust. Default 0 (ideal source).</summary>
         public float ThrusterPowerDemand { get; }
 
         /// <summary>
         /// Thruster: the definition's <c>SlowdownFactor</c> — the multiplier on the
         /// delivered thrust envelope in the base (manual + dampened) path
         /// (MyThrusterBlockThrustComponent :225/:240/:250; default from
-        /// <c>MyThrustDefinition</c>, :106). Defaults to 1 (see <see cref="SimThrust.SlowdownFactor"/>).
+        /// <c>MyThrustDefinition</c>, :106). Defaults to 1 (see
+        /// <see cref="SimThrust.SlowdownFactor"/>).
         /// </summary>
         public float SlowdownFactor { get; }
 
-        /// <summary>Gyro: maximum gyroscopic force at full power, in N·m; <see cref="SimGyro.MaxGyroForce"/> is this x the gyro's <c>GyroPower</c>.</summary>
+        /// <summary>Gyro: maximum gyroscopic force at full power, in N·m;
+        /// <see cref="SimGyro.MaxGyroForce"/> is this x the gyro's <c>GyroPower</c>.</summary>
         public float GyroForce { get; }
 
-        /// <summary>Gyro: power needed (MW) at full setting; the delivered ratio scales delivered torque. Default 0 (ideal source).</summary>
+        /// <summary>Gyro: power needed (MW) at full setting; the delivered ratio scales delivered
+        /// torque. Default 0 (ideal source).</summary>
         public float GyroPowerDemand { get; }
 
         /// <summary>
@@ -123,7 +139,8 @@ namespace FleetCommand.Test.Templates
         /// </summary>
         public Quaternion ConnectorOrientation { get; }
 
-        /// <summary>Connector: this block's own capture reach in meters; 0 (default) means use the physics profile's <c>ConnectorReach</c>.</summary>
+        /// <summary>Connector: this block's own capture reach in meters; 0 (default) means use the
+        /// physics profile's <c>ConnectorReach</c>.</summary>
         public float ConnectorReach { get; }
 
         /// <summary>
@@ -295,19 +312,23 @@ namespace FleetCommand.Test.Templates
         /// <summary>Physical block definitions, in deterministic spawn/declaration order.</summary>
         public IReadOnlyList<TemplateBlock> Blocks { get; }
 
-        /// <summary>True for a static (fixed, non-simulated) grid; false for a dynamic grid.</summary>
+        /// <summary>True for a static (fixed, non-simulated) grid; false for a dynamic
+        /// grid.</summary>
         public bool IsStatic { get; }
 
-        /// <summary>Per-grid linear speed cap in m/s (profile-configurable; not a live sector lookup).</summary>
+        /// <summary>Per-grid linear speed cap in m/s (profile-configurable; not a live sector
+        /// lookup).</summary>
         public float MaxLinearVelocity { get; }
 
         /// <summary>Per-grid angular speed cap in rad/s.</summary>
         public float MaxAngularVelocity { get; }
 
-        /// <summary>The grid's designated (primary) controller name, or null when none; when set it must resolve to a controller-kind block.</summary>
+        /// <summary>The grid's designated (primary) controller name, or null when none; when set it
+        /// must resolve to a controller-kind block.</summary>
         public string DesignatedControllerName { get; }
 
-        /// <summary>Named grid-local reference directions (e.g. a weapon reference axis); empty when none declared.</summary>
+        /// <summary>Named grid-local reference directions (e.g. a weapon reference axis); empty
+        /// when none declared.</summary>
         public IReadOnlyList<NamedReferenceAxis> NamedAxes { get; }
 
         /// <summary>Total dry block mass in kilograms (without inventory).</summary>

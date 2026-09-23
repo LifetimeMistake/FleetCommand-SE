@@ -9,7 +9,9 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of inertia dampening in the thrust base path — reproduces MyEntityThrustComponent.cs:1543-1656 ComputeBaseThrust via the controller route (MyShipController.cs:1780-1820).</summary>
+    /// <summary>Conformance of inertia dampening in the thrust base path — reproduces
+    /// MyEntityThrustComponent.cs:1543-1656 ComputeBaseThrust via the controller route
+    /// (MyShipController.cs:1780-1820).</summary>
     [TestFixture]
     public class DampeningConformanceTests : FleetTestFixture
     {
@@ -227,7 +229,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             };
         }
 
-        /// <summary>A craft with a controller at the origin (heavy hull) plus the given thrusters; dampeners and ControlThrusters on.</summary>
+        /// <summary>A craft with a controller at the origin (heavy hull) plus the given thrusters;
+        /// dampeners and ControlThrusters on.</summary>
         private static ShipTemplate DampeningCraft(string name, TemplateBlock[] thrusters, float hullMass = 2000f)
         {
             var blocks = new System.Collections.Generic.List<TemplateBlock>

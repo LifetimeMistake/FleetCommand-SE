@@ -11,7 +11,13 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>Base for all simulator blocks, implementing the real <see cref="IMyTerminalBlock"/> plus its <see cref="IMyCubeBlock"/> / <see cref="IMyEntity"/> parents. The block's position, orientation, mass, and local transform come from its <see cref="TemplateBlock"/>; its world transform is derived from the owning grid's rigid body plus that local pose. Custom name and custom data are settable; grid identity, same-construct identity, functional/working defaults, and the block's position mask are implemented. Every other member throws a naming <see cref="NotSupportedException"/> (no plausible defaults).</summary>
+    /// <summary>Base for all simulator blocks, implementing the real <see cref="IMyTerminalBlock"/>
+    /// plus its <see cref="IMyCubeBlock"/> / <see cref="IMyEntity"/> parents. The block's position,
+    /// orientation, mass, and local transform come from its <see cref="TemplateBlock"/>; its world
+    /// transform is derived from the owning grid's rigid body plus that local pose. Custom name and
+    /// custom data are settable; grid identity, same-construct identity, functional/working
+    /// defaults, and the block's position mask are implemented. Every other member throws a naming
+    /// <see cref="NotSupportedException"/> (no plausible defaults).</summary>
     public class SimTerminalBlock : SimEntity, IMyTerminalBlock
     {
         private readonly SimCubeGrid _grid;
@@ -34,10 +40,13 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public string DisplayNameText => CustomName;
 
-        /// <summary>Structural integrity: true while the block is intact (no damage model). Functional blocks override with a setter that also recomputes working state.</summary>
+        /// <summary>Structural integrity: true while the block is intact (no damage model).
+        /// Functional blocks override with a setter that also recomputes working state.</summary>
         public virtual bool IsFunctional { get; set; } = true;
 
-        /// <summary>True while the block is able to do its work. For a plain (non-functional) terminal block this is always true; functional blocks override with the phase-4-recomputed value.</summary>
+        /// <summary>True while the block is able to do its work. For a plain (non-functional)
+        /// terminal block this is always true; functional blocks override with the
+        /// phase-4-recomputed value.</summary>
         public virtual bool IsWorking => true;
 
         /// <inheritdoc />
@@ -52,7 +61,9 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public Vector3I Max => _template.Min + _template.Size - Vector3I.One;
 
-        /// <summary>Scenario-set inventory (cargo) mass in kilograms, starting from the template's value; callers must rebuild the grid's body mass afterwards (<see cref="FleetCommand.Test.Framework.FleetTestContext.SetInventoryMass"/>).</summary>
+        /// <summary>Scenario-set inventory (cargo) mass in kilograms, starting from the template's
+        /// value; callers must rebuild the grid's body mass afterwards
+        /// (<see cref="FleetCommand.Test.Framework.FleetTestContext.SetInventoryMass"/>).</summary>
         public float InventoryMass
         {
             get { return _inventoryMass; }
@@ -111,7 +122,9 @@ namespace FleetCommand.Test.SpaceEngineers
                 && other.CubeGrid.EntityId == _grid.EntityId;
         }
 
-        /// <summary>Closes this block (scenario / teardown). Idempotent; closed blocks are skipped by terminal-system enumeration and the world's tick rather than dereferenced (NRE guard).</summary>
+        /// <summary>Closes this block (scenario / teardown). Idempotent; closed blocks are skipped
+        /// by terminal-system enumeration and the world's tick rather than dereferenced (NRE
+        /// guard).</summary>
         public void Dispose()
         {
             IsDisposed = true;
@@ -124,7 +137,9 @@ namespace FleetCommand.Test.SpaceEngineers
             RecomputeIsWorking();
         }
 
-        /// <summary>Refreshes <see cref="IsWorking"/> from the block's state sources. The base implementation is a no-op for non-functional blocks; <see cref="SimFunctionalBlock"/> overrides it with the enablement + functionality + power recompute.</summary>
+        /// <summary>Refreshes <see cref="IsWorking"/> from the block's state sources. The base
+        /// implementation is a no-op for non-functional blocks; <see cref="SimFunctionalBlock"/>
+        /// overrides it with the enablement + functionality + power recompute.</summary>
         protected internal virtual void RecomputeIsWorking()
         {
         }

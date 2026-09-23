@@ -50,7 +50,8 @@ namespace FleetCommand.Test.Framework
             World.AddBody(body);
 
             var grid = new SimCubeGrid(id, template.Name, template.GridSize, body, World);
-            // The designated controller when the template names one; otherwise the first controller-kind block.
+            // The designated controller when the template names one; otherwise the first
+            // controller-kind block.
             SimShipController controller = null;
             foreach (TemplateBlock templateBlock in template.Blocks)
             {
@@ -79,7 +80,8 @@ namespace FleetCommand.Test.Framework
         /// <summary>
         /// Instantiates the simulator block matching a template block's kind: standard blocks
         /// become <see cref="SimTerminalBlock"/>; fixed thrusters become <see cref="SimThrust"/>
-        /// (functional blocks in the game); controllers and the PB / text panel are functional leaves.
+        /// (functional blocks in the game); controllers and the PB / text panel are functional
+        /// leaves.
         /// </summary>
         private static SimTerminalBlock CreateBlock(SimWorld world, TemplateBlock templateBlock, SimCubeGrid grid)
         {
@@ -163,7 +165,8 @@ namespace FleetCommand.Test.Framework
             return Record(sample, DefaultRecorderCapacity);
         }
 
-        /// <summary>Requests a bounded time-series recorder with a caller-specified <paramref name="capacity"/>.</summary>
+        /// <summary>Requests a bounded time-series recorder with a caller-specified
+        /// <paramref name="capacity"/>.</summary>
         public TraceRecorder<T> Record<T>(Func<FleetTestContext, T> sample, int capacity)
         {
             var recorder = new TraceRecorder<T>(sample, this, capacity);
@@ -196,13 +199,15 @@ namespace FleetCommand.Test.Framework
             block.IsFunctional = functional;
         }
 
-        /// <summary>Enables or disables the named functional block on <paramref name="ship"/>.</summary>
+        /// <summary>Enables or disables the named functional block on
+        /// <paramref name="ship"/>.</summary>
         public void SetBlockEnabled(SimShip ship, string name, bool enabled)
         {
             SetBlockEnabled(ResolveFunctional(ship, name), enabled);
         }
 
-        /// <summary>Damages or repairs the named functional block on <paramref name="ship"/>.</summary>
+        /// <summary>Damages or repairs the named functional block on
+        /// <paramref name="ship"/>.</summary>
         public void SetBlockFunctional(SimShip ship, string name, bool functional)
         {
             SetBlockFunctional(ResolveFunctional(ship, name), functional);
@@ -255,7 +260,8 @@ namespace FleetCommand.Test.Framework
             ship.Grid.RemoveBlock(block);
         }
 
-        /// <summary>Changes the grid's available electrical ratio. See <see cref="SpaceEngineers.SimPowerBus.AvailableRatio"/>.</summary>
+        /// <summary>Changes the grid's available electrical ratio. See
+        /// <see cref="SpaceEngineers.SimPowerBus.AvailableRatio"/>.</summary>
         public void SetPowerAvailableRatio(SimShip ship, float ratio)
         {
             if (ship == null)
@@ -265,7 +271,8 @@ namespace FleetCommand.Test.Framework
             ship.Grid.PowerBus.AvailableRatio = ratio;
         }
 
-        /// <summary>Changes the named reactor's fuel ratio. See <see cref="SpaceEngineers.SimReactorBlock.FuelRatio"/>.</summary>
+        /// <summary>Changes the named reactor's fuel ratio. See
+        /// <see cref="SpaceEngineers.SimReactorBlock.FuelRatio"/>.</summary>
         public void SetFuelRatio(SimShip ship, string reactorName, float ratio)
         {
             if (ship == null)
@@ -303,7 +310,8 @@ namespace FleetCommand.Test.Framework
             block.Grid.RebuildBodyMass();
         }
 
-        /// <summary>Skips the next Update1 callback without skipping physics — models a missed update.</summary>
+        /// <summary>Skips the next Update1 callback without skipping physics — models a missed
+        /// update.</summary>
         public void SkipNextUpdate1()
         {
             World.SuppressNextUpdate1();
@@ -315,7 +323,8 @@ namespace FleetCommand.Test.Framework
             World.Targets.Set(name, snapshot, World.Clock.Tick);
         }
 
-        /// <summary>Stops refreshing <paramref name="name"/> so its snapshot becomes stale.</summary>
+        /// <summary>Stops refreshing <paramref name="name"/> so its snapshot becomes
+        /// stale.</summary>
         public void StopRefreshingTarget(string name)
         {
             World.Targets.StopRefreshing(name);

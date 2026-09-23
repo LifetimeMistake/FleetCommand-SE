@@ -11,7 +11,8 @@ namespace FleetCommand.Test.Physics
         /// <summary>The owning body's stable numeric id.</summary>
         public long BodyId { get; internal set; }
 
-        /// <summary>World-visible position of the grid origin (computed from origin + local).</summary>
+        /// <summary>World-visible position of the grid origin (computed from origin +
+        /// local).</summary>
         public Vector3D PositionWorld { get; set; }
 
         /// <summary>World orientation of the grid origin.</summary>
@@ -37,13 +38,15 @@ namespace FleetCommand.Test.Physics
             AngularVelocity = angularVelocity;
         }
 
-        /// <summary>Creates a state at <paramref name="positionWorld"/>, identity orientation, at rest.</summary>
+        /// <summary>Creates a state at <paramref name="positionWorld"/>, identity orientation, at
+        /// rest.</summary>
         public static SimRigidBodyState At(Vector3D positionWorld)
         {
             return new SimRigidBodyState(0, positionWorld, QuaternionD.Identity, Vector3D.Zero, Vector3.Zero);
         }
 
-        /// <summary>Creates a state at <paramref name="positionWorld"/> with the given orientation, at rest.</summary>
+        /// <summary>Creates a state at <paramref name="positionWorld"/> with the given orientation,
+        /// at rest.</summary>
         public static SimRigidBodyState At(Vector3D positionWorld, QuaternionD orientation)
         {
             return new SimRigidBodyState(0, positionWorld, orientation, Vector3D.Zero, Vector3.Zero);

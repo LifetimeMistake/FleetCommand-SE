@@ -25,10 +25,12 @@ namespace FleetCommand.Test.Physics
         /// <summary>The scenario origin this body's coordinates are relative to.</summary>
         public Vector3D ScenarioOrigin { get; }
 
-        /// <summary>The rigid body's mass in kilograms (0 for static bodies after Havok fix-up).</summary>
+        /// <summary>The rigid body's mass in kilograms (0 for static bodies after Havok
+        /// fix-up).</summary>
         public float Mass => _rigidBody == null ? 0f : _rigidBody.Mass;
 
-        /// <summary>True once <see cref="Dispose"/> has run (the wrapped native body may be gone).</summary>
+        /// <summary>True once <see cref="Dispose"/> has run (the wrapped native body may be
+        /// gone).</summary>
         public bool IsDisposed => _disposed;
 
         /// <summary>Center of mass in grid-local meters (ground truth).</summary>
@@ -59,7 +61,8 @@ namespace FleetCommand.Test.Physics
         /// </summary>
         public float MaxLinearVelocity => _maxLinearVelocity;
 
-        /// <summary>Inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in the grid-local frame, matching the game's read (MyGridGyroSystem.cs:293).</summary>
+        /// <summary>Inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in the grid-local frame,
+        /// matching the game's read (MyGridGyroSystem.cs:293).</summary>
         public Vector3 InverseInertiaDiagonal => _inverseInertiaDiagonal;
 
         /// <summary>World transform of the grid origin, derived from the body pose.</summary>
@@ -73,7 +76,8 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>The wrapped Havok rigid body (internal; the public surface is the state and pose).</summary>
+        /// <summary>The wrapped Havok rigid body (internal; the public surface is the state and
+        /// pose).</summary>
         internal HkRigidBody Body => _rigidBody;
 
         private readonly Vector3D _origin;
@@ -105,7 +109,8 @@ namespace FleetCommand.Test.Physics
             IsDynamic = isDynamic;
         }
 
-        /// <summary>Builds the compound shape and mass properties from <paramref name="template"/> and constructs the body from <paramref name="initialState"/>.</summary>
+        /// <summary>Builds the compound shape and mass properties from <paramref name="template"/>
+        /// and constructs the body from <paramref name="initialState"/>.</summary>
         public static SimRigidBody Create(
             long id,
             ShipTemplate template,
@@ -157,7 +162,8 @@ namespace FleetCommand.Test.Physics
 
                 body._rigidBody = new HkRigidBody(info);
 
-                // Collision layer: 15 is the default grid layer, 19 the no-collision layer (MyPhysicsBody.cs:1414-1418).
+                // Collision layer: 15 is the default grid layer, 19 the no-collision layer
+                // (MyPhysicsBody.cs:1414-1418).
                 body._rigidBody.Layer = profile.CollisionResponse ? 15 : 19;
 
                 body._localPosition = (Vector3)(initialState.PositionWorld - scenarioOrigin);
@@ -190,7 +196,8 @@ namespace FleetCommand.Test.Physics
             {
                 var box = new HkBoxShape(block.HalfExtents);
                 compound.AddInstance(box, Matrix.CreateTranslation(block.CenterLocal));
-                // AddInstance takes no child reference (HavokWrapper); retain it for release in Dispose.
+                // AddInstance takes no child reference (HavokWrapper); retain it for release in
+                // Dispose.
                 _childShapes.Add(box.Base);
             }
             compound.Bake();
@@ -198,7 +205,8 @@ namespace FleetCommand.Test.Physics
             return compound.Base;
         }
 
-        /// <summary>Writes the body back from a world state (scenario setup and ground-truth injection).</summary>
+        /// <summary>Writes the body back from a world state (scenario setup and ground-truth
+        /// injection).</summary>
         public void SetState(in SimRigidBodyState state)
         {
             if (_disposed)
@@ -292,7 +300,8 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>Applies a world-frame linear impulse (N·s) at the body's center of mass.</summary>
+        /// <summary>Applies a world-frame linear impulse (N·s) at the body's center of
+        /// mass.</summary>
         public void ApplyLinearImpulse(Vector3 impulse)
         {
             using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
@@ -301,7 +310,8 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>Applies a world-frame angular impulse (N·m·s) about the body's center of mass.</summary>
+        /// <summary>Applies a world-frame angular impulse (N·m·s) about the body's center of
+        /// mass.</summary>
         public void ApplyAngularImpulse(Vector3 impulse)
         {
             using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
@@ -348,7 +358,8 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>Reads position, orientation, and velocities back from Havok after a physics step.</summary>
+        /// <summary>Reads position, orientation, and velocities back from Havok after a physics
+        /// step.</summary>
         internal void SynchronizeFromHavok()
         {
             _localPosition = _rigidBody.Position;

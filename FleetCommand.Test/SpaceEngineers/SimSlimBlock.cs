@@ -7,7 +7,11 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>Thin slim-block view returned by <see cref="SimCubeGrid.GetCubeBlock"/> for the grid's block-membership surface: wraps the fat terminal block and reports position, grid, fat block, and mass. Integrity, damage, deformation, stockpile, color, and skin data are not modeled (no damage model) and those members throw a naming <see cref="NotSupportedException"/>.</summary>
+    /// <summary>Thin slim-block view returned by <see cref="SimCubeGrid.GetCubeBlock"/> for the
+    /// grid's block-membership surface: wraps the fat terminal block and reports position, grid,
+    /// fat block, and mass. Integrity, damage, deformation, stockpile, color, and skin data are not
+    /// modeled (no damage model) and those members throw a naming
+    /// <see cref="NotSupportedException"/>.</summary>
     public sealed class SimSlimBlock : IMySlimBlock
     {
         private readonly SimTerminalBlock _fat;

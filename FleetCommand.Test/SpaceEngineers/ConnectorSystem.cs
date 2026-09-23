@@ -7,10 +7,21 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>The connector docking capture logic: the deterministic, configurable capture gates that decide when two unconnected connectors become <c>Connectable</c>. The game's live docking search is a complex physics proximity scan; the framework models capture as four discrete gates (separation, opposing-axis angular error, relative linear velocity at the connector points, relative angular velocity), with thresholds from the world's <see cref="SePhysicsProfile"/>, so docking tests can distinguish approach convergence, capture readiness, and an actual connection deterministically. Driven each tick by <see cref="SimWorld"/> in phase 5; the <see cref="SimShipConnector"/> stores the mutually-captured result (capture always pairs peer connectors so an eligible pair is both Connectable).</summary>
+    /// <summary>The connector docking capture logic: the deterministic, configurable capture gates
+    /// that decide when two unconnected connectors become <c>Connectable</c>. The game's live
+    /// docking search is a complex physics proximity scan; the framework models capture as four
+    /// discrete gates (separation, opposing-axis angular error, relative linear velocity at the
+    /// connector points, relative angular velocity), with thresholds from the world's
+    /// <see cref="SePhysicsProfile"/>, so docking tests can distinguish approach convergence,
+    /// capture readiness, and an actual connection deterministically. Driven each tick by
+    /// <see cref="SimWorld"/> in phase 5; the <see cref="SimShipConnector"/> stores the
+    /// mutually-captured result (capture always pairs peer connectors so an eligible pair is both
+    /// Connectable).</summary>
     internal static class ConnectorSystem
     {
-        /// <summary>Evaluates the capture gates over all unconnected connectors in deterministic order, marking eligible unconnected pairs as mutually captured. Connectors on the same grid are never docking partners (the framework models cross-grid docking).</summary>
+        /// <summary>Evaluates the capture gates over all unconnected connectors in deterministic
+        /// order, marking eligible unconnected pairs as mutually captured. Connectors on the same
+        /// grid are never docking partners (the framework models cross-grid docking).</summary>
         public static void EvaluateCapture(IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
         {
             if (connectors == null)
@@ -53,7 +64,11 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>The four capture gates. A pair passes when all of: separation ≤ min of the two connectors' effective reach and the profile reach; opposing-axis angular error ≤ <c>profile.ConnectorAngularErrorMax</c>; relative linear velocity at the connector points ≤ <c>profile.ConnectorLinearVelocityMax</c>; relative angular velocity ≤ <c>profile.ConnectorAngularVelocityMax</c>.</summary>
+        /// <summary>The four capture gates. A pair passes when all of: separation ≤ min of the two
+        /// connectors' effective reach and the profile reach; opposing-axis angular error ≤
+        /// <c>profile.ConnectorAngularErrorMax</c>; relative linear velocity at the connector
+        /// points ≤ <c>profile.ConnectorLinearVelocityMax</c>; relative angular velocity ≤
+        /// <c>profile.ConnectorAngularVelocityMax</c>.</summary>
         public static bool CapturePasses(SimShipConnector a, SimShipConnector b, SePhysicsProfile profile)
         {
             // 1. Separation gate.
@@ -132,7 +147,11 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The frame-tie maximum torsion acceleration (rad/s^2).</summary>
         internal static float FrameTieMaxAcceleration => ApproachRotAmax;
 
-        /// <summary>Starts the approach for a connectable pair (the game's <c>TryAttach</c>→<c>CreateConstraint</c>, MyShipConnector.cs:1478-1520, :1882): the master (higher EntityId, the game's <c>GetMaster</c>) drives the convergence. If the pair is already effectively touching and aligned, it locks immediately instead.</summary>
+        /// <summary>Starts the approach for a connectable pair (the game's
+        /// <c>TryAttach</c>→<c>CreateConstraint</c>, MyShipConnector.cs:1478-1520, :1882): the
+        /// master (higher EntityId, the game's <c>GetMaster</c>) drives the convergence. If the
+        /// pair is already effectively touching and aligned, it locks immediately
+        /// instead.</summary>
         public static void BeginApproach(SimShipConnector a, SimShipConnector b)
         {
             SimShipConnector master = a.Grid.EntityId >= b.Grid.EntityId ? a : b;
@@ -146,7 +165,8 @@ namespace FleetCommand.Test.SpaceEngineers
             slave.SetApproach(master, null);
         }
 
-        /// <summary>Cancels an in-progress approach (release): both connectors return to a clean, unconnected, free state (no residual constraint).</summary>
+        /// <summary>Cancels an in-progress approach (release): both connectors return to a clean,
+        /// unconnected, free state (no residual constraint).</summary>
         public static void CancelApproach(SimShipConnector c)
         {
             SimShipConnector master = (c.ApproachMasterInternal != null && !ReferenceEquals(c.ApproachMasterInternal, c))
@@ -162,7 +182,12 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>Tick phase 6: apply the approach convergence — a pull on each body at its connector connection frame, driving the connector frames to coincidence — matching the game's <c>CreateConstraint</c> magnet (a fixed constraint at the two connector frames, MyShipConnector.cs:1882). The off-COM force couples translation and rotation: the torque r × F rotates the connect axes into alignment as a consequence of the dynamics, not by command. Only the master drives; deterministic.</summary>
+        /// <summary>Tick phase 6: apply the approach convergence — a pull on each body at its
+        /// connector connection frame, driving the connector frames to coincidence — matching the
+        /// game's <c>CreateConstraint</c> magnet (a fixed constraint at the two connector frames,
+        /// MyShipConnector.cs:1882). The off-COM force couples translation and rotation: the torque
+        /// r × F rotates the connect axes into alignment as a consequence of the dynamics, not by
+        /// command. Only the master drives; deterministic.</summary>
         public static void ApplyApproach(IReadOnlyList<SimShipConnector> connectors)
         {
             if (connectors == null)
@@ -249,7 +274,13 @@ namespace FleetCommand.Test.SpaceEngineers
             FrameRotationalTie(a, b, ba, bb, (float)TickClock.FixedStep);
         }
 
-        /// <summary>Restores the two connection frames to coincident orientation: a torsion spring on the RELATIVE frame-orientation error (target: the connect axes anti-parallel), applied as an equal-and-opposite angular impulse to the two bodies scaled by the reduced rotational inertia about the error axis. Because the correction acts only on the relative DOF and adds no net angular impulse, it is intrinsically stable — the physical counterpart of the positional magnet (the fixed constraint ties both position and orientation of the frames).</summary>
+        /// <summary>Restores the two connection frames to coincident orientation: a torsion spring
+        /// on the RELATIVE frame-orientation error (target: the connect axes anti-parallel),
+        /// applied as an equal-and-opposite angular impulse to the two bodies scaled by the reduced
+        /// rotational inertia about the error axis. Because the correction acts only on the
+        /// relative DOF and adds no net angular impulse, it is intrinsically stable — the physical
+        /// counterpart of the positional magnet (the fixed constraint ties both position and
+        /// orientation of the frames).</summary>
         private static void FrameRotationalTie(
             SimShipConnector a, SimShipConnector b, SimRigidBody ba, SimRigidBody bb, float dt)
         {
@@ -299,7 +330,10 @@ namespace FleetCommand.Test.SpaceEngineers
             return len > cap ? v / len * cap : v;
         }
 
-        /// <summary>Tick phase 8: once an approaching pair has converged (separation within the profile's approach gap and axes anti-parallel within the approach angle, at low relative velocity), the master creates the final fixed constraint and both become Connected.</summary>
+        /// <summary>Tick phase 8: once an approaching pair has converged (separation within the
+        /// profile's approach gap and axes anti-parallel within the approach angle, at low relative
+        /// velocity), the master creates the final fixed constraint and both become
+        /// Connected.</summary>
         public static void AdvanceApproach(IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
         {
             if (connectors == null || profile == null)

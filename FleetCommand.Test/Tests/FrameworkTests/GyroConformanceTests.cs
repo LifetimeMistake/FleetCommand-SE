@@ -11,7 +11,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the gyro block and grid gyro-rate system: channel signs, override ramp, saturation, angular-rate cap, and power scaling.</summary>
+    /// <summary>Conformance of the gyro block and grid gyro-rate system: channel signs, override
+    /// ramp, saturation, angular-rate cap, and power scaling.</summary>
     [TestFixture]
     public class GyroConformanceTests : FleetTestFixture
     {
@@ -546,7 +547,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }));
         }
 
-        /// <summary>A single gyro block at the grid origin (a clean symmetric cube for the analytic scenario).</summary>
+        /// <summary>A single gyro block at the grid origin (a clean symmetric cube for the analytic
+        /// scenario).</summary>
         private static ShipTemplate GyroCubeCraft(float gyroForce)
         {
             return new ShipTemplate("gyro-cube", 2.5f, new[]
@@ -593,7 +595,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             });
         }
 
-        /// <summary>An orientation that maps the block's local +X onto <paramref name="gridAxis"/>.</summary>
+        /// <summary>An orientation that maps the block's local +X onto
+        /// <paramref name="gridAxis"/>.</summary>
         private static Quaternion RotateLocalXTo(Vector3 gridAxis)
         {
             Vector3 from = Vector3.Right;

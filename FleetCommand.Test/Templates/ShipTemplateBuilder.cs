@@ -11,7 +11,8 @@ namespace FleetCommand.Test.Templates
     /// </summary>
     public static class ShipTemplateModel
     {
-        /// <summary>The maximum supported grid-local cell coordinate magnitude (each axis).</summary>
+        /// <summary>The maximum supported grid-local cell coordinate magnitude (each
+        /// axis).</summary>
         public const int MaxGridCells = 10000;
     }
 
@@ -143,7 +144,8 @@ namespace FleetCommand.Test.Templates
             return this;
         }
 
-        /// <summary>Adds a gyroscope of the given maximum gyro force (N·m); its grid-local orientation gives its override axes.</summary>
+        /// <summary>Adds a gyroscope of the given maximum gyro force (N·m); its grid-local
+        /// orientation gives its override axes.</summary>
         public ShipTemplateBuilder AddGyro(string blockName, Vector3I min, float gyroForce,
             float dryMass = 100f, Quaternion? orientation = null, float gyroPowerDemand = 0f)
         {
@@ -259,7 +261,8 @@ namespace FleetCommand.Test.Templates
 
         // — configuration —
 
-        /// <summary>Designates <paramref name="blockName"/> as the primary controller (must be present at Build).</summary>
+        /// <summary>Designates <paramref name="blockName"/> as the primary controller (must be
+        /// present at Build).</summary>
         public ShipTemplateBuilder WithController(string blockName)
         {
             CheckNotFrozen();
@@ -292,7 +295,8 @@ namespace FleetCommand.Test.Templates
             return this;
         }
 
-        /// <summary>Removes the block with the given name (for variant derivation); throws if no such block exists.</summary>
+        /// <summary>Removes the block with the given name (for variant derivation); throws if no
+        /// such block exists.</summary>
         public ShipTemplateBuilder RemoveBlock(string blockName)
         {
             CheckNotFrozen();

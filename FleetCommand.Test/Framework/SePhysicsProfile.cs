@@ -19,7 +19,8 @@ namespace FleetCommand.Test.Framework
         /// <summary>Maximum angular velocity (rad/s) applied to each dynamic rigid body.</summary>
         public float MaxAngularVelocity { get; }
 
-        /// <summary>Linear damping for dynamic bodies; zero unless a profile specifies it.</summary>
+        /// <summary>Linear damping for dynamic bodies; zero unless a profile specifies
+        /// it.</summary>
         public float LinearDamping { get; }
 
         /// <summary>Angular damping for dynamic bodies; zero by default.</summary>
@@ -28,25 +29,32 @@ namespace FleetCommand.Test.Framework
         /// <summary>Whether rigid-body collision response is enabled by default.</summary>
         public bool CollisionResponse { get; }
 
-        /// <summary>Connector capture: max separation (m) between connector points; effective threshold is the min of this and each connector's reach.</summary>
+        /// <summary>Connector capture: max separation (m) between connector points; effective
+        /// threshold is the min of this and each connector's reach.</summary>
         public float ConnectorReach { get; }
 
-        /// <summary>Connector capture: max opposing-axis angular error (rad) of the connect axes.</summary>
+        /// <summary>Connector capture: max opposing-axis angular error (rad) of the connect
+        /// axes.</summary>
         public float ConnectorAngularErrorMax { get; }
 
-        /// <summary>Connector capture: max relative linear velocity (m/s) at the connector points.</summary>
+        /// <summary>Connector capture: max relative linear velocity (m/s) at the connector
+        /// points.</summary>
         public float ConnectorLinearVelocityMax { get; }
 
-        /// <summary>Connector capture: max relative angular velocity (rad/s) between the connector bodies.</summary>
+        /// <summary>Connector capture: max relative angular velocity (rad/s) between the connector
+        /// bodies.</summary>
         public float ConnectorAngularVelocityMax { get; }
 
-        /// <summary>Connector approach: separation (m) below which the final fixed lock (Connected) is created; set above resting contact separation.</summary>
+        /// <summary>Connector approach: separation (m) below which the final fixed lock (Connected)
+        /// is created; set above resting contact separation.</summary>
         public float ConnectorApproachGap { get; }
 
-        /// <summary>Connector approach: opposing-axis angular error (rad) below which the final fixed lock is created.</summary>
+        /// <summary>Connector approach: opposing-axis angular error (rad) below which the final
+        /// fixed lock is created.</summary>
         public float ConnectorApproachAngle { get; }
 
-        /// <summary>Remote-control autopilot: distance (m) to the current waypoint below which it is considered reached (waypoint advance radius).</summary>
+        /// <summary>Remote-control autopilot: distance (m) to the current waypoint below which it
+        /// is considered reached (waypoint advance radius).</summary>
         public float AutopilotArrivalDistance { get; }
 
         public SePhysicsProfile(
@@ -83,7 +91,8 @@ namespace FleetCommand.Test.Framework
             AutopilotArrivalDistance = autopilotArrivalDistance;
         }
 
-        /// <summary>The initial, always-available profile: representative default speed caps, zero damping, collision enabled.</summary>
+        /// <summary>The initial, always-available profile: representative default speed caps, zero
+        /// damping, collision enabled.</summary>
         public static readonly SePhysicsProfile Default = new SePhysicsProfile(
             "SpaceEngineers-Default",
             maxLinearVelocity: 100f,

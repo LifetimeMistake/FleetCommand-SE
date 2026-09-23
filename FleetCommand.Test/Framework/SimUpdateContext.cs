@@ -9,7 +9,8 @@ namespace FleetCommand.Test.Framework
     /// </summary>
     public sealed class SimUpdateContext
     {
-        /// <summary>Simulation time (s) at the start of the current tick; an exact multiple of 1/60 s.</summary>
+        /// <summary>Simulation time (s) at the start of the current tick; an exact multiple of 1/60
+        /// s.</summary>
         public double Time { get; }
 
         /// <summary>

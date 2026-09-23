@@ -30,7 +30,8 @@ namespace FleetCommand.Test.Observations
         /// <summary>Delivered torque (grid frame, N·m) applied in the last interval.</summary>
         public Vector3 DeliveredTorque;
 
-        /// <summary>True when the last applied torque was clamped by the gyro-force sphere.</summary>
+        /// <summary>True when the last applied torque was clamped by the gyro-force
+        /// sphere.</summary>
         public bool Saturated;
 
         /// <summary>Captures the grid's current actuator state.</summary>

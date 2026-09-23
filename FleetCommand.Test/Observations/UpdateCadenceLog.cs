@@ -32,7 +32,9 @@ namespace FleetCommand.Test.Observations
         }
     }
 
-    /// <summary>A short rolling log of recent <see cref="UpdateInvocation"/>s, keeping cadence and command-application intervals observable in failure output. Backed by a <see cref="RingBuffer{T}"/>.</summary>
+    /// <summary>A short rolling log of recent <see cref="UpdateInvocation"/>s, keeping cadence and
+    /// command-application intervals observable in failure output. Backed by a
+    /// <see cref="RingBuffer{T}"/>.</summary>
     public sealed class UpdateCadenceLog
     {
         private readonly RingBuffer<UpdateInvocation> _ring;

@@ -7,7 +7,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the failure ring buffer: it fills on an uncaught component exception, carries recent actuator history, and is bounded.</summary>
+    /// <summary>Conformance of the failure ring buffer: it fills on an uncaught component
+    /// exception, carries recent actuator history, and is bounded.</summary>
     [TestFixture]
     public class FailureRingBufferConformanceTests : FleetTestFixture
     {

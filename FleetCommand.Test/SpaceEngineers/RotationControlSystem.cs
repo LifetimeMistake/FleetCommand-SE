@@ -4,7 +4,18 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>The grid's controller rotation control: the rotational analog of <see cref="BaseControlSystem"/>. When an (under-control, working) ship controller with the <see cref="SimShipController.ControlGyros"/> gate on writes its <see cref="SimShipController.RotationIndicator"/> / <see cref="SimShipController.RollIndicator"/>, this converts them into a grid-frame angular command exactly as <c>MyShipController.MoveAndRotate</c> (:1816-1824) does — <c>RotationIndicator/20</c> (ClampToSphere 1) and <c>RollIndicator · 0.2</c>, negated, transformed by the block's orientation — and writes it into <see cref="GyroRateSystem.ControlTorque"/>. Last-under-control-wins matches the game's per-frame assignment (<c>m_gridGyroSystem.ControlTorque = vector3</c>), not an accumulation; with no contributing controller the command is reset to zero so a stale rotation does not persist.</summary>
+    /// <summary>The grid's controller rotation control: the rotational analog of
+    /// <see cref="BaseControlSystem"/>. When an (under-control, working) ship controller with the
+    /// <see cref="SimShipController.ControlGyros"/> gate on writes its
+    /// <see cref="SimShipController.RotationIndicator"/> /
+    /// <see cref="SimShipController.RollIndicator"/>, this converts them into a grid-frame angular
+    /// command exactly as <c>MyShipController.MoveAndRotate</c> (:1816-1824) does —
+    /// <c>RotationIndicator/20</c> (ClampToSphere 1) and <c>RollIndicator · 0.2</c>, negated,
+    /// transformed by the block's orientation — and writes it into
+    /// <see cref="GyroRateSystem.ControlTorque"/>. Last-under-control-wins matches the game's
+    /// per-frame assignment (<c>m_gridGyroSystem.ControlTorque = vector3</c>), not an accumulation;
+    /// with no contributing controller the command is reset to zero so a stale rotation does not
+    /// persist.</summary>
     public sealed class RotationControlSystem
     {
         private readonly SimCubeGrid _grid;
@@ -16,10 +27,12 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid grid (ship) this rotation-control system serves.</summary>
         public SimCubeGrid Grid => _grid;
 
-        /// <summary>The grid-frame command written to <see cref="GyroRateSystem.ControlTorque"/> on the last <see cref="ComputeControlTorque"/>.</summary>
+        /// <summary>The grid-frame command written to <see cref="GyroRateSystem.ControlTorque"/> on
+        /// the last <see cref="ComputeControlTorque"/>.</summary>
         public Vector3 LastControlTorque => _lastControlTorque;
 
-        /// <summary>True when an under-control controller drove the rotation on the last <see cref="ComputeControlTorque"/>.</summary>
+        /// <summary>True when an under-control controller drove the rotation on the last
+        /// <see cref="ComputeControlTorque"/>.</summary>
         public bool RotationActive => _rotationActive;
 
         internal RotationControlSystem(SimCubeGrid grid)
@@ -41,7 +54,8 @@ namespace FleetCommand.Test.SpaceEngineers
             _controllers.Add(controller);
         }
 
-        /// <summary>Removes a ship controller from the rotation-control path (scenario block removal).</summary>
+        /// <summary>Removes a ship controller from the rotation-control path (scenario block
+        /// removal).</summary>
         internal void UnregisterController(SimShipController controller)
         {
             if (controller != null)
@@ -50,7 +64,10 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>Tick phase 5 (before <see cref="GyroRateSystem.ApplyTorque"/>): reproduce <c>MyShipController.MoveAndRotate</c>'s rotation block (:1816-1824) from the under-control controllers, gated on <see cref="SimShipController.ControlGyros"/>, and write the result into <see cref="GyroRateSystem.ControlTorque"/>.</summary>
+        /// <summary>Tick phase 5 (before <see cref="GyroRateSystem.ApplyTorque"/>): reproduce
+        /// <c>MyShipController.MoveAndRotate</c>'s rotation block (:1816-1824) from the
+        /// under-control controllers, gated on <see cref="SimShipController.ControlGyros"/>, and
+        /// write the result into <see cref="GyroRateSystem.ControlTorque"/>.</summary>
         public void ComputeControlTorque()
         {
             _lastControlTorque = Vector3.Zero;

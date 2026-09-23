@@ -15,10 +15,12 @@ namespace FleetCommand.Test.Framework
         /// <summary>The current monotonic tick. Starts at zero; never goes backwards.</summary>
         public long Tick { get; private set; }
 
-        /// <summary>Simulation time in seconds, an exact multiple of <see cref="FixedStep"/>.</summary>
+        /// <summary>Simulation time in seconds, an exact multiple of
+        /// <see cref="FixedStep"/>.</summary>
         public double Time => Tick * FixedStep;
 
-        /// <summary>Elapsed interval in seconds for <paramref name="steps"/> fixed steps; derived from step count, not wall-clock.</summary>
+        /// <summary>Elapsed interval in seconds for <paramref name="steps"/> fixed steps; derived
+        /// from step count, not wall-clock.</summary>
         public double TimeSinceLastRun(long steps) => steps * FixedStep;
 
         /// <summary>Advances the clock by one fixed step.</summary>
@@ -39,7 +41,8 @@ namespace FleetCommand.Test.Framework
         /// <summary>True when <paramref name="tick"/> is an Update100 cadence tick.</summary>
         public bool IsUpdate100Due(long tick) => tick % 100 == 0;
 
-        /// <summary>Whether a callback at <paramref name="frequency"/> is due on <paramref name="tick"/> (Update1 every tick; others on cadence).</summary>
+        /// <summary>Whether a callback at <paramref name="frequency"/> is due on
+        /// <paramref name="tick"/> (Update1 every tick; others on cadence).</summary>
         public bool IsUpdateDue(UpdateFrequency frequency, long tick)
         {
             if (frequency == UpdateFrequency.None)

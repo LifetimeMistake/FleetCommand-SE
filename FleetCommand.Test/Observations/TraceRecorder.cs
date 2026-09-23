@@ -5,7 +5,8 @@ using FleetCommand.Test.Framework;
 
 namespace FleetCommand.Test.Observations
 {
-    /// <summary>A sampler the world invokes each tick in phase 9 so time-series values can be captured.</summary>
+    /// <summary>A sampler the world invokes each tick in phase 9 so time-series values can be
+    /// captured.</summary>
     internal interface ITickSampler
     {
         /// <summary>Samples the current completed state (tick phase 9).</summary>
@@ -68,7 +69,8 @@ namespace FleetCommand.Test.Observations
             _ring.Push(value);
         }
 
-        /// <summary>The sample at <paramref name="index"/>, oldest first (index 0 = earliest retained).</summary>
+        /// <summary>The sample at <paramref name="index"/>, oldest first (index 0 = earliest
+        /// retained).</summary>
         public T this[int index] => _ring[index];
 
         /// <summary>The most recent sample.</summary>
@@ -81,13 +83,15 @@ namespace FleetCommand.Test.Observations
             return _ring.Last();
         }
 
-        /// <summary>The maximum of the most recent <paramref name="n"/> samples (or all if fewer).</summary>
+        /// <summary>The maximum of the most recent <paramref name="n"/> samples (or all if
+        /// fewer).</summary>
         public T MaximumOverLast(int n)
         {
             return ExtremeOverLast(n, maximum: true);
         }
 
-        /// <summary>The minimum of the most recent <paramref name="n"/> samples (or all if fewer).</summary>
+        /// <summary>The minimum of the most recent <paramref name="n"/> samples (or all if
+        /// fewer).</summary>
         public T MinimumOverLast(int n)
         {
             return ExtremeOverLast(n, maximum: false);
@@ -117,7 +121,8 @@ namespace FleetCommand.Test.Observations
             return best;
         }
 
-        /// <summary>The arithmetic mean of the most recent <paramref name="n"/> samples (numeric <c>T</c> only).</summary>
+        /// <summary>The arithmetic mean of the most recent <paramref name="n"/> samples (numeric
+        /// <c>T</c> only).</summary>
         public double AverageOverLast(int n)
         {
             if (_ring.Count == 0)

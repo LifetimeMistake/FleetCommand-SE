@@ -12,7 +12,8 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the programmable-block runtime, explicit execution hooks, storage, and text-panel text writes/reads.</summary>
+    /// <summary>Conformance of the programmable-block runtime, explicit execution hooks, storage,
+    /// and text-panel text writes/reads.</summary>
     [TestFixture]
     public class RuntimeProgrammableBlockTextPanelConformanceTests : FleetTestFixture
     {

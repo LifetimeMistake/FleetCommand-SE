@@ -13,7 +13,8 @@ namespace FleetCommand.Test.Shared
     /// </summary>
     public static class DeterminismHelper
     {
-        /// <summary>Runs the scenario twice, once per fresh world, returning both outcomes.</summary>
+        /// <summary>Runs the scenario twice, once per fresh world, returning both
+        /// outcomes.</summary>
         public static (T First, T Second) RunTwice<T>(Func<FleetTestContext, T> scenario)
         {
             T first = RunOnce(scenario);

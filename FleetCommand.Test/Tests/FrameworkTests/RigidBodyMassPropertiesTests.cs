@@ -9,7 +9,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the rigid body's mass, center of mass, and inertia against independent analytic formulas and the parallel-axis theorem.</summary>
+    /// <summary>Conformance of the rigid body's mass, center of mass, and inertia against
+    /// independent analytic formulas and the parallel-axis theorem.</summary>
     [TestFixture]
     public class RigidBodyMassPropertiesTests : FleetTestFixture
     {

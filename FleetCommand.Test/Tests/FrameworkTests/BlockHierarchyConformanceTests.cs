@@ -17,7 +17,8 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the entity → terminal-block → functional-block hierarchy and block contracts.</summary>
+    /// <summary>Conformance of the entity → terminal-block → functional-block hierarchy and block
+    /// contracts.</summary>
     [TestFixture]
     public class BlockHierarchyConformanceTests : FleetTestFixture
     {

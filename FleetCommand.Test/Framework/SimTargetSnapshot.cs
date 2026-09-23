@@ -20,7 +20,8 @@ namespace FleetCommand.Test.Framework
         /// <summary>World linear velocity of the target.</summary>
         public Vector3D Velocity;
 
-        /// <summary>True once <see cref="SimTargetStore.StopRefreshing"/> marked it stale.</summary>
+        /// <summary>True once <see cref="SimTargetStore.StopRefreshing"/> marked it
+        /// stale.</summary>
         public bool IsStale;
 
         /// <summary>The tick on which this snapshot was last set.</summary>
@@ -59,7 +60,8 @@ namespace FleetCommand.Test.Framework
         /// <summary>The number of named targets currently held.</summary>
         public int Count => _targets.Count;
 
-        /// <summary>Publishes (or replaces) <paramref name="name"/> with a fresh snapshot.</summary>
+        /// <summary>Publishes (or replaces) <paramref name="name"/> with a fresh
+        /// snapshot.</summary>
         public void Set(string name, SimTargetSnapshot snapshot, long tick)
         {
             if (string.IsNullOrEmpty(name))
@@ -71,7 +73,8 @@ namespace FleetCommand.Test.Framework
             _targets[name] = snapshot;
         }
 
-        /// <summary>Marks <paramref name="name"/>'s snapshot stale (a target that stopped being updated); no-op when unknown.</summary>
+        /// <summary>Marks <paramref name="name"/>'s snapshot stale (a target that stopped being
+        /// updated); no-op when unknown.</summary>
         public void StopRefreshing(string name)
         {
             if (string.IsNullOrEmpty(name))

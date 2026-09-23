@@ -3,7 +3,9 @@ using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>A cockpit implementing <see cref="IMyCockpit"/>: extends <see cref="SimShipController"/> and has no modeled text surfaces; oxygen members throw <see cref="NotSupportedException"/>.</summary>
+    /// <summary>A cockpit implementing <see cref="IMyCockpit"/>: extends
+    /// <see cref="SimShipController"/> and has no modeled text surfaces; oxygen members throw
+    /// <see cref="NotSupportedException"/>.</summary>
     public sealed class SimCockpit : SimShipController, IMyCockpit
     {
         public SimCockpit(long entityId, string name, SimCubeGrid grid, TemplateBlock template)

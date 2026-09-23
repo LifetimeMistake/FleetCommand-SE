@@ -14,7 +14,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the scheduled mutation surface: each mutation type applies its effect deterministically at its scheduled tick.</summary>
+    /// <summary>Conformance of the scheduled mutation surface: each mutation type applies its
+    /// effect deterministically at its scheduled tick.</summary>
     [TestFixture]
     public class ScheduledMutationConformanceTests : FleetTestFixture
     {

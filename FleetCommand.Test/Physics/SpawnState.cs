@@ -28,7 +28,8 @@ namespace FleetCommand.Test.Physics
             AngularVelocity = angularVelocity;
         }
 
-        /// <summary>A spawn state at <paramref name="position"/> with the given orientation, at rest.</summary>
+        /// <summary>A spawn state at <paramref name="position"/> with the given orientation, at
+        /// rest.</summary>
         public static SpawnState At(Vector3D position, MatrixD orientation)
         {
             QuaternionD quat;
@@ -36,13 +37,15 @@ namespace FleetCommand.Test.Physics
             return new SpawnState(position, quat, Vector3D.Zero, Vector3.Zero);
         }
 
-        /// <summary>A spawn state at <paramref name="position"/> with the given orientation, at rest.</summary>
+        /// <summary>A spawn state at <paramref name="position"/> with the given orientation, at
+        /// rest.</summary>
         public static SpawnState At(Vector3D position, QuaternionD orientation)
         {
             return new SpawnState(position, orientation, Vector3D.Zero, Vector3.Zero);
         }
 
-        /// <summary>A spawn state at <paramref name="position"/> with identity orientation, at rest.</summary>
+        /// <summary>A spawn state at <paramref name="position"/> with identity orientation, at
+        /// rest.</summary>
         public static SpawnState At(Vector3D position)
         {
             return new SpawnState(position, QuaternionD.Identity, Vector3D.Zero, Vector3.Zero);
@@ -60,7 +63,8 @@ namespace FleetCommand.Test.Physics
             return new SpawnState(Position, Orientation, LinearVelocity, angularVelocity);
         }
 
-        /// <summary>Converts this spawn state to a rigid-body state (body id assigned by the caller).</summary>
+        /// <summary>Converts this spawn state to a rigid-body state (body id assigned by the
+        /// caller).</summary>
         public SimRigidBodyState ToBodyState(long bodyId)
         {
             return new SimRigidBodyState(bodyId, Position, Orientation, LinearVelocity, AngularVelocity);

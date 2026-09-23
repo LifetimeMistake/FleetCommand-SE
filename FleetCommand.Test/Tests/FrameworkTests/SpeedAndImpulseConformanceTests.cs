@@ -9,7 +9,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the linear velocity cap and the rigid-body angular impulse response (Ω = I⁻¹·J about principal and mixed axes), both analytic.</summary>
+    /// <summary>Conformance of the linear velocity cap and the rigid-body angular impulse response
+    /// (Ω = I⁻¹·J about principal and mixed axes), both analytic.</summary>
     [TestFixture]
     public class SpeedAndImpulseConformanceTests : FleetTestFixture
     {

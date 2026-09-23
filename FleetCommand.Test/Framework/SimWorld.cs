@@ -17,16 +17,19 @@ namespace FleetCommand.Test.Framework
     /// </summary>
     public sealed class SimWorld : IDisposable
     {
-        /// <summary>The deterministic clock; time is derived from ticks, never wall-clock.</summary>
+        /// <summary>The deterministic clock; time is derived from ticks, never
+        /// wall-clock.</summary>
         public TickClock Clock { get; }
 
         /// <summary>The active physics compatibility profile.</summary>
         public SePhysicsProfile Profile { get; }
 
-        /// <summary>Fixed scenario origin for numeric locality; world-visible positions are origin + local float offset.</summary>
+        /// <summary>Fixed scenario origin for numeric locality; world-visible positions are origin
+        /// + local float offset.</summary>
         public Vector3D ScenarioOrigin { get; }
 
-        /// <summary>Natural gravity field owned by this world; defaults to <see cref="SimGravityField.Zero"/>.</summary>
+        /// <summary>Natural gravity field owned by this world; defaults to
+        /// <see cref="SimGravityField.Zero"/>.</summary>
         public SimGravityField Gravity { get; private set; }
 
         /// <summary>
@@ -36,7 +39,8 @@ namespace FleetCommand.Test.Framework
         /// </summary>
         public FailureRingBuffer FailureLog { get; }
 
-        /// <summary>A short rolling log of recent Update1 callback invocations — cadence and command-application intervals — for observation and failure output.</summary>
+        /// <summary>A short rolling log of recent Update1 callback invocations — cadence and
+        /// command-application intervals — for observation and failure output.</summary>
         public UpdateCadenceLog UpdateCadence { get; }
 
         /// <summary>The number of opt-in time-series recorders currently sampling.</summary>
@@ -52,7 +56,8 @@ namespace FleetCommand.Test.Framework
         /// <summary>The world's named guidance-target snapshot register.</summary>
         public SimTargetStore Targets { get; }
 
-        /// <summary>The rigid bodies the world owns, in deterministic insertion (spawn) order.</summary>
+        /// <summary>The rigid bodies the world owns, in deterministic insertion (spawn)
+        /// order.</summary>
         public IReadOnlyList<SimRigidBody> Bodies => _bodies;
 
         /// <summary>The grids the world owns, in deterministic spawn order.</summary>
@@ -128,13 +133,15 @@ namespace FleetCommand.Test.Framework
             Gravity = gravity ?? SimGravityField.Zero;
         }
 
-        /// <summary>Sets the environmental atmosphere effectiveness in [0, 1]; 0 means no atmospheric thrust. Clamped.</summary>
+        /// <summary>Sets the environmental atmosphere effectiveness in [0, 1]; 0 means no
+        /// atmospheric thrust. Clamped.</summary>
         public void SetAtmosphereEffectiveness(float ratio)
         {
             AtmosphereEffectiveness = ratio < 0f ? 0f : ratio > 1f ? 1f : ratio;
         }
 
-        /// <summary>Registers an opt-in time-series recorder to sample each tick (phase 9).</summary>
+        /// <summary>Registers an opt-in time-series recorder to sample each tick (phase
+        /// 9).</summary>
         internal void RegisterSampler(ITickSampler sampler)
         {
             if (sampler == null)
@@ -150,7 +157,8 @@ namespace FleetCommand.Test.Framework
             return _nextEntityId++;
         }
 
-        /// <summary>Registers a rigid body with the world (spawn). Deterministic insertion order.</summary>
+        /// <summary>Registers a rigid body with the world (spawn). Deterministic insertion
+        /// order.</summary>
         internal void AddBody(SimRigidBody body)
         {
             if (body == null)
@@ -179,7 +187,8 @@ namespace FleetCommand.Test.Framework
             _grids.Add(grid);
         }
 
-        /// <summary>Registers a functional block so phase 4 can recompute its working state each tick.</summary>
+        /// <summary>Registers a functional block so phase 4 can recompute its working state each
+        /// tick.</summary>
         internal void RegisterFunctionalBlock(SimFunctionalBlock block)
         {
             if (block == null)
@@ -189,7 +198,8 @@ namespace FleetCommand.Test.Framework
             _functionalBlocks.Add(block);
         }
 
-        /// <summary>Registers a connector so phase 5 can evaluate docking capture each tick.</summary>
+        /// <summary>Registers a connector so phase 5 can evaluate docking capture each
+        /// tick.</summary>
         internal void RegisterConnector(SimShipConnector connector)
         {
             if (connector == null)
@@ -199,7 +209,8 @@ namespace FleetCommand.Test.Framework
             _connectors.Add(connector);
         }
 
-        /// <summary>Removes a functional block from the phase-4 recompute list (scenario block removal).</summary>
+        /// <summary>Removes a functional block from the phase-4 recompute list (scenario block
+        /// removal).</summary>
         internal void UnregisterFunctionalBlock(SimFunctionalBlock block)
         {
             if (block != null)
@@ -208,7 +219,8 @@ namespace FleetCommand.Test.Framework
             }
         }
 
-        /// <summary>Removes a connector from the phase-5 capture registry (scenario block removal).</summary>
+        /// <summary>Removes a connector from the phase-5 capture registry (scenario block
+        /// removal).</summary>
         internal void UnregisterConnector(SimShipConnector connector)
         {
             if (connector != null)
@@ -217,7 +229,8 @@ namespace FleetCommand.Test.Framework
             }
         }
 
-        /// <summary>Adds a rigid constraint (e.g. a connector's fixed constraint) to the world.</summary>
+        /// <summary>Adds a rigid constraint (e.g. a connector's fixed constraint) to the
+        /// world.</summary>
         internal void AddConstraint(HkConstraint constraint)
         {
             using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
@@ -339,7 +352,8 @@ namespace FleetCommand.Test.Framework
             _updateCallbacks.Add(new UpdateCallback(action));
         }
 
-        /// <summary>Suppresses the next Update1 without advancing fewer physics steps — models a missed update. One-shot.</summary>
+        /// <summary>Suppresses the next Update1 without advancing fewer physics steps — models a
+        /// missed update. One-shot.</summary>
         public void SuppressNextUpdate1()
         {
             _suppressNextUpdate1 = true;
@@ -516,7 +530,8 @@ namespace FleetCommand.Test.Framework
                     grid.ForceAggregator.ApplyThrust(dt);
                 }
             }
-            // Apply each grid's ONE resultant body-space angular impulse from the gyro override loop.
+            // Apply each grid's ONE resultant body-space angular impulse from the gyro override
+            // loop.
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];

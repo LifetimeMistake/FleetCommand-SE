@@ -12,7 +12,8 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the fixed thruster and grid thrust aggregation: linear impulse response, axis aggregation, power scaling, and COM application.</summary>
+    /// <summary>Conformance of the fixed thruster and grid thrust aggregation: linear impulse
+    /// response, axis aggregation, power scaling, and COM application.</summary>
     [TestFixture]
     public class ThrusterConformanceTests : FleetTestFixture
     {
@@ -447,7 +448,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             return new ShipTemplate(name, 2.5f, blocks);
         }
 
-        /// <summary>A fixed thruster template block; the direction is the block's grid-body FORWARD (exhaust) axis, and the grid is pushed opposite it.</summary>
+        /// <summary>A fixed thruster template block; the direction is the block's grid-body FORWARD
+        /// (exhaust) axis, and the grid is pushed opposite it.</summary>
         private static TemplateBlock Thruster(string name, Vector3I cell, Vector3I forward,
             float maxThrust, float effectiveness = 1f, float powerDemand = 0f)
         {
@@ -456,7 +458,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 effectiveness: effectiveness, powerDemand: powerDemand);
         }
 
-        /// <summary>The asymmetric fixture: thrusters pushing +X (Main 60 kN, Aux 40 kN) and -Y (Down 80 kN), with no push on -X or Z, expressed as data.</summary>
+        /// <summary>The asymmetric fixture: thrusters pushing +X (Main 60 kN, Aux 40 kN) and -Y
+        /// (Down 80 kN), with no push on -X or Z, expressed as data.</summary>
         private static ShipTemplate AsymmetricCraft()
         {
             return HullPlusThrusters("asym", hullMass: 2000f,

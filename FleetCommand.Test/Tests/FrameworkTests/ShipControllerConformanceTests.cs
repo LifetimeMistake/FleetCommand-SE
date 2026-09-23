@@ -11,7 +11,9 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the ship controller surface, with the load-bearing frame conventions (world-frame velocities, gravity, body-to-world pose) verified against ground truth.</summary>
+    /// <summary>Conformance of the ship controller surface, with the load-bearing frame conventions
+    /// (world-frame velocities, gravity, body-to-world pose) verified against ground
+    /// truth.</summary>
     [TestFixture]
     public class ShipControllerConformanceTests : FleetTestFixture
     {

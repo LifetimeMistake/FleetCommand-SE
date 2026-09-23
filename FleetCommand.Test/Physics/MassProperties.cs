@@ -33,7 +33,8 @@ namespace FleetCommand.Test.Physics
             InverseInertiaTensor = inverseInertiaTensor;
         }
 
-        /// <summary>Combines a template's blocks (dry + inventory mass) into one body's mass properties.</summary>
+        /// <summary>Combines a template's blocks (dry + inventory mass) into one body's mass
+        /// properties.</summary>
         public static MassProperties FromShipTemplate(ShipTemplate template)
         {
             if (template == null)
@@ -69,7 +70,8 @@ namespace FleetCommand.Test.Physics
             return FromMassElements(elements);
         }
 
-        /// <summary>Combines grid-local box mass elements with Havok, mirroring the game's combine path.</summary>
+        /// <summary>Combines grid-local box mass elements with Havok, mirroring the game's combine
+        /// path.</summary>
         public static MassProperties FromMassElements(IEnumerable<HkMassElement> massElements)
         {
             if (massElements == null)
@@ -136,7 +138,8 @@ namespace FleetCommand.Test.Physics
             public Vector3 CenterLocal;
         }
 
-        /// <summary>Solid box inertia about its own center: m/3·(hy²+hz²) about X, symmetrically.</summary>
+        /// <summary>Solid box inertia about its own center: m/3·(hy²+hz²) about X,
+        /// symmetrically.</summary>
         public static MatrixD BoxInertiaAboutCenter(double mass, Vector3 halfExtents)
         {
             double hx = halfExtents.X, hy = halfExtents.Y, hz = halfExtents.Z;
@@ -147,7 +150,8 @@ namespace FleetCommand.Test.Physics
             return result;
         }
 
-        /// <summary>Parallel-axis transfer for a point mass displaced by <paramref name="offset"/>: m·(|r|²·E − r·rᵀ).</summary>
+        /// <summary>Parallel-axis transfer for a point mass displaced by <paramref name="offset"/>:
+        /// m·(|r|²·E − r·rᵀ).</summary>
         public static MatrixD ParallelAxisTransfer(double mass, Vector3D offset)
         {
             double r2 = offset.LengthSquared();
@@ -186,7 +190,8 @@ namespace FleetCommand.Test.Physics
             matrix.M31 = 0; matrix.M32 = 0; matrix.M33 = 0;
         }
 
-        /// <summary>Inverts the upper-left 3x3 by adjugate; the analytic inverse-inertia reference.</summary>
+        /// <summary>Inverts the upper-left 3x3 by adjugate; the analytic inverse-inertia
+        /// reference.</summary>
         public static Matrix Inverse3x3(Matrix matrix)
         {
             double a = matrix.M11, b = matrix.M12, c = matrix.M13;

@@ -12,7 +12,8 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of the connector block, docking capture gates, and the fixed rigid linkage.</summary>
+    /// <summary>Conformance of the connector block, docking capture gates, and the fixed rigid
+    /// linkage.</summary>
     [TestFixture]
     public class ConnectorConformanceTests : FleetTestFixture
     {
@@ -586,7 +587,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             return (SimShipConnector)ship.TerminalSystem.GetBlockWithName("C");
         }
 
-        /// <summary>A small-grid craft with a heavy hull and one connector on the face it faces; connOrient reorients the connect face.</summary>
+        /// <summary>A small-grid craft with a heavy hull and one connector on the face it faces;
+        /// connOrient reorients the connect face.</summary>
         private static ShipTemplate ConnectorCraft(string name, float hullMass, Quaternion? connOrient = null, float reach = 0f)
         {
             Vector3I connCell;
@@ -623,7 +625,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }, maxLinearVelocity: 100f, maxAngularVelocity: 10f);
         }
 
-        /// <summary>A rotation mapping the connection frame's local forward (0,0,-1) onto <paramref name="target"/>.</summary>
+        /// <summary>A rotation mapping the connection frame's local forward (0,0,-1) onto
+        /// <paramref name="target"/>.</summary>
         private static Quaternion RotateForwardTo(Vector3 target)
         {
             Vector3 from = new Vector3(0, 0, -1f);
@@ -658,7 +661,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That((a - b).Length(), Is.LessThan(tol), message);
         }
 
-        /// <summary>Steps the world until the connector and its approach partner converge and lock (Connected).</summary>
+        /// <summary>Steps the world until the connector and its approach partner converge and lock
+        /// (Connected).</summary>
         private static void ConvergeToConnected(SimShipConnector connector)
         {
             SimWorld world = connector.Grid.World;
@@ -761,7 +765,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }
         }
 
-        /// <summary>An independent rigid-body state for the analytic off-COM law integrator in ApproachAnalytic.</summary>
+        /// <summary>An independent rigid-body state for the analytic off-COM law integrator in
+        /// ApproachAnalytic.</summary>
         private struct AnalyticBody
         {
             public Vector3D Position;      // grid root, world
@@ -835,7 +840,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }
         }
 
-        /// <summary>A first-principles integration of the connector magnet law (central off-COM spring + torsional tie), for measuring the sim's approach.</summary>
+        /// <summary>A first-principles integration of the connector magnet law (central off-COM
+        /// spring + torsional tie), for measuring the sim's approach.</summary>
         private static class ApproachAnalytic
         {
             static readonly float Wn = ConnectorSystem.MagnetNaturalFrequency;

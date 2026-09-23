@@ -43,7 +43,8 @@ namespace FleetCommand.Test.Framework
             Fc = null;
         }
 
-        /// <summary>Writes final state + recent actuator history to NUnit output when the test failed.</summary>
+        /// <summary>Writes final state + recent actuator history to NUnit output when the test
+        /// failed.</summary>
         private static void WriteFailureDiagnostics(FleetTestContext fc)
         {
             var world = fc.World;

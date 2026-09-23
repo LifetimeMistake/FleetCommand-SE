@@ -4,7 +4,11 @@ using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>A reactor implementing <see cref="IMyReactor"/> (extends <see cref="IMyPowerProducer"/>) as the battery's peer finite producer: produces up to <see cref="MaxOutput"/> while enabled and functional (modelled always fueled), only as much as the grid actually draws (per <c>SourceComp.CurrentOutput</c>), and has no capacity to drain (<see cref="Draw"/> records output only).</summary>
+    /// <summary>A reactor implementing <see cref="IMyReactor"/> (extends
+    /// <see cref="IMyPowerProducer"/>) as the battery's peer finite producer: produces up to
+    /// <see cref="MaxOutput"/> while enabled and functional (modelled always fueled), only as much
+    /// as the grid actually draws (per <c>SourceComp.CurrentOutput</c>), and has no capacity to
+    /// drain (<see cref="Draw"/> records output only).</summary>
     public sealed class SimReactorBlock : SimFunctionalBlock, IMyReactor, SimPowerSource
     {
         private float _currentOutput;
@@ -29,15 +33,20 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>Maximum output power in MW (from the template).</summary>
         public float MaxOutput { get; }
 
-        /// <summary>Scenario-side fuel availability in [0, 1]; multiplier on the reactor's available output (a depleted rod produces proportionally less; 0 when out of fuel). Default 1.</summary>
+        /// <summary>Scenario-side fuel availability in [0, 1]; multiplier on the reactor's
+        /// available output (a depleted rod produces proportionally less; 0 when out of fuel).
+        /// Default 1.</summary>
         public float FuelRatio { get; set; } = 1f;
 
-        /// <summary>Ratio of current output to maximum output (0 when <see cref="MaxOutput"/> is 0).</summary>
+        /// <summary>Ratio of current output to maximum output (0 when <see cref="MaxOutput"/> is
+        /// 0).</summary>
         public float CurrentOutputRatio => MaxOutput > 0f ? CurrentOutput / MaxOutput : 0f;
 
         // — supply behaviour (bus surface) —
 
-        /// <summary>The maximum power this reactor can serve on one fixed step: <see cref="MaxOutput"/> times <see cref="FuelRatio"/> while enabled and functional.</summary>
+        /// <summary>The maximum power this reactor can serve on one fixed step:
+        /// <see cref="MaxOutput"/> times <see cref="FuelRatio"/> while enabled and
+        /// functional.</summary>
         public float AvailableOutput(float dtSeconds)
         {
             if (!Enabled || !IsFunctional)
@@ -48,7 +57,9 @@ namespace FleetCommand.Test.SpaceEngineers
             return MaxOutput * ratio;
         }
 
-        /// <summary>Supplies up to <paramref name="power"/> MW for this step, bounded by <see cref="AvailableOutput"/>; records and returns the actually delivered output. No capacity, so nothing is depleted.</summary>
+        /// <summary>Supplies up to <paramref name="power"/> MW for this step, bounded by
+        /// <see cref="AvailableOutput"/>; records and returns the actually delivered output. No
+        /// capacity, so nothing is depleted.</summary>
         public float Draw(float power, float dtSeconds)
         {
             float cap = AvailableOutput(dtSeconds);
