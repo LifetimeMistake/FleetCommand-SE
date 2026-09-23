@@ -489,9 +489,11 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.Aggregate();
                 }
             }
-            // Evaluate connector docking capture over the deterministic registry, so a
-            // connector's Connectable state is established before actuation each tick.
-            ConnectorSystem.EvaluateCapture(_connectors, Profile);
+            // Run the connector docking lifecycle over the deterministic registry: auto-detect +
+            // attach, maintain the approach's malleable hinge, and weld on contact — the game's
+            // UpdateBeforeSimulation10 (before the physics step), so a constraint created this
+            // tick is solved by this tick's Havok step.
+            ConnectorSystem.Tick(_connectors, Profile);
         }
 
         private void Phase6_ApplyImpulses()
@@ -540,9 +542,6 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.ApplyTorque(dt);
                 }
             }
-            // Apply connector approach convergence (magnetic pull at the connector points
-            // + axis alignment) for any approaching pre-lock pair.
-            ConnectorSystem.ApplyApproach(_connectors);
         }
 
         private void Phase7_AdvancePhysics()
@@ -610,9 +609,6 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.UpdateGyroTelemetry();
                 }
             }
-            // Advance the connector approach: a converged approaching pair is locked
-            // (final fixed constraint, both Connected) once the connectors meet.
-            ConnectorSystem.AdvanceApproach(_connectors, Profile);
         }
 
         private void Phase9_SampleAndEvaluate()

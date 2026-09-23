@@ -151,8 +151,13 @@ namespace FleetCommand.Test.Templates
         public Quaternion ConnectorOrientation { get; }
 
         /// <summary>Connector: this block's own capture reach in meters; 0 (default) means use the
-        /// physics profile's <c>ConnectorReach</c>.</summary>
+        /// physics profile's default detection.</summary>
         public float ConnectorReach { get; }
+
+        /// <summary>Connector: the pull strength in [0, 1] (the connector's <c>Strength</c>
+        /// slider, MyShipConnector.cs:845-869); the pair's minimum drives the approach hinge's
+        /// hold. Template-default 1.</summary>
+        public float ConnectorStrength { get; }
 
         /// <summary>
         /// Grid-local center in meters: ((Min + Max) · 0.5) · GridSize,
@@ -187,6 +192,7 @@ namespace FleetCommand.Test.Templates
             float effectiveness = 1f, float powerDemand = 0f,
             float gyroForce = 0f, float gyroPowerDemand = 0f,
             Quaternion? connectorOrientation = null, float connectorReach = 0f,
+            float connectorStrength = 1f,
             float slowdownFactor = 1f,
             float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f)
         {
@@ -212,6 +218,10 @@ namespace FleetCommand.Test.Templates
             {
                 throw new ArgumentOutOfRangeException(nameof(effectiveness), "Effectiveness must be in [0, 1].");
             }
+            if (connectorStrength < 0f || connectorStrength > 1f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(connectorStrength), "Connector strength must be in [0, 1].");
+            }
 
             Name = name;
             Min = min;
@@ -232,6 +242,7 @@ namespace FleetCommand.Test.Templates
             GyroPowerDemand = gyroPowerDemand;
             ConnectorOrientation = connectorOrientation ?? Quaternion.Identity;
             ConnectorReach = connectorReach;
+            ConnectorStrength = connectorStrength;
             SlowdownFactor = slowdownFactor;
             InitialFuel = initialFuel;
             FuelConsumptionPerSecond = fuelConsumptionPerSecond;

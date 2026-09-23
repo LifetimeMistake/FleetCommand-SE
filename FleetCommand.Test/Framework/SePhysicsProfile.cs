@@ -38,29 +38,24 @@ namespace FleetCommand.Test.Framework
         /// <summary>Whether rigid-body collision response is enabled by default.</summary>
         public bool CollisionResponse { get; }
 
-        /// <summary>Connector capture: max separation (m) between connector points; effective
-        /// threshold is the min of this and each connector's reach.</summary>
-        public float ConnectorReach { get; }
+        /// <summary>Connector auto-attach gate: the squared distance (m^2) between the two
+        /// connection positions must be below this for TryAttach to create the approach
+        /// constraint. The game's literal value (MyShipConnector.cs:1486) —
+        /// <c>(vector3D2 - vector3D).LengthSquared() &lt; 0.3499999940395355</c> — so the two
+        /// faces must be within ≈0.59 m.</summary>
+        public float ConnectorAttachSeparationSquared { get; }
 
-        /// <summary>Connector capture: max opposing-axis angular error (rad) of the connect
-        /// axes.</summary>
-        public float ConnectorAngularErrorMax { get; }
+        /// <summary>Connector approach-keep: if the squared distance between the two connection
+        /// positions rises above this while approaching (not yet welded), the pair is detached.
+        /// The game's literal value (MyShipConnector.cs:1574) — LengthSquared &gt; 0.5 — so the
+        /// pair must stay within ≈0.7 m.</summary>
+        public float ConnectorKeepSeparationSquared { get; }
 
-        /// <summary>Connector capture: max relative linear velocity (m/s) at the connector
-        /// points.</summary>
-        public float ConnectorLinearVelocityMax { get; }
-
-        /// <summary>Connector capture: max relative angular velocity (rad/s) between the connector
-        /// bodies.</summary>
-        public float ConnectorAngularVelocityMax { get; }
-
-        /// <summary>Connector approach: separation (m) below which the final fixed lock (Connected)
-        /// is created; set above resting contact separation.</summary>
-        public float ConnectorApproachGap { get; }
-
-        /// <summary>Connector approach: opposing-axis angular error (rad) below which the final
-        /// fixed lock is created.</summary>
-        public float ConnectorApproachAngle { get; }
+        /// <summary>Connector auto-attach orientation gate: the angle between the two connect
+        /// directions (in world) must exceed this for the faces to be considered opposed. The
+        /// game's literal value (MyShipConnector.cs:1488, :1492) — <c>3π/4</c> (135°), i.e. the
+        /// connect directions opposed within 45°.</summary>
+        public float ConnectorOpposingAngle { get; }
 
         /// <summary>Remote-control autopilot: distance (m) to the current waypoint below which it
         /// is considered reached (waypoint advance radius).</summary>
@@ -74,12 +69,9 @@ namespace FleetCommand.Test.Framework
             float linearDamping = 0f,
             float angularDamping = 0f,
             bool collisionResponse = true,
-            float connectorReach = 2.5f,
-            float connectorAngularErrorMax = 0.174533f,
-            float connectorLinearVelocityMax = 0.5f,
-            float connectorAngularVelocityMax = 0.5f,
-            float connectorApproachGap = 0.2f,
-            float connectorApproachAngle = 0.02f,
+            float connectorAttachSeparationSquared = 0.35f,
+            float connectorKeepSeparationSquared = 0.5f,
+            float connectorOpposingAngle = 2.356194490192345f,
             float autopilotArrivalDistance = 3f)
         {
             if (string.IsNullOrEmpty(name))
@@ -93,12 +85,9 @@ namespace FleetCommand.Test.Framework
             LinearDamping = linearDamping;
             AngularDamping = angularDamping;
             CollisionResponse = collisionResponse;
-            ConnectorReach = connectorReach;
-            ConnectorAngularErrorMax = connectorAngularErrorMax;
-            ConnectorLinearVelocityMax = connectorLinearVelocityMax;
-            ConnectorAngularVelocityMax = connectorAngularVelocityMax;
-            ConnectorApproachGap = connectorApproachGap;
-            ConnectorApproachAngle = connectorApproachAngle;
+            ConnectorAttachSeparationSquared = connectorAttachSeparationSquared;
+            ConnectorKeepSeparationSquared = connectorKeepSeparationSquared;
+            ConnectorOpposingAngle = connectorOpposingAngle;
             AutopilotArrivalDistance = autopilotArrivalDistance;
         }
 

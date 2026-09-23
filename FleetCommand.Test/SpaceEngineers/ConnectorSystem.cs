@@ -1,456 +1,226 @@
 using System;
 using System.Collections.Generic;
-using FleetCommand.Common;
 using FleetCommand.Test.Framework;
-using FleetCommand.Test.Physics;
 using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>The connector docking capture logic: the deterministic, configurable capture gates
-    /// that decide when two unconnected connectors become <c>Connectable</c>. The game's live
-    /// docking search is a complex physics proximity scan; the framework models capture as four
-    /// discrete gates (separation, opposing-axis angular error, relative linear velocity at the
-    /// connector points, relative angular velocity), with thresholds from the world's
-    /// <see cref="SePhysicsProfile"/>, so docking tests can distinguish approach convergence,
-    /// capture readiness, and an actual connection deterministically. Driven each tick by
-    /// <see cref="SimWorld"/> in phase 5; the <see cref="SimShipConnector"/> stores the
-    /// mutually-captured result (capture always pairs peer connectors so an eligible pair is both
-    /// Connectable).</summary>
+    /// <summary>The connector docking lifecycle: a faithful port of the game's algorithm from
+    /// <c>MyShipConnector.UpdateBeforeSimulation10</c> (auto-detect + TryAttach) plus the
+    /// per-tick approach-keep and the weld — the real game uses Havok's malleable hinge for the
+    /// approach and a fixed constraint for the weld, both authored here and driven by the world's
+    /// Havok solver; there is no hand-written spring. Driven each tick by <see cref="SimWorld"/>
+    /// in phase 5 (after power recompute, so <see cref="SimFunctionalBlock.IsWorking"/> is
+    /// fresh); <see cref="SimShipConnector"/> stores the paired/connected result.</summary>
     internal static class ConnectorSystem
     {
-        /// <summary>Evaluates the capture gates over all unconnected connectors in deterministic
-        /// order, marking eligible unconnected pairs as mutually captured. Connectors on the same
-        /// grid are never docking partners (the framework models cross-grid docking).</summary>
-        public static void EvaluateCapture(IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
+        /// <summary>The auto-attach separation gate (m^2): the two connection positions must be
+        /// within this before TryAttach creates the approach constraint — the game's literal
+        /// <c>LengthSquared() &lt; 0.3499999940395355</c> (MyShipConnector.cs:1486), so the
+        /// faces must be within ≈0.59 m. Kept configurable via the profile.</summary>
+        internal static float AttachSeparationSquared(SePhysicsProfile profile)
+        {
+            return profile.ConnectorAttachSeparationSquared;
+        }
+
+        /// <summary>The approach-keep gate (m^2): while approaching (not yet welded) the pair
+        /// detaches if the connection positions drift beyond this — the game's literal
+        /// <c>LengthSquared() &gt; 0.5</c> (MyShipConnector.cs:1574), so the pair must stay
+        /// within ≈0.7 m. Kept configurable via the profile.</summary>
+        internal static float KeepSeparationSquared(SePhysicsProfile profile)
+        {
+            return profile.ConnectorKeepSeparationSquared;
+        }
+
+        /// <summary>
+        /// The weld-on-contact threshold (m^2) below which an approaching pair is considered to
+        /// have made contact and is welded. <b>Approximation:</b> the game welds when the two
+        /// grids physically collide (the connector faces seat together under the hinge); the sim has
+        /// no separate grid-collision contact signal, so it welds when the hinge has drawn the two
+        /// connection faces to within this small separation. It is an order of magnitude tighter
+        /// than the attach gate (0.35 sq, 0.59 m) and the keep range (0.5 sq, 0.7 m) so it
+        /// only fires once the faces have genuinely met. This is the one place a value had to be
+        /// chosen for the approach-to-weld transition (see report).
+        /// </summary>
+        internal const float ContactSeparationSquared = 0.01f; // 10 cm face-to-face
+
+        /// <summary>Runs the per-tick connector lifecycle over the deterministic registry —
+        /// the game's <c>UpdateBeforeSimulation10</c> (:1537-1580): detach a now-unworking or
+        /// drifted pair, maintain the approach's malleable strength, weld on contact, and
+        /// auto-attach unpaired working connectors whose faces are within range.</summary>
+        public static void Tick(IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
         {
             if (connectors == null)
             {
-                throw new ArgumentNullException(nameof(connectors));
-            }
-            if (profile == null)
-            {
-                throw new ArgumentNullException(nameof(profile));
-            }
-
-            for (int i = 0; i < connectors.Count; i++)
-            {
-                connectors[i].ResetCapture();
+                return;
             }
             for (int i = 0; i < connectors.Count; i++)
             {
-                SimShipConnector a = connectors[i];
-                if (a.Closed || a.ConnectedInternal || !a.IsWorking)
+                SimShipConnector c = connectors[i];
+                if (c.Closed)
                 {
                     continue;
                 }
-                for (int j = i + 1; j < connectors.Count; j++)
+                if (!c.IsWorking)
                 {
-                    SimShipConnector b = connectors[j];
-                    if (b.Closed || b.ConnectedInternal || !b.IsWorking)
+                    // Game :1548-1558: a not-working connector detaches whenever it is in a
+                    // constraint and not yet welded, or welded once it is no longer functional or
+                    // enabled (a purely unpowered but otherwise-sound weld is kept).
+                    if (c.InConstraint && (!c.ConnectedInternal || !c.IsFunctional || !c.Enabled))
                     {
-                        continue;
+                        c.DetachLink();
                     }
-                    if (ReferenceEquals(a.Grid, b.Grid))
+                    continue;
+                }
+                if (c.InConstraint)
+                {
+                    if (!c.ConnectedInternal)
                     {
-                        continue;
+                        // Approach-keep (:1559-1578): the master live-updates the malleable
+                        // strength to the pair's effective value; if the faces drift beyond the
+                        // keep range the pair came apart and is detached; otherwise, when the
+                        // faces have met, weld.
+                        if (c.IsMaster)
+                        {
+                            c.UpdateApproachStrength();
+                        }
+                        SimShipConnector other = c.PartnerInternal;
+                        float sepSq = (float)(c.WorldPosition - other.WorldPosition).LengthSquared();
+                        if (sepSq > KeepSeparationSquared(profile))
+                        {
+                            c.DetachLink();
+                        }
+                        else if (sepSq < ContactSeparationSquared)
+                        {
+                            c.WeldPair();
+                        }
                     }
-                    if (CapturePasses(a, b, profile))
-                    {
-                        a.MarkCaptured(b);
-                        b.MarkCaptured(a);
-                    }
+                    continue;
+                }
+                // Not in a constraint and working: try to attach, exactly as the game's
+                // UpdateBeforeSimulation10 drove TryAttach for working, Enabled,
+                // connector-mode connectors (:1543-1546).
+                if (c.Enabled)
+                {
+                    TryAttach(c, connectors, profile);
                 }
             }
         }
 
-        /// <summary>The four capture gates. A pair passes when all of: separation ≤ min of the two
-        /// connectors' effective reach and the profile reach; opposing-axis angular error ≤
-        /// <c>profile.ConnectorAngularErrorMax</c>; relative linear velocity at the connector
-        /// points ≤ <c>profile.ConnectorLinearVelocityMax</c>; relative angular velocity ≤
-        /// <c>profile.ConnectorAngularVelocityMax</c>.</summary>
-        public static bool CapturePasses(SimShipConnector a, SimShipConnector b, SePhysicsProfile profile)
+        /// <summary>The game's <c>TryAttach</c> (MyShipConnector.cs:1478-1517): find another
+        /// connector within detection reach; when it passes the attach gates, the master
+        /// (<c>GetMaster</c>) creates the malleable approach constraint.</summary>
+        private static void TryAttach(SimShipConnector c, IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
         {
-            // 1. Separation gate.
-            float separation = (float)(a.WorldPosition - b.WorldPosition).Length();
-            float reach = Math.Min(profile.ConnectorReach, Math.Min(a.EffectiveReach, b.EffectiveReach));
-            if (separation > reach)
+            SimShipConnector other = FindOtherConnector(c, connectors, profile);
+            if (other == null)
+            {
+                return;
+            }
+            if (AttachPasses(c, other, profile))
+            {
+                // The master (GetMaster) creates the approach constraint with the other
+                // connector as the slave (game TryAttach :1494-1505: if master==this,
+                // CreateConstraint(the other); else the other creates it with this).
+                SimShipConnector master = GetMaster(c, other);
+                SimShipConnector slave = ReferenceEquals(master, c) ? other : c;
+                master.AttachAsMaster(slave);
+            }
+        }
+
+        /// <summary>Finds this connector's pairing candidate: the nearest other connector within
+        /// its detector sphere (the game's <c>FindOtherConnector</c>, MyShipConnector.cs:1826 —
+        /// searches the detector sphere over the detected grids, skipping the same grid and
+        /// already-paired or non-working connectors). Deterministic (nearest; ties broken by
+        /// registry order).</summary>
+        private static SimShipConnector FindOtherConnector(
+            SimShipConnector c, IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
+        {
+            double radius = c.DetectorRadius;
+            double bestSq = double.MaxValue;
+            SimShipConnector best = null;
+            for (int i = 0; i < connectors.Count; i++)
+            {
+                SimShipConnector candidate = connectors[i];
+                if (candidate.Closed || candidate == c)
+                {
+                    continue;
+                }
+                if (candidate.InConstraint || !candidate.IsWorking)
+                {
+                    continue;
+                }
+                if (ReferenceEquals(candidate.Grid, c.Grid))
+                {
+                    continue; // never pair within one grid
+                }
+                double d = (candidate.WorldPosition - c.WorldPosition).LengthSquared();
+                if (d <= radius * radius && d < bestSq)
+                {
+                    bestSq = d;
+                    best = candidate;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>The attach gates (MyShipConnector.cs:1486-1497): the partner is a
+        /// (connector-mode) working connector whose connection face is within the attach
+        /// separation, whose grid is the same size (<c>IsSmallConnector == IsSmallConnector</c>),
+        /// and whose connect directions are opposed within 45° (<c>Angle(a,b) &gt; 3π/4</c>).
+        /// Both connectors must also have live physics (dynamic bodies).</summary>
+        private static bool AttachPasses(SimShipConnector a, SimShipConnector b, SePhysicsProfile profile)
+        {
+            if (a.Grid.Body == null || b.Grid.Body == null || a.Grid.Body.IsDisposed || b.Grid.Body.IsDisposed)
             {
                 return false;
             }
-
-            // 2. Opposing-axis angular error gate: how far the two connect
-            // axes deviate from exactly opposing (error = |π - angle|).
-            double angle = MathHelpers.AngleBetween(a.ConnectAxisWorld, b.ConnectAxisWorld);
-            double angularError = Math.Abs(Math.PI - angle);
-            if (angularError > profile.ConnectorAngularErrorMax)
+            // Same-grid-size gate (the game's IsSmallConnector == IsSmallConnector, :1486).
+            if (a.Grid.GridSize != b.Grid.GridSize)
             {
                 return false;
             }
-
-            // 3. Relative linear velocity at the connector points gate.
-            double relativeVelocity = (a.PointVelocityWorld - b.PointVelocityWorld).Length();
-            if (relativeVelocity > profile.ConnectorLinearVelocityMax)
+            // Separation gate (:1486).
+            Vector3D sep = b.WorldPosition - a.WorldPosition;
+            if (sep.LengthSquared() >= profile.ConnectorAttachSeparationSquared)
             {
                 return false;
             }
-
-            // 4. Relative angular velocity gate.
-            double relativeAngularVelocity = (a.Grid.Body.AngularVelocity - b.Grid.Body.AngularVelocity).Length();
-            if (relativeAngularVelocity > profile.ConnectorAngularVelocityMax)
+            // Opposing-angle gate (:1488-1492): the connect directions must be opposed within 45°.
+            Vector3D aAxis = Vector3D.Normalize(a.ConnectAxisWorld);
+            Vector3D bAxis = Vector3D.Normalize(b.ConnectAxisWorld);
+            double angle = Vector3D.Angle(aAxis, bAxis);
+            double minOpposed = Math.PI * 3.0 / 4.0;
+            if (angle < minOpposed)
             {
                 return false;
             }
-
             return true;
         }
 
-        // — the two-stage connect (approach then lock) —
-
-        // Approach convergence (deterministic, fixed 1/60 s step): a
-        // physical, under-damped spring between the two connector
-        // connection frames — force at each frame (via the reduced mass,
-        // natural frequency wn with damping c), applied at the frames
-        // themselves (off the center of mass). Applying the force at r
-        // yields, per body, BOTH a linear impulse and the angular
-        // impulse τ = r × F, so the pull translates the bodies together
-        // AND, being off-COM, rotates them into alignment as a
-        // consequence of the coupled dynamics — exactly the game's
-        // CreateConstraint magnet tied at the connector frames. No
-        // separate alignment controller: rotation emerges from r × F.
-        private const float ApproachWn = 2f;      // magnet spring natural frequency (rad/s)
-        private const float ApproachAmax = 6f;    // max pull acceleration (m/s^2)
-        private const float ApproachDampingRatio = 1f;  // near-critically damped
-        // The fixed frame constraint's rotational tie: a torque-limited
-        // velocity-servo alignment controller that restores the two
-        // connection frames to coincident orientation (the connect axes
-        // anti-parallel). It measures the grid's current relative
-        // angular rate (which already includes the grid's angular
-        // damping, MyPerGameSettings.DefaultAngularDamping = 0.1,
-        // MyPerGameSettings.cs:137) and actively re-drives it onto an
-        // exponentially-closing target — so it stays stable under that
-        // damping, unlike an open-loop spring relying on its own
-        // damping term (which the one here had hand-tuned for zero grid
-        // damping and, once the realistic 0.1 damping arrived, drove
-        // the connect axes through alignment into a constant-amplitude
-        // oscillation that never settled within the lock tolerance).
-        // The game's own convergence is a velocity-solved
-        // HkMalleable/HkHingeConstraint (MyShipConnector.cs:1912-1919)
-        // — strongly stable under grid damping for exactly this reason.
-        private const float ApproachTorsionServoRate = 8f;   // servo rate for rate-tracking (1/s)
-        private const float ApproachTorsionCloseTime = 0.4f; // exponential closing time constant (s)
-        private const float ApproachTorsionMaxRate = 1.5f;   // max commanded closing rate (rad/s)
-        private const float ApproachTorsionAmax = 1.5f;      // max torsion acceleration (rad/s^2)
-
-        // The magnetic-capture settling drag: a viscous force opposing
-        // the full relative linear velocity between the two bodies,
-        // applied at their centers of mass (so it adds no torque and
-        // leaves the off-COM r × F alignment physics intact). Without it
-        // the central magnet only damps the along-axis component and
-        // the pair arrives at the lock gap (0.2 m) still closing at
-        // ~0.9 m/s, so the relative-velocity latch gate (0.5 m/s)
-        // never passes and the dock never latches (it just bounces).
-        // The game's malleable connector is a velocity-solved
-        // constraint whose magnetic pull settles the dock to rest
-        // (MyShipConnector.cs:1562-1565, Strength); this drag is the
-        // sim's equivalent settling so the latch gate can fire.
-        private const float ApproachDrag = 1.5f;   // relative-velocity decay rate (1/s)
-
-        /// <summary>The magnet spring natural frequency (rad/s).</summary>
-        internal static float MagnetNaturalFrequency => ApproachWn;
-
-        /// <summary>The magnet's maximum pull acceleration (m/s^2).</summary>
-        internal static float MagnetMaxAcceleration => ApproachAmax;
-
-        /// <summary>The magnet spring damping ratio.</summary>
-        internal static float MagnetDampingRatio => ApproachDampingRatio;
-
-        /// <summary>The frame-tie alignment servo rate: how quickly the measured relative
-        /// angular rate is re-driven onto the closing target (1/s).</summary>
-        internal static float FrameTieServoRate => ApproachTorsionServoRate;
-
-        /// <summary>The frame-tie exponential closing time constant (s): the alignment error
-        /// is commanded to shrink with this time constant.</summary>
-        internal static float FrameTieCloseTime => ApproachTorsionCloseTime;
-
-        /// <summary>The frame-tie max commanded closing rate (rad/s).</summary>
-        internal static float FrameTieMaxClosingRate => ApproachTorsionMaxRate;
-
-        /// <summary>The frame-tie maximum torsion acceleration (rad/s^2).</summary>
-        internal static float FrameTieMaxAcceleration => ApproachTorsionAmax;
-
-        /// <summary>The magnetic-capture settling drag: relative linear velocity decay rate
-        /// between the two bodies (1/s).</summary>
-        internal static float ApproachVelocityDrag => ApproachDrag;
-
-        /// <summary>Starts the approach for a connectable pair (the game's
-        /// <c>TryAttach</c>→<c>CreateConstraint</c>, MyShipConnector.cs:1478-1520, :1882): the
-        /// master (higher EntityId, the game's <c>GetMaster</c>) drives the convergence. If the
-        /// pair is already effectively touching and aligned, it locks immediately
-        /// instead.</summary>
-        public static void BeginApproach(SimShipConnector a, SimShipConnector b)
+        /// <summary>The game's <c>GetMaster</c> (MyShipConnector.cs:2435-2466): prefers the
+        /// non-static grid, then the smaller grid, then the higher EntityId. For the sim's
+        /// equal-dynamic, equal-size pairs this selects the higher EntityId.</summary>
+        private static SimShipConnector GetMaster(SimShipConnector first, SimShipConnector second)
         {
-            SimShipConnector master = a.Grid.EntityId >= b.Grid.EntityId ? a : b;
-            SimShipConnector slave = ReferenceEquals(master, a) ? b : a;
-            if (Converged(master, slave, master.Grid.World.Profile))
+            SimCubeGrid g1 = first.Grid;
+            SimCubeGrid g2 = second.Grid;
+            if (g1.IsStatic != g2.IsStatic)
             {
-                master.LockTo(slave);
-                return;
+                return g1.IsStatic ? second : first;
             }
-            master.SetApproach(master, slave);
-            slave.SetApproach(master, null);
-        }
-
-        /// <summary>Cancels an in-progress approach (release): both connectors return to a clean,
-        /// unconnected, free state (no residual constraint).</summary>
-        public static void CancelApproach(SimShipConnector c)
-        {
-            SimShipConnector master = (c.ApproachMasterInternal != null && !ReferenceEquals(c.ApproachMasterInternal, c))
-                ? c.ApproachMasterInternal : c;
-            SimShipConnector partner = ReferenceEquals(master, c) ? c.ApproachPartnerInternal : c;
-            if (master != null)
+            if (g1.GridSize != g2.GridSize)
             {
-                master.ClearApproach();
-            }
-            if (partner != null && !ReferenceEquals(partner, master))
-            {
-                partner.ClearApproach();
-            }
-        }
-
-        /// <summary>Tick phase 6: apply the approach convergence — a pull on each body at its
-        /// connector connection frame, driving the connector frames to coincidence — matching the
-        /// game's <c>CreateConstraint</c> magnet (a fixed constraint at the two connector frames,
-        /// MyShipConnector.cs:1882). The off-COM force couples translation and rotation: the torque
-        /// r × F rotates the connect axes into alignment as a consequence of the dynamics, not by
-        /// command. Only the master drives; deterministic.</summary>
-        public static void ApplyApproach(IReadOnlyList<SimShipConnector> connectors)
-        {
-            if (connectors == null)
-            {
-                return;
-            }
-            for (int i = 0; i < connectors.Count; i++)
-            {
-                SimShipConnector c = connectors[i];
-                if (c.Closed || !c.ApproachingInternal)
+                if (g1.GridSize > 1f)
                 {
-                    continue;
+                    return second;
                 }
-                if (!ReferenceEquals(c.ApproachMasterInternal, c))
+                if (g2.GridSize > 1f)
                 {
-                    continue;
-                }
-                SimShipConnector slave = c.ApproachPartnerInternal;
-                if (slave == null || slave.Closed)
-                {
-                    continue;
-                }
-                ApplyConvergence(c, slave);
-            }
-        }
-
-        private static void ApplyConvergence(SimShipConnector a, SimShipConnector b)
-        {
-            SimRigidBody ba = a.Grid.Body;
-            SimRigidBody bb = b.Grid.Body;
-            if (ba == null || bb == null || ba.IsDisposed || bb.IsDisposed || !ba.IsDynamic || !bb.IsDynamic)
-            {
-                return;
-            }
-
-            Vector3D rA = a.WorldPosition;   // A's connection frame
-            Vector3D rB = b.WorldPosition;   // B's connection frame
-
-            // The frame constraint's orientational DOF first, reading the
-            // body state as it was at the start of this tick (before the
-            // positional impulse below), so the tie drives the actual
-            // relative rate the grid currently carries.
-            FrameRotationalTie(a, b, ba, bb, (float)TickClock.FixedStep);
-
-            // The magnet: an under-damped spring between the two
-            // connection frames, on the reduced mass — force at A's frame
-            // pulling it to B's, and its equal-and-opposite reaction at
-            // B's frame. Applied at the frames (off-COM), each force
-            // delivers both motion of the center of mass and the torque
-            // r × F, so coupling (translate + rotate into alignment)
-            // falls out of r × F naturally — no separate alignment
-            // controller.
-            float mRed = (ba.Mass * bb.Mass) / (ba.Mass + bb.Mass);
-            float k = mRed * ApproachWn * ApproachWn;
-            float c = 2f * ApproachDampingRatio * mRed * ApproachWn;
-            Vector3 sepVec = (Vector3)(rA - rB); // A's frame relative to B's
-            float sepLen = sepVec.Length();
-            Vector3 dv = (Vector3)(a.PointVelocityWorld - b.PointVelocityWorld);
-            if (sepLen < 1e-6f)
-            {
-                return;
-            }
-            Vector3 sepDir = sepVec / sepLen;
-            // A central spring along the line between the two frames:
-            // the damping only acts along the separation axis (the
-            // relative linear velocity projected onto it), so the two
-            // equal-and-opposite point forces are collinear and the
-            // pair's internal forces conserve angular momentum — no
-            // net spin is injected (the game's connector pull is along
-            // the connector axis).
-            float dvAlong = Vector3.Dot(dv, sepDir);
-            Vector3 force = -(k * sepLen + c * dvAlong) * sepDir;
-            float fmax = mRed * ApproachAmax;
-            Vector3 impulseA = CapImpulse(force * (float)TickClock.FixedStep, fmax * (float)TickClock.FixedStep);
-            if (impulseA != Vector3.Zero)
-            {
-                ba.ApplyPointImpulse(impulseA, rA);   // linear + r_A × F (off-COM torque)
-            }
-            if (impulseA != Vector3.Zero)
-            {
-                bb.ApplyPointImpulse(-impulseA, rB);  // linear + r_B × (−F) (off-COM torque)
-            }
-
-            // Magnetic-capture settling: damp the full relative linear
-            // velocity between the two bodies, applied at the centers
-            // of mass (equal and opposite, no net torque — so it does
-            // not disturb the frame-tie above). This lets the dock
-            // settle to rest, so the relative-velocity latch gate is
-            // satisfiable at the lock gap instead of forever bouncing.
-            Vector3 relLin = (Vector3)(ba.LinearVelocity - bb.LinearVelocity);
-            Vector3 dragImpulse = -(ApproachDrag * mRed) * relLin * (float)TickClock.FixedStep;
-            if (dragImpulse != Vector3.Zero)
-            {
-                ba.ApplyLinearImpulse(dragImpulse);
-                bb.ApplyLinearImpulse(-dragImpulse);
-            }
-        }
-
-        /// <summary>Restores the two connection frames to coincident orientation (the connect
-        /// axes anti-parallel) with a torque-limited velocity servo on the RELATIVE frame-
-        /// orientation error, applied as an equal-and-opposite angular impulse scaled by the
-        /// reduced rotational inertia about the error axis. The servos' element is the grid's
-        /// own relative angular rate measured on the error axis (which already includes the grid's
-        /// 0.1 angular damping, MyPerGameSettings.cs:137), re-driven onto an exponentially
-        /// closing target — so it converges robustly under that damping (a rate-servo has no
-        /// resonant spring to drive into a sustained oscillation), the rotational counterpart of
-        /// the game's velocity-solved HkHinge/HkMalleable connector convergence
-        /// (MyShipConnector.cs:1912-1919). The error is computed with atan2, so its
-        /// sign is preserved through a quarter-turn (an open-loop <c>asin(|cross|)</c> loses
-        /// the sign and can push the axes the wrong way once past 90°). Because the applied
-        /// impulse is equal and opposite, it adds no net angular momentum (matches the fixed
-        /// constraint tying position and orientation of the frames).</summary>
-        private static void FrameRotationalTie(
-            SimShipConnector a, SimShipConnector b, SimRigidBody ba, SimRigidBody bb, float dt)
-        {
-            // Error state: the rotation taking A's connect axis onto the
-            // anti-parallel of B's (target t = −B).
-            Vector3 axisA = (Vector3)Vector3D.Normalize(a.ConnectAxisWorld);
-            Vector3 axisB = (Vector3)Vector3D.Normalize(b.ConnectAxisWorld);
-            Vector3 target = -axisB;
-            Vector3 cross = Vector3.Cross(axisA, target);
-            float sinTh = cross.Length();
-            if (sinTh < 1e-6f)
-            {
-                return;   // frames already coincident (or degenerate)
-            }
-            Vector3 n = cross / sinTh;
-            float cosTh = Vector3.Dot(axisA, target);
-            float theta = (float)Math.Atan2(sinTh, cosTh);   // sign-preserving error, [0, π]
-
-            // Relative angular rate about the error axis (the grid's own,
-            // post-damping rate).
-            Vector3 wRel = (Vector3)(ba.AngularVelocity - bb.AngularVelocity);
-            float s = Vector3.Dot(wRel, n);
-
-            // Closing target: shrink theta exponentially with ApproachTorsionCloseTime,
-            // rate-capped so a large error never commands a wild turn.
-            float sDes = theta / ApproachTorsionCloseTime;
-            if (sDes > ApproachTorsionMaxRate)
-            {
-                sDes = ApproachTorsionMaxRate;
-            }
-
-            float iA = ScalarInertia(ba);
-            float iB = ScalarInertia(bb);
-            float iRed = (iA * iB) / (iA + iB);
-
-            // Velocity servo: torque to drive s → sDes, torque-limited.
-            float accel = ApproachTorsionServoRate * (sDes - s);
-            if (accel > ApproachTorsionAmax)
-            {
-                accel = ApproachTorsionAmax;
-            }
-            else if (accel < -ApproachTorsionAmax)
-            {
-                accel = -ApproachTorsionAmax;
-            }
-            Vector3 impulse = n * (iRed * accel * dt);
-            if (impulse == Vector3.Zero)
-            {
-                return;
-            }
-            ba.ApplyAngularImpulse(impulse);   // + on A
-            bb.ApplyAngularImpulse(-impulse);  // reaction on B (no net torque)
-        }
-
-        private static float ScalarInertia(SimRigidBody body)
-        {
-            Vector3 inv = body.InverseInertiaDiagonal;
-            float invMean = (inv.X + inv.Y + inv.Z) / 3f;
-            return invMean > 1e-6f ? 1f / invMean : 1f;
-        }
-
-        private static Vector3 CapImpulse(Vector3 v, float cap)
-        {
-            float len = v.Length();
-            return len > cap ? v / len * cap : v;
-        }
-
-        /// <summary>Tick phase 8: once an approaching pair has converged (separation within the
-        /// profile's approach gap and axes anti-parallel within the approach angle, at low relative
-        /// velocity), the master creates the final fixed constraint and both become
-        /// Connected.</summary>
-        public static void AdvanceApproach(IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
-        {
-            if (connectors == null || profile == null)
-            {
-                return;
-            }
-            for (int i = 0; i < connectors.Count; i++)
-            {
-                SimShipConnector c = connectors[i];
-                if (c.Closed || !c.ApproachingInternal)
-                {
-                    continue;
-                }
-                if (!ReferenceEquals(c.ApproachMasterInternal, c))
-                {
-                    continue;
-                }
-                SimShipConnector slave = c.ApproachPartnerInternal;
-                if (slave == null || slave.Closed)
-                {
-                    continue;
-                }
-                if (Converged(c, slave, profile))
-                {
-                    c.LockTo(slave);
+                    return first;
                 }
             }
-        }
-
-        private static bool Converged(SimShipConnector a, SimShipConnector b, SePhysicsProfile profile)
-        {
-            float separation = (float)(a.WorldPosition - b.WorldPosition).Length();
-            if (separation > profile.ConnectorApproachGap)
-            {
-                return false;
-            }
-            double angle = MathHelpers.AngleBetween(a.ConnectAxisWorld, b.ConnectAxisWorld);
-            double angularError = Math.Abs(Math.PI - angle);
-            if (angularError > profile.ConnectorApproachAngle)
-            {
-                return false;
-            }
-            double relativeVelocity = (a.PointVelocityWorld - b.PointVelocityWorld).Length();
-            return relativeVelocity <= profile.ConnectorLinearVelocityMax;
+            return first.EntityId >= second.EntityId ? first : second;
         }
     }
 }

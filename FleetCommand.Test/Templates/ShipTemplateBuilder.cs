@@ -208,7 +208,7 @@ namespace FleetCommand.Test.Templates
         /// </summary>
         public ShipTemplateBuilder AddConnector(string blockName, Vector3I min, float dryMass = 200f,
             Quaternion? orientation = null, Quaternion? connectorOrientation = null,
-            float connectorReach = 0f)
+            float connectorReach = 0f, float connectorStrength = 1f)
         {
             CheckNotFrozen();
             _blocks.Add(new BlockSpec
@@ -220,6 +220,7 @@ namespace FleetCommand.Test.Templates
                 Orientation = orientation,
                 ConnectorOrientation = connectorOrientation,
                 ConnectorReach = connectorReach,
+                ConnectorStrength = connectorStrength,
             });
             return this;
         }
@@ -494,13 +495,14 @@ namespace FleetCommand.Test.Templates
             public float MaxThrust, Effectiveness, PowerDemand;
             public float GyroForce, GyroPowerDemand;
             public Quaternion? ConnectorOrientation;
-            public float ConnectorReach, SlowdownFactor;
+            public float ConnectorReach, ConnectorStrength, SlowdownFactor;
 
             public BlockSpec()
             {
                 Effectiveness = 1f;
                 InitialStoredPower = 1f;
                 SlowdownFactor = 1f;
+                ConnectorStrength = 1f;
                 InitialFuel = 1000000f;
                 FuelConsumptionPerSecond = 1f;
             }
@@ -528,6 +530,7 @@ namespace FleetCommand.Test.Templates
                 GyroPowerDemand = b.GyroPowerDemand;
                 ConnectorOrientation = b.ConnectorOrientation;
                 ConnectorReach = b.ConnectorReach;
+                ConnectorStrength = b.ConnectorStrength;
                 SlowdownFactor = b.SlowdownFactor;
             }
 
@@ -538,7 +541,8 @@ namespace FleetCommand.Test.Templates
                     Size, InventoryMass, Orientation, Kind,
                     MaxOutput, MaxInput, MaxStoredPower, InitialStoredPower,
                     ThrustDirection, MaxThrust, Effectiveness, PowerDemand,
-                    GyroForce, GyroPowerDemand, ConnectorOrientation, ConnectorReach, SlowdownFactor,
+                    GyroForce, GyroPowerDemand, ConnectorOrientation, ConnectorReach, ConnectorStrength,
+                    SlowdownFactor,
                     InitialFuel, FuelConsumptionPerSecond);
             }
         }

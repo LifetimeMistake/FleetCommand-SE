@@ -55,20 +55,16 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(p.CollisionResponse, Is.EqualTo(true),
                 "The default profile must enable collision response.");
 
-            // Connector capture knobs (recorded baseline; exact live values
-            // need game calibration per the follow-up in the record).
-            Assert.That(p.ConnectorReach, Is.EqualTo(2.5f).Within(1e-6),
-                "ConnectorReach must match the recorded calibration baseline.");
-            Assert.That(p.ConnectorAngularErrorMax, Is.EqualTo(0.174533f).Within(1e-6),
-                "ConnectorAngularErrorMax must match the recorded calibration baseline.");
-            Assert.That(p.ConnectorLinearVelocityMax, Is.EqualTo(0.5f).Within(1e-6),
-                "ConnectorLinearVelocityMax must match the recorded calibration baseline.");
-            Assert.That(p.ConnectorAngularVelocityMax, Is.EqualTo(0.5f).Within(1e-6),
-                "ConnectorAngularVelocityMax must match the recorded calibration baseline.");
-            Assert.That(p.ConnectorApproachGap, Is.EqualTo(0.2f).Within(1e-6),
-                "ConnectorApproachGap must match the recorded calibration baseline.");
-            Assert.That(p.ConnectorApproachAngle, Is.EqualTo(0.02f).Within(1e-6),
-                "ConnectorApproachAngle must match the recorded calibration baseline.");
+            // Connector lifecycle knobs, defaulted to the game's literal thresholds from
+            // MyShipConnector.cs: the attach separation (< 0.35 sq ≈ 0.59 m, :1486), the
+            // approach-keep range (> 0.5 sq ≈ 0.7 m, :1574), and the opposing angle
+            // (3π/4, :1488). Kept configurable so tests can diverge from the defaults.
+            Assert.That(p.ConnectorAttachSeparationSquared, Is.EqualTo(0.35f).Within(1e-6),
+                "ConnectorAttachSeparationSquared must match the game's attach gate (MyShipConnector.cs:1486).");
+            Assert.That(p.ConnectorKeepSeparationSquared, Is.EqualTo(0.5f).Within(1e-6),
+                "ConnectorKeepSeparationSquared must match the game's approach-keep range (MyShipConnector.cs:1574).");
+            Assert.That(p.ConnectorOpposingAngle, Is.EqualTo(3.0 * Math.PI / 4.0).Within(1e-6),
+                "ConnectorOpposingAngle must match the game's 3π/4 opposing-angle gate (MyShipConnector.cs:1488).");
             Assert.That(p.AutopilotArrivalDistance, Is.EqualTo(3f).Within(1e-6),
                 "AutopilotArrivalDistance must match the recorded calibration baseline.");
         }
