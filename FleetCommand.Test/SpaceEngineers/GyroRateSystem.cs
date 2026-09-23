@@ -218,7 +218,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
             // 8. Apply ONE resultant body-space angular impulse (grid ->
             // world), torque over the fixed step (game: AddForce torque,
-            // which integrates over the frame like 's force).
+            // which integrates over the frame).
             _lastGridTorque = torque;
             if (torque.LengthSquared() >= TorqueSqLenThreshold && dtSeconds > 0f)
             {
