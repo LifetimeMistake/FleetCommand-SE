@@ -8,16 +8,11 @@ using VRageMath;
 namespace FleetCommand.Test.Physics
 {
     /// <summary>
-    /// One rigid body backing one dynamic grid (). The body's
-    /// <see cref="HkRigidBody"/> is created mirroring
-    /// <c>MyGridPhysics.CreateBody</c> (MyGridPhysics.cs:2426-2444): a
-    /// compound collision shape and combined mass properties are set on an
-    /// <see cref="HkRigidBodyCinfo"/>, then a fresh <see cref="HkRigidBody"/>
-    /// is constructed with the profile's velocity caps and damping.
-    /// Positions are held as float transforms relative to the fixed scenario
-    /// origin so bodies stay numerically close to it; world-visible
-    /// positions are computed as <c>origin + local</c> (). Destruction is
-    /// disabled (Havok break-off parts are never enabled).
+    /// One rigid body backing one dynamic grid. Its <see cref="HkRigidBody"/> is created
+    /// mirroring MyGridPhysics.CreateBody (MyGridPhysics.cs:2426-2444): a compound
+    /// collision shape and combined mass properties on an <see cref="HkRigidBodyCinfo"/>,
+    /// with the profile's velocity caps and damping. Positions are float transforms
+    /// relative to a fixed scenario origin; destruction (Havok break-off) is disabled.
     /// </summary>
     public sealed class SimRigidBody : IDisposable
     {
@@ -36,7 +31,7 @@ namespace FleetCommand.Test.Physics
         /// <summary>True once <see cref="Dispose"/> has run (the wrapped native body may be gone).</summary>
         public bool IsDisposed => _disposed;
 
-        /// <summary>Center of mass in grid-local meters (ground truth, ).</summary>
+        /// <summary>Center of mass in grid-local meters (ground truth).</summary>
         public Vector3 CenterOfMassLocal => _rigidBody == null ? Vector3.Zero : _rigidBody.CenterOfMassLocal;
 
         /// <summary>World-visible position of the grid origin.</summary>
@@ -52,34 +47,19 @@ namespace FleetCommand.Test.Physics
         public Vector3 AngularVelocity => _angularVelocity;
 
         /// <summary>
-        /// The configured grid angular-rate cap (rad/s): the larger of the
-        /// template's <c>MaxAngularVelocity</c> and the profile's
-        /// <c>MaxAngularVelocity</c> set on the Havok body at creation
-        /// ( step 9). Havok already enforces this cap; the gyro
-        /// override setter clamps commanded rates to it (the game's
-        /// <c>MaxAngularRadiansPerSecond</c>), and gyro response never
-        /// retunes it.
+        /// Configured grid angular-rate cap (rad/s), set on the Havok body at creation. Havok
+        /// enforces it; the gyro override setter clamps commanded rates to it (the game's
+        /// <c>MaxAngularRadiansPerSecond</c>).
         /// </summary>
         public float MaxAngularVelocity => _maxAngularVelocity;
 
         /// <summary>
-        /// The configured grid linear-velocity cap (m/s): the larger of the
-        /// template's <c>MaxLinearVelocity</c> and the profile's
-        /// <c>MaxLinearVelocity</c> set on the Havok body at creation.
-        /// The sim applies this per frame after physics (phase 8) mirroring
-        /// the game's per-frame grid max-speed clamp (MyGridPhysics /
-        /// MyCubeGrid max speed from the sector environment definition), so
-        /// the cap holds on the observed post-step velocity deterministically.
+        /// Configured grid linear-velocity cap (m/s). The sim applies it per frame after physics,
+        /// mirroring the game's per-frame grid max-speed clamp (MyGridPhysics / sector env def).
         /// </summary>
         public float MaxLinearVelocity => _maxLinearVelocity;
 
-        /// <summary>
-        /// The body's inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in
-        /// the grid-local frame (axes aligned with the grid's principal
-        /// axes — the frame the gyro override loop sizes its torque in,
-        /// matching the game's <c>InverseInertiaTensor</c> diagonal read,
-        /// MyGridGyroSystem.cs:293).
-        /// </summary>
+        /// <summary>Inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in the grid-local frame, matching the game's read (MyGridGyroSystem.cs:293).</summary>
         public Vector3 InverseInertiaDiagonal => _inverseInertiaDiagonal;
 
         /// <summary>World transform of the grid origin, derived from the body pose.</summary>
@@ -99,18 +79,11 @@ namespace FleetCommand.Test.Physics
         private readonly Vector3D _origin;
         private HkRigidBody _rigidBody;
 
-        // One owned reference on the compound shape. Following the game's
-        // shape lifetime (MyGridShape keeps m_root alive and disposes it via
-        // Base.RemoveReference after the rigid body is created).
+        // One owned reference on the compound shape; the static compound adds no
+        // references to its children (HavokWrapper), so each block's box shape is
+        // kept alive here and released in Dispose (mirrors MyGridShape).
         private HkShape _shape;
 
-        // The static compound shape does NOT add references to its child
-        // instances (verified against HavokWrapper: AddInstance leaves the
-        // child's reference count unchanged), so each block's box shape is
-        // kept alive for the body's lifetime and released in Dispose —
-        // mirroring the game keeping block shapes alive while the grid shape
-        // is alive (MyGridShape owns the block shapes and releases them on
-        // shape rebuild).
         private readonly List<HkShape> _childShapes = new List<HkShape>();
 
         // Cached state, refreshed from Havok during phase 8 (SynchronizeState).
@@ -132,12 +105,7 @@ namespace FleetCommand.Test.Physics
             IsDynamic = isDynamic;
         }
 
-        /// <summary>
-        /// Builds the compound shape and mass properties from
-        /// <paramref name="template"/> and constructs the rigid body from
-        /// <paramref name="initialState"/>. Called once per spawn; each
-        /// spawn gets fresh Havok objects ().
-        /// </summary>
+        /// <summary>Builds the compound shape and mass properties from <paramref name="template"/> and constructs the body from <paramref name="initialState"/>.</summary>
         public static SimRigidBody Create(
             long id,
             ShipTemplate template,
@@ -157,9 +125,7 @@ namespace FleetCommand.Test.Physics
             bool isDynamic = !template.IsStatic;
             var body = new SimRigidBody(id, scenarioOrigin, isDynamic);
 
-            // Per-grid velocity caps from the template take precedence; the
-            // profile supplies the default when the template leaves them unset
-            // (: caps are profile-configurable per grid).
+            // Per-grid velocity caps take precedence; the profile supplies the default when unset.
             float maxLinear = template.MaxLinearVelocity > 0f ? template.MaxLinearVelocity : profile.MaxLinearVelocity;
             float maxAngular = template.MaxAngularVelocity > 0f ? template.MaxAngularVelocity : profile.MaxAngularVelocity;
 
@@ -191,8 +157,7 @@ namespace FleetCommand.Test.Physics
 
                 body._rigidBody = new HkRigidBody(info);
 
-                // Collision layer: 15 is the game's default grid layer; 19 is
-                // the no-collision-response layer (MyPhysicsBody.cs:1414-1418).
+                // Collision layer: 15 is the default grid layer, 19 the no-collision layer (MyPhysicsBody.cs:1414-1418).
                 body._rigidBody.Layer = profile.CollisionResponse ? 15 : 19;
 
                 body._localPosition = (Vector3)(initialState.PositionWorld - scenarioOrigin);
@@ -200,9 +165,8 @@ namespace FleetCommand.Test.Physics
                 body._linearVelocity = (Vector3)initialState.LinearVelocity;
                 body._angularVelocity = initialState.AngularVelocity;
 
-                // Retain the configured velocity caps (also set on the
-                // Havok body above) and the grid-local inverse inertia
-                // diagonal for the gyro override loop ( step 3).
+                // Retain the configured velocity caps and the grid-local inverse inertia
+                // diagonal for the gyro override loop.
                 body._maxAngularVelocity = maxAngular;
                 body._maxLinearVelocity = maxLinear;
                 body._inverseInertiaDiagonal = new Vector3(
@@ -215,15 +179,9 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
-        /// Builds the grid's compound collision shape: one axis-aligned box
-        /// per block at the block's grid-local transform, baked into an
-        /// <see cref="HkStaticCompoundShape"/> — the general-purpose
-        /// container this Havok build offers for a compound of convex
-        /// children (the game uses <c>HkGridShape</c> for ship grids and
-        /// <c>HkSmartListShape</c>/<c>HkTransformShape</c> for welded
-        /// children; <see cref="HkStaticCompoundShape"/>.AddInstance is this
-        /// build's equivalent of "one child shape per block at its local
-        /// transform"). Each child box is kept alive by <see cref="_childShapes"/>.
+        /// Builds the grid's compound collision shape: one axis-aligned box per block at its
+        /// grid-local transform in an <see cref="HkStaticCompoundShape"/> (this build's
+        /// equivalent of "one child shape per block"; the game uses HkGridShape for ships).
         /// </summary>
         private HkShape BuildCompoundShape(ShipTemplate template)
         {
@@ -232,21 +190,15 @@ namespace FleetCommand.Test.Physics
             {
                 var box = new HkBoxShape(block.HalfExtents);
                 compound.AddInstance(box, Matrix.CreateTranslation(block.CenterLocal));
-                // AddInstance takes no child reference (verified against
-                // HavokWrapper); retain each box for the body's lifetime and
-                // release it in Dispose.
+                // AddInstance takes no child reference (HavokWrapper); retain it for release in Dispose.
                 _childShapes.Add(box.Base);
             }
             compound.Bake();
-            // The compound's own reference is the wrapper's owned reference;
-            // released exactly once in Dispose.
+            // The compound's own reference is released exactly once in Dispose.
             return compound.Base;
         }
 
-        /// <summary>
-        /// Writes the body back from a world state (scenario setup and
-        /// ground-truth injection, ).
-        /// </summary>
+        /// <summary>Writes the body back from a world state (scenario setup and ground-truth injection).</summary>
         public void SetState(in SimRigidBodyState state)
         {
             if (_disposed)
@@ -287,12 +239,9 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
-        /// Replaces the body's mass, center of mass, inertia, and inverse
-        /// inertia from newly combined <paramref name="mass"/> (a scenario
-        /// block added/removed or inventory changed, ). Uses the
-        /// game's runtime path — <c>RigidBody.SetMassProperties</c>
-        /// (MyPhysicsBody.cs:2867) — so a mass mutation takes effect for
-        /// the body's dynamics immediately (next physics step).
+        /// Replaces the body's mass properties from newly combined <paramref name="mass"/>
+        /// (block added/removed or inventory changed) via the game's runtime path
+        /// — <c>RigidBody.SetMassProperties</c> (MyPhysicsBody.cs:2867).
         /// </summary>
         public void UpdateMassProperties(MassProperties mass)
         {
@@ -320,12 +269,9 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
-        /// Clamps the body's world linear velocity magnitude to
-        /// <paramref name="maxSpeed"/> (the game's per-frame grid velocity
-        /// clamp to the max speed / <c>MovementBlockMaxSpeed</c>, enforced
-        /// by Havok via <c>RigidBody.MaxLinearVelocity</c> set in
-        /// MyGridPhysics.SetDefaultRigidBodyMaxVelocities,
-        /// MyGridPhysics.cs:538-555). A no-op when already at or below the cap.
+        /// Clamps world linear velocity to <paramref name="maxSpeed"/>, mirroring the game's
+        /// per-frame grid clamp (<c>MovementBlockMaxSpeed</c>, MyGridPhysics.cs:538-555).
+        /// No-op at or below the cap.
         /// </summary>
         public void ClampLinearSpeed(float maxSpeed)
         {
@@ -365,13 +311,9 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
-        /// Applies a world-frame impulse at <paramref name="worldPoint"/>
-        /// (off the center of mass), producing both a linear velocity
-        /// change and an angular velocity change <c>I⁻¹ (r × impulse)</c>
-        /// — the game's <c>rigidBody.ApplyPointImpulse(impulse, position)</c>
-        /// (MyGridPhysics.cs:1339, MyPhysicsBody.cs:1246). The point is
-        /// translated to origin-relative (body-local) space, matching how
-        /// the body stores its position.
+        /// Applies a world-frame impulse at <paramref name="worldPoint"/> (off the COM), producing
+        /// linear plus angular change <c>I⁻¹ (r × impulse)</c> — the game's
+        /// RigidBody.ApplyPointImpulse (MyGridPhysics.cs:1339, MyPhysicsBody.cs:1246).
         /// </summary>
         public void ApplyPointImpulse(Vector3 impulse, Vector3D worldPoint)
         {
@@ -406,11 +348,7 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>
-        /// Reads position, orientation, and velocities back from Havok after
-        /// a physics step. Called by SimWorld in phase 8 (SynchronizeState)
-        /// so observers always see the post-step state.
-        /// </summary>
+        /// <summary>Reads position, orientation, and velocities back from Havok after a physics step.</summary>
         internal void SynchronizeFromHavok()
         {
             _localPosition = _rigidBody.Position;

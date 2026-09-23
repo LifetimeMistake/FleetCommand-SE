@@ -8,12 +8,8 @@ using VRage.Library.Threading;
 namespace FleetCommand.Test.Physics
 {
     /// <summary>
-    /// Owns the process-wide Havok lifetime. Mirrors how the game boots and
-    /// shuts down Havok (<c>MySandboxGame.LoadData_UpdateThread</c> /
-    /// <c>UnloadData_UpdateThread</c>): <see cref="HkBaseSystem.Init"/> once per
-    /// process, <see cref="HkBaseSystem.Quit"/> once per process, each wrapped
-    /// in <see cref="HkAccessControl.AccessState.Exclusive"/>. All calls are
-    /// idempotent and paired.
+    /// Owns the process-wide Havok lifetime, mirroring the game's boot/shutdown
+    /// (Init/Quit once per process, each under Exclusive — see MySandboxGame).
     /// </summary>
     public static class PhysicsHost
     {
@@ -35,10 +31,8 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
-        /// Initializes Havok exactly once per process. No-op on repeat calls.
-        /// The critical section argument is required — Havok dereferences it
-        /// during <see cref="HkBaseSystem.Quit"/> (a <c>null</c> causes a
-        /// <c>NullReferenceException</c> in <c>HkShape.ReportOwnership</c>).
+        /// Initializes Havok once per process; no-op on repeat calls. The critical section
+        /// arg is required — Havok dereferences it during <see cref="HkBaseSystem.Quit"/>.
         /// </summary>
         public static void Initialize()
         {
@@ -53,9 +47,7 @@ namespace FleetCommand.Test.Physics
 
                 using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
                 {
-                    // Positional args (C# 6): memory size 16 MiB, log writer,
-                    // deep profiling off, shared critical section — mirrors
-                    // MySandboxGame.LoadData().
+                    // 16 MiB memory, log writer, profiling off, shared critical section (MySandboxGame.LoadData()).
                     HkBaseSystem.Init(16 * 1024 * 1024, s_logWriter, false, SharedSection);
                 }
 
@@ -64,10 +56,7 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>
-        /// Shuts down Havok exactly once per process. No-op on repeat calls so
-        /// it is safe under repeated fixture teardown.
-        /// </summary>
+        /// <summary>Shuts down Havok once per process; no-op on repeat calls (safe under repeated teardown).</summary>
         public static void Shutdown()
         {
             lock (s_lock)
@@ -87,11 +76,7 @@ namespace FleetCommand.Test.Physics
             }
         }
 
-        /// <summary>
-        /// A minimal <see cref="ISharedCriticalSection"/> implementation. The
-        /// game normally uses a mutex here; a monitor is equivalent for the
-        /// single-threaded, deterministic test host.
-        /// </summary>
+        /// <summary>Minimal <see cref="ISharedCriticalSection"/>; a monitor equals the game's mutex on the single-threaded test host.</summary>
         private static readonly ISharedCriticalSection SharedSection = new MonitorSharedSection();
 
         private sealed class MonitorSharedSection : ISharedCriticalSection

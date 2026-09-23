@@ -4,21 +4,14 @@ using VRageMath;
 namespace FleetCommand.Test.Physics
 {
     /// <summary>
-    /// Natural gravity, owned by <see cref="Framework.SimWorld"/> (:
-    /// "Natural gravity is owned by SimGravityField, not a planet
-    /// implementation"). The same vector this field calculates for a world
-    /// point is returned by <see cref="Sandbox.ModAPI.Ingame.IMyShipController.GetNaturalGravity"/> ()
-    /// and is applied to each rigid body during tick phase 6. Initial
-    /// profiles: zero gravity, uniform gravity, and analytic point gravity
-    /// (mirroring the game's spherical natural-gravity shape,
+    /// Natural gravity owned by <see cref="Framework.SimWorld"/>; the vector it returns for
+    /// a world point is what <see cref="Sandbox.ModAPI.Ingame.IMyShipController.GetNaturalGravity"/> reports.
+    /// Profiles: zero, uniform, and analytic point gravity (mirroring
     /// MySphericalNaturalGravityComponent).
     /// </summary>
     public abstract class SimGravityField
     {
-        /// <summary>
-        /// The world-frame gravitational acceleration (m/s²) at
-        /// <paramref name="worldPoint"/>.
-        /// </summary>
+        /// <summary>World-frame gravitational acceleration (m/s²) at <paramref name="worldPoint"/>.</summary>
         public abstract Vector3 GetNaturalGravity(Vector3D worldPoint);
 
         /// <summary>Field with no gravity anywhere.</summary>
@@ -31,9 +24,8 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
-        /// Analytic point (spherical) gravity about <paramref name="center"/>:
-        /// full strength <c>intensity</c>, with the game's range and falloff
-        /// shape (MySphericalNaturalGravityComponent.GetGravityMultiplier).
+        /// Analytic point gravity about <paramref name="center"/> with the game's range
+        /// and falloff (MySphericalNaturalGravityComponent.GetGravityMultiplier).
         /// </summary>
         public static SimGravityField Point(
             Vector3D center,

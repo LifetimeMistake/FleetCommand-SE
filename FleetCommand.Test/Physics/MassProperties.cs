@@ -7,14 +7,9 @@ using VRageMath;
 namespace FleetCommand.Test.Physics
 {
     /// <summary>
-    /// Mass, center of mass, and inertia for one rigid grid, combined from the
-    /// template's block mass elements by <see cref="HkInertiaTensorComputer"/>
-    /// exactly as the game combines them (<c>MyPhysicsBody.UpdateMassProps</c>
-    /// at MyPhysicsBody.cs:2867: <c>CombineMassProperties</c> then
-    /// <c>RigidBody.SetMassProperties</c>). Each block contributes a box
-    /// volume-mass element at its grid-local transform, mirroring
-    /// <c>MyCubeBlockCollector.AddMass</c> /
-    /// <c>MyPhysicsHelper: ComputeBoxVolumeMassProperties(size/2, mass)</c>.
+    /// Mass, COM, and inertia for one grid, combined from template block mass
+    /// elements via <see cref="HkInertiaTensorComputer"/> exactly as the game
+    /// does (MyPhysicsBody.cs:2867, MyGridShape.cs:484).
     /// </summary>
     public sealed class MassProperties
     {
@@ -38,12 +33,7 @@ namespace FleetCommand.Test.Physics
             InverseInertiaTensor = inverseInertiaTensor;
         }
 
-        /// <summary>
-        /// Combines a ship template's physical blocks (dry + inventory mass)
-        /// into one body's mass properties using Havok's
-        /// <see cref="HkInertiaTensorComputer.CombineMassProperties"/>, then
-        /// also produces the analytic inverse tensor.
-        /// </summary>
+        /// <summary>Combines a template's blocks (dry + inventory mass) into one body's mass properties.</summary>
         public static MassProperties FromShipTemplate(ShipTemplate template)
         {
             if (template == null)
@@ -64,9 +54,8 @@ namespace FleetCommand.Test.Physics
 
                 if (block.InventoryMass > 0f)
                 {
-                    // Inventory mass is a second box element at the block's
-                    // volume and position, mirroring
-                    // MyGridShape.CollectBlockInventories (MyGridShape.cs:484+).
+                    // Inventory mass is a second box element at the block's volume and position
+                    // (MyGridShape.CollectBlockInventories, MyGridShape.cs:484+).
                     HkMassProperties inventory = HkInertiaTensorComputer.ComputeBoxVolumeMassProperties(
                         block.HalfExtents, block.InventoryMass);
                     elements.Add(new HkMassElement
@@ -80,10 +69,7 @@ namespace FleetCommand.Test.Physics
             return FromMassElements(elements);
         }
 
-        /// <summary>
-        /// Combines the given mass elements (grid-local boxes) with Havok,
-        /// mirroring the game's combine path.
-        /// </summary>
+        /// <summary>Combines grid-local box mass elements with Havok, mirroring the game's combine path.</summary>
         public static MassProperties FromMassElements(IEnumerable<HkMassElement> massElements)
         {
             if (massElements == null)
@@ -104,11 +90,8 @@ namespace FleetCommand.Test.Physics
         }
 
         /// <summary>
-        /// Analytic reference: combines box mass elements (mass + half-extents
-        /// + grid-local center) into total mass, center of mass and inertia
-        /// about the combined center, using the closed-form box formula and
-        /// the parallel-axis theorem — never Havok. Used by conformance
-        /// tests to validate the Havok combine result independently.
+        /// Analytic reference: combines box mass elements via the closed-form box formula and
+        /// parallel-axis theorem, never Havok. Used by conformance tests.
         /// </summary>
         public static MassProperties AnalyticFromBoxes(IEnumerable<MassElement> boxes)
         {
@@ -127,8 +110,7 @@ namespace FleetCommand.Test.Physics
             }
             com /= totalMass;
 
-            // Sum each box's own inertia (about its own center) plus the
-            // parallel-axis transfer from the box center to the combined COM.
+            // Sum each box's own inertia plus the parallel-axis transfer to the combined COM.
             MatrixD sumInertia = MatrixD.Identity;
             ZeroOutRotation(ref sumInertia);
             foreach (MassElement box in list)
@@ -146,9 +128,7 @@ namespace FleetCommand.Test.Physics
                 Inverse3x3(inertia));
         }
 
-        /// <summary>
-        /// A single rigid-box mass element in grid-local meters.
-        /// </summary>
+        /// <summary>A single rigid-box mass element in grid-local meters.</summary>
         public struct MassElement
         {
             public float Mass;
@@ -156,11 +136,7 @@ namespace FleetCommand.Test.Physics
             public Vector3 CenterLocal;
         }
 
-        /// <summary>
-        /// Solid rectangular-box inertia about its own center (diagonal):
-        /// Ix = m/3·(hy²+hz²) about X, and symmetrically — the standard
-        /// rigid box formula for full sides (2·h).
-        /// </summary>
+        /// <summary>Solid box inertia about its own center: m/3·(hy²+hz²) about X, symmetrically.</summary>
         public static MatrixD BoxInertiaAboutCenter(double mass, Vector3 halfExtents)
         {
             double hx = halfExtents.X, hy = halfExtents.Y, hz = halfExtents.Z;
@@ -171,11 +147,7 @@ namespace FleetCommand.Test.Physics
             return result;
         }
 
-        /// <summary>
-        /// Parallel-axis transfer: inertia added when a point mass is
-        /// displaced from the reference axis by <paramref name="offset"/>:
-        /// m · (|r|²·E − r·rᵀ).
-        /// </summary>
+        /// <summary>Parallel-axis transfer for a point mass displaced by <paramref name="offset"/>: m·(|r|²·E − r·rᵀ).</summary>
         public static MatrixD ParallelAxisTransfer(double mass, Vector3D offset)
         {
             double r2 = offset.LengthSquared();
@@ -214,11 +186,7 @@ namespace FleetCommand.Test.Physics
             matrix.M31 = 0; matrix.M32 = 0; matrix.M33 = 0;
         }
 
-        /// <summary>
-        /// Inverts the upper-left 3x3 of <paramref name="matrix"/> by
-        /// adjugate. The inertia tensor is symmetric; the result is used as
-        /// the analytic inverse-inertia reference.
-        /// </summary>
+        /// <summary>Inverts the upper-left 3x3 by adjugate; the analytic inverse-inertia reference.</summary>
         public static Matrix Inverse3x3(Matrix matrix)
         {
             double a = matrix.M11, b = matrix.M12, c = matrix.M13;

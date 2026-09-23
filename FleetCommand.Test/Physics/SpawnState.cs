@@ -3,10 +3,8 @@ using VRageMath;
 namespace FleetCommand.Test.Physics
 {
     /// <summary>
-    /// Physical spawn state for a ship (): initial world-visible
-    /// position, orientation, and velocities. The scenario origin
-    /// configured for the world is folded into body-local coordinates at
-    /// spawn time by <see cref="Framework.FleetTestContext.Spawn"/>.
+    /// Physical spawn state for a ship: initial world-visible position, orientation, and
+    /// velocities. The world's scenario origin is folded into body-local coordinates at spawn.
     /// </summary>
     public struct SpawnState
     {

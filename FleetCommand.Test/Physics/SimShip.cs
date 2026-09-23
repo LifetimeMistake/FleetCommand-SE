@@ -4,16 +4,10 @@ using Sandbox.ModAPI.Ingame;
 namespace FleetCommand.Test.Physics
 {
     /// <summary>
-    /// The ship handle returned by
-    /// <see cref="Framework.FleetTestContext.Spawn"/> (). This
-    /// provides the physics-side surface: a stable <see cref="Id"/>
-    /// (numeric, ascending in spawn order), the owning <see cref="Grid"/>,
-    /// the live rigid-body <see cref="Body"/> state,
-    /// <see cref="TerminalSystem"/> (discovery over the grid's blocks,
-    /// ), the template-designated <see cref="Controller"/>
-    /// (), the deterministic <see cref="Power"/> bus (),
-    /// and <see cref="SetState"/> for scenario setup and ground-truth
-    /// injection.
+    /// The ship handle returned by <see cref="Framework.FleetTestContext.Spawn"/>: the
+    /// physics-side surface over <see cref="Grid"/>, <see cref="Body"/>,
+    /// <see cref="TerminalSystem"/>, <see cref="Controller"/>, <see cref="Power"/>,
+    /// and <see cref="SetState"/> for scenario setup.
     /// </summary>
     public sealed class SimShip
     {
@@ -23,26 +17,20 @@ namespace FleetCommand.Test.Physics
         /// <summary>The owning grid and its rigid body.</summary>
         public SimCubeGrid Grid { get; }
 
-        /// <summary>Discovery surface over this grid's blocks ().</summary>
+        /// <summary>Discovery surface over this grid's blocks.</summary>
         public IMyGridTerminalSystem TerminalSystem => Grid.TerminalSystem;
 
         /// <summary>
-        /// The ship's deterministic power bus (): functional
-        /// blocks register demand + priority, batteries register as the
-        /// finite supply (or the template provides an ideal source), and
-        /// phase 4 delivers the per-block power ratio ahead of actuation
-        /// (, ).
+        /// The ship's deterministic power bus: blocks register demand + priority, batteries
+        /// register as the finite supply (or the template provides an ideal source), and
+        /// the per-block power ratio is delivered ahead of actuation.
         /// </summary>
         public SimPowerBus Power => Grid.PowerBus;
 
         /// <summary>The live rigid-body state of the ship's grid.</summary>
         public SimRigidBodyState Body => Grid.Body.GetState();
 
-        /// <summary>
-        /// The controller the template designates (the first
-        /// controller-kind block), or null when the template has none
-        /// (; ).
-        /// </summary>
+        /// <summary>The template-designated controller (first controller-kind block), or null when none.</summary>
         public IMyShipController Controller { get; }
 
         internal SimShip(long id, SimCubeGrid grid, IMyShipController controller)
@@ -52,10 +40,7 @@ namespace FleetCommand.Test.Physics
             Controller = controller;
         }
 
-        /// <summary>
-        /// Writes the ship's rigid body back from a world state (scenario
-        /// setup and observation injection, ).
-        /// </summary>
+        /// <summary>Writes the ship's rigid body back from a world state (scenario setup and observation injection).</summary>
         public void SetState(in SimRigidBodyState state)
         {
             Grid.Body.SetState(state);

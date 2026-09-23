@@ -3,11 +3,8 @@ using VRageMath;
 namespace FleetCommand.Test.Physics
 {
     /// <summary>
-    /// One rigid body's publicly visible instantaneous state (,
-    /// ): world-visible position, orientation, and world-frame velocities.
-    /// Havok float transforms are held relative to the fixed scenario origin;
-    /// the world-visible positions here are recomputed as
-    /// <c>origin + local</c>, so callers always work in world coordinates.
+    /// One rigid body's publicly visible instantaneous state: world-visible position,
+    /// orientation, and world-frame velocities (recomputed as <c>origin + local</c>).
     /// </summary>
     public struct SimRigidBodyState
     {
