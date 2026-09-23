@@ -565,7 +565,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         public void Gate_Failure_PreventsApproach()
         {
             // A pair beyond the separation reach is not Connectable, so
-            // Connect() must do nothing — no approach begins (the Stage-9
+            // Connect() must do nothing — no approach begins (the
             // capture gates gate the approach itself).
             SimShip a = Fc.Spawn(ConnectorCraft("gap", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(1, 0, 0))), SpawnState.At(new Vector3D(0, 0, 0)));
             SimShip b = Fc.Spawn(
