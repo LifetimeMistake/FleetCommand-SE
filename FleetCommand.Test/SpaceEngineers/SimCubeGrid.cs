@@ -128,6 +128,14 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public override MatrixD WorldMatrix => Body.WorldMatrix;
 
+        /// <summary>
+        /// The world-&gt;grid rotation matrix (R^T) for transforming
+        /// vectors from the world frame into the grid (body) frame — the
+        /// game's <c>WorldMatrixNormalizedInv</c> rotation part used at
+        /// every world-to-local control read.
+        /// </summary>
+        public Matrix WorldToLocal => Matrix.Transpose(((Matrix)WorldMatrix).GetOrientation());
+
         /// <inheritdoc />
         public override string DisplayName => CustomName;
 

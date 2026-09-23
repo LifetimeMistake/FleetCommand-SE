@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FleetCommand.Common;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
 using FleetCommand.Test.SpaceEngineers;
@@ -530,7 +531,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             for (int i = 0; i < 480 && !ca.IsConnected; i++)
             {
                 Fc.Step();
-                double angle = AngleBetween(ca.ConnectAxisWorld, cb.ConnectAxisWorld);
+                double angle = MathHelpers.AngleBetween(ca.ConnectAxisWorld, cb.ConnectAxisWorld);
                 double axisError = Math.Abs(Math.PI - angle);
                 if (axisError < prevError)
                 {
@@ -541,7 +542,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(sawSmallerError, Is.True,
                 "During the approach the connect axes must rotate toward anti-parallel.");
             Assert.That(ca.IsConnected, Is.True, "Once aligned and converged, the pair must lock.");
-            double finalError = Math.Abs(Math.PI - AngleBetween(ca.ConnectAxisWorld, cb.ConnectAxisWorld));
+            double finalError = Math.Abs(Math.PI - MathHelpers.AngleBetween(ca.ConnectAxisWorld, cb.ConnectAxisWorld));
             Assert.That(finalError, Is.LessThan(Fc.World.Profile.ConnectorApproachAngle),
                 "The lock must occur with the connect axes anti-parallel (within the approach angle).");
         }
@@ -754,7 +755,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                     ctx.Step();
                     simA[i] = a.Grid.Body.PositionWorld;
                     simB[i] = b.Grid.Body.PositionWorld;
-                    simAngErr[i] = Math.Abs(Math.PI - AngleBetween(ca.ConnectAxisWorld, cb.ConnectAxisWorld));
+                    simAngErr[i] = Math.Abs(Math.PI - MathHelpers.AngleBetween(ca.ConnectAxisWorld, cb.ConnectAxisWorld));
                 }
 
                 // Independent integration of the off-COM magnet law.
@@ -769,7 +770,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                         (anaA.Position - simA[i]).Length(), (anaB.Position - simB[i]).Length());
                     // The mismatch that matters: how far the sim's measured
                     // orientation is from the analytic law's at the same tick.
-                    double anaAngErr = Math.Abs(Math.PI - AngleBetween(anaA.AxisWorld(), anaB.AxisWorld()));
+                    double anaAngErr = Math.Abs(Math.PI - MathHelpers.AngleBetween(anaA.AxisWorld(), anaB.AxisWorld()));
                     double angErr = Math.Abs(anaAngErr - simAngErr[i]);
                     maxPosErr = Math.Max(maxPosErr, posErr);
                     maxAngErr = Math.Max(maxAngErr, angErr);
@@ -797,13 +798,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 Assert.That(maxAngErr, Is.LessThan(angTol),
                     "Sim orientation trajectory must match the analytic off-COM law (torque r×F). MaxAngErr=" + maxAngErr);
             }
-        }
-
-        private static double AngleBetween(Vector3D a, Vector3D b)
-        {
-            double dot = Vector3D.Dot(Vector3D.Normalize(a), Vector3D.Normalize(b));
-            dot = dot < -1.0 ? -1.0 : dot > 1.0 ? 1.0 : dot;
-            return Math.Acos(dot);
         }
 
         /// <summary>

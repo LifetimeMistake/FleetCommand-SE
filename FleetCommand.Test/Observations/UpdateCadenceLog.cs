@@ -1,4 +1,5 @@
 using System;
+using FleetCommand.Common;
 
 namespace FleetCommand.Test.Observations
 {
@@ -39,20 +40,19 @@ namespace FleetCommand.Test.Observations
     /// A short rolling log of recent <see cref="UpdateInvocation"/>s, kept by
     /// the world so callback cadence and exact command-application intervals
     /// are observable () and appear in failure output. Bounded.
+    /// Storage is a <see cref="RingBuffer{T}"/>.
     /// </summary>
     public sealed class UpdateCadenceLog
     {
-        private readonly UpdateInvocation[] _buffer;
-        private int _tail;
-        private int _count;
+        private readonly RingBuffer<UpdateInvocation> _ring;
 
         /// <summary>The fixed capacity.</summary>
         public int Capacity { get; }
 
         /// <summary>Number of retained invocations.</summary>
-        public int Count => _count;
+        public int Count => _ring.Count;
 
-        public bool IsEmpty => _count == 0;
+        public bool IsEmpty => _ring.Count == 0;
 
         public UpdateCadenceLog(int capacity)
         {
@@ -61,51 +61,28 @@ namespace FleetCommand.Test.Observations
                 throw new ArgumentOutOfRangeException(nameof(capacity), "A cadence log needs a positive capacity.");
             }
             Capacity = capacity;
-            _buffer = new UpdateInvocation[capacity];
+            _ring = new RingBuffer<UpdateInvocation>(capacity);
         }
 
         internal void Add(UpdateInvocation invocation)
         {
-            _buffer[_tail] = invocation;
-            _tail = (_tail + 1) % Capacity;
-            if (_count < Capacity)
-            {
-                _count++;
-            }
+            _ring.Push(invocation);
         }
 
         /// <summary>The invocation at <paramref name="index"/>, oldest first.</summary>
-        public UpdateInvocation this[int index]
-        {
-            get
-            {
-                if (index < 0 || index >= _count)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(index));
-                }
-                return _buffer[(_tail - _count + index + Capacity) % Capacity];
-            }
-        }
+        public UpdateInvocation this[int index] => _ring[index];
 
         /// <summary>A copy of the retained invocations, oldest first.</summary>
-        public UpdateInvocation[] ToArray()
-        {
-            UpdateInvocation[] result = new UpdateInvocation[_count];
-            for (int i = 0; i < _count; i++)
-            {
-                result[i] = this[i];
-            }
-            return result;
-        }
+        public UpdateInvocation[] ToArray() => _ring.ToArray();
 
         /// <summary>The most recent invocation.</summary>
         public UpdateInvocation Last()
         {
-            if (_count == 0)
+            if (_ring.Count == 0)
             {
                 throw new InvalidOperationException("The cadence log is empty.");
             }
-            return this[_count - 1];
+            return _ring.Last();
         }
     }
 }

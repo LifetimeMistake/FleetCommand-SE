@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using FleetCommand.Common;
 
 namespace FleetCommand.Test.Observations
 {
@@ -10,22 +11,21 @@ namespace FleetCommand.Test.Observations
     /// of the recent actuator/state history, and an uncaught component
     /// exception is added to it. The fixture surfaces its contents (recent
     /// history) in NUnit output when a test fails. Bounded by a fixed
-    /// capacity — oldest entries drop when full.
+    /// capacity — oldest entries drop when full. Storage is a
+    /// <see cref="RingBuffer{T}"/>.
     /// </summary>
     public sealed class FailureRingBuffer
     {
-        private readonly string[] _buffer;
-        private int _tail;
-        private int _count;
+        private readonly RingBuffer<string> _ring;
 
         /// <summary>The fixed capacity in entries.</summary>
         public int Capacity { get; }
 
         /// <summary>Number of retained entries (&lt;= <see cref="Capacity"/>).</summary>
-        public int Count => _count;
+        public int Count => _ring.Count;
 
         /// <summary>True while the buffer holds no entries.</summary>
-        public bool IsEmpty => _count == 0;
+        public bool IsEmpty => _ring.Count == 0;
 
         public FailureRingBuffer(int capacity)
         {
@@ -34,51 +34,28 @@ namespace FleetCommand.Test.Observations
                 throw new ArgumentOutOfRangeException(nameof(capacity), "A failure ring buffer needs a positive capacity.");
             }
             Capacity = capacity;
-            _buffer = new string[capacity];
+            _ring = new RingBuffer<string>(capacity);
         }
 
         /// <summary>Adds a line; when full the oldest line drops (ring).</summary>
         public void Add(string line)
         {
-            _buffer[_tail] = line ?? string.Empty;
-            _tail = (_tail + 1) % Capacity;
-            if (_count < Capacity)
-            {
-                _count++;
-            }
+            _ring.Push(line ?? string.Empty);
         }
 
         /// <summary>The line at <paramref name="index"/>, oldest first.</summary>
-        public string this[int index]
-        {
-            get
-            {
-                if (index < 0 || index >= _count)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(index));
-                }
-                return _buffer[(_tail - _count + index + Capacity) % Capacity];
-            }
-        }
+        public string this[int index] => _ring[index];
 
         /// <summary>A copy of the retained lines, oldest first.</summary>
-        public string[] ToArray()
-        {
-            string[] result = new string[_count];
-            for (int i = 0; i < _count; i++)
-            {
-                result[i] = this[i];
-            }
-            return result;
-        }
+        public string[] ToArray() => _ring.ToArray();
 
         /// <summary>Renders the retained lines, oldest first, one per line.</summary>
         public override string ToString()
         {
             var sb = new StringBuilder();
-            for (int i = 0; i < _count; i++)
+            for (int i = 0; i < _ring.Count; i++)
             {
-                sb.AppendLine(this[i]);
+                sb.AppendLine(_ring[i]);
             }
             return sb.ToString();
         }

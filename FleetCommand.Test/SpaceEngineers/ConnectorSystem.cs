@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FleetCommand.Common;
 using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
 using VRageMath;
@@ -92,7 +93,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
             // 2. Opposing-axis angular error gate: how far the two connect
             // axes deviate from exactly opposing (error = |π - angle|).
-            double angle = AngleBetween(a.ConnectAxisWorld, b.ConnectAxisWorld);
+            double angle = MathHelpers.AngleBetween(a.ConnectAxisWorld, b.ConnectAxisWorld);
             double angularError = Math.Abs(Math.PI - angle);
             if (angularError > profile.ConnectorAngularErrorMax)
             {
@@ -114,13 +115,6 @@ namespace FleetCommand.Test.SpaceEngineers
             }
 
             return true;
-        }
-
-        private static double AngleBetween(Vector3D a, Vector3D b)
-        {
-            double dot = Vector3D.Dot(Vector3D.Normalize(a), Vector3D.Normalize(b));
-            dot = dot < -1.0 ? -1.0 : dot > 1.0 ? 1.0 : dot;
-            return Math.Acos(dot);
         }
 
         // — .5: the two-stage connect (approach then lock) —
@@ -402,7 +396,7 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return false;
             }
-            double angle = AngleBetween(a.ConnectAxisWorld, b.ConnectAxisWorld);
+            double angle = MathHelpers.AngleBetween(a.ConnectAxisWorld, b.ConnectAxisWorld);
             double angularError = Math.Abs(Math.PI - angle);
             if (angularError > profile.ConnectorApproachAngle)
             {

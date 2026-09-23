@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FleetCommand.Common;
 using FleetCommand.Test.Physics;
 using VRageMath;
 
@@ -176,7 +177,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _lastAutoPilotThrust = aiForce;
             Vector3 maxPos = _grid.ForceAggregator.MaxPositiveThrust;
             Vector3 maxNeg = _grid.ForceAggregator.MaxNegativeThrust;
-            _grid.ForceAggregator.SetGroupDemand(Normalize(aiForce, maxPos, maxNeg));
+            _grid.ForceAggregator.SetGroupDemand(MathHelpers.Normalize(aiForce, maxPos, maxNeg));
         }
 
         /// <summary>
@@ -232,7 +233,7 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return Vector3.Zero;
             }
-            Matrix worldToGrid = Matrix.Transpose(((Matrix)_grid.WorldMatrix).GetOrientation());
+            Matrix worldToGrid = _grid.WorldToLocal;
             Vector3 axisGrid = Vector3.TransformNormal((Vector3)(axisW / sinA), worldToGrid);
             Vector3 wGrid = Vector3.Transform(body.AngularVelocity, worldToGrid);
             double wAlong = Vector3.Dot(wGrid, axisGrid);
@@ -264,7 +265,7 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return Vector3.Zero;
             }
-            Matrix worldToGrid = Matrix.Transpose(((Matrix)_grid.WorldMatrix).GetOrientation());
+            Matrix worldToGrid = _grid.WorldToLocal;
             Vector3D v = delta;
             v.Normalize();
             Vector3D vel = body.LinearVelocity;
@@ -323,7 +324,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// </summary>
         private Vector3 ComputeAiThrust(Vector3 direction, SimRigidBody body, SimRemoteControl remote)
         {
-            Matrix worldToGrid = Matrix.Transpose(((Matrix)_grid.WorldMatrix).GetOrientation());
+            Matrix worldToGrid = _grid.WorldToLocal;
             Vector3 vector = Vector3.Clamp(direction, Vector3.Zero, Vector3.One);
             Vector3 vector2 = Vector3.Clamp(direction, -Vector3.One, Vector3.Zero);
             Vector3 maxPos = _grid.ForceAggregator.MaxPositiveThrust;
@@ -344,8 +345,8 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 Vector3 vector8 = vector * vector5;
                 Vector3 vector9 = -vector2 * vector6;
-                Vector3 vector10 = SafeRatio(vector3, vector8);
-                Vector3 vector11 = SafeRatio(vector4, vector9);
+                Vector3 vector10 = MathHelpers.SafeRatio(vector3, vector8);
+                Vector3 vector11 = MathHelpers.SafeRatio(vector4, vector9);
                 vector7 = -vector9 * vector11 + vector8 * vector10;
                 vector7 += positiveGravity + negativeGravity;
                 vector7 = Vector3.Clamp(vector7, -maxNeg, maxPos);
@@ -411,44 +412,6 @@ namespace FleetCommand.Test.SpaceEngineers
         private static float MaxComponent(Vector3 v)
         {
             return Math.Max(Math.Max(v.X, v.Y), v.Z);
-        }
-
-        private static Vector3 SafeRatio(Vector3 a, Vector3 b)
-        {
-            return new Vector3(
-                SafeRatio(a.X, b.X),
-                SafeRatio(a.Y, b.Y),
-                SafeRatio(a.Z, b.Z));
-        }
-
-        private static float SafeRatio(float numerator, float denominator)
-        {
-            if (denominator == 0f || float.IsNaN(numerator / denominator))
-            {
-                return 1f; // the game's !IsValid() -> 1
-            }
-            return numerator / denominator;
-        }
-
-        private static Vector3 Normalize(Vector3 force, Vector3 maxPos, Vector3 maxNeg)
-        {
-            return new Vector3(
-                NormalizeAxis(force.X, force.X >= 0f ? maxPos.X : maxNeg.X),
-                NormalizeAxis(force.Y, force.Y >= 0f ? maxPos.Y : maxNeg.Y),
-                NormalizeAxis(force.Z, force.Z >= 0f ? maxPos.Z : maxNeg.Z));
-        }
-
-        private static float NormalizeAxis(float force, float max)
-        {
-            if (force == 0f)
-            {
-                return 0f;
-            }
-            if (max == 0f)
-            {
-                return 0f;
-            }
-            return force / max;
         }
     }
 }

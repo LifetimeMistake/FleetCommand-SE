@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FleetCommand.Common;
 using FleetCommand.Test.Physics;
 using VRageMath;
 
@@ -179,7 +180,7 @@ namespace FleetCommand.Test.SpaceEngineers
             // ComputeBaseThrust (MyEntityThrustComponent.cs:1543-1656):
             // matrix = Entity.PositionComp.WorldMatrixNormalizedInv, the
             // world->grid rotation.
-            Matrix worldToGrid = Matrix.Transpose(((Matrix)_grid.WorldMatrix).GetOrientation());
+            Matrix worldToGrid = _grid.WorldToLocal;
             Vector3 gravity = (Vector3)_grid.World.Gravity.GetNaturalGravity(body.PositionWorld) * 0.5f;
             Vector3 vector2 = Vector3.TransformNormal(
                 (dampenersWanted ? (Vector3)body.LinearVelocity : Vector3.Zero) + gravity, worldToGrid);
@@ -203,7 +204,7 @@ namespace FleetCommand.Test.SpaceEngineers
                     // and 1 where it is invalid (0/0) — matching the game's
                     // !IsValid() -> 1.
                     Vector3 zero2 = zero2Direction(vector2, vector3, maxNeg, maxPos);
-                    zero *= DirectionShare(zero2, zero2);
+                    zero *= MathHelpers.SafeRatio(zero2, zero2);
                     slowdownThrust = vector4 / 0.5f * body.Mass * zero;
                 }
             }
@@ -221,7 +222,7 @@ namespace FleetCommand.Test.SpaceEngineers
             // group demand the aggregator feeds (its delivered force equals
             // this force demand, then effectiveness + power + direction
             // apply as for any group demand).
-            _grid.ForceAggregator.SetGroupDemand(Normalize(vector6, maxPos, maxNeg));
+            _grid.ForceAggregator.SetGroupDemand(MathHelpers.Normalize(vector6, maxPos, maxNeg));
         }
 
         private static Vector3 zero2Direction(Vector3 vector2, Vector3 vector3, Vector3 maxNeg, Vector3 maxPos)
@@ -231,45 +232,6 @@ namespace FleetCommand.Test.SpaceEngineers
             r.Y = vector2.Y > vector3.Y ? maxNeg.Y : (vector2.Y < vector3.Y ? maxPos.Y : 0f);
             r.Z = vector2.Z > vector3.Z ? maxNeg.Z : (vector2.Z < vector3.Z ? maxPos.Z : 0f);
             return r;
-        }
-
-        private static Vector3 DirectionShare(Vector3 a, Vector3 b)
-        {
-            Vector3 r = Vector3.Zero;
-            r.X = SafeShare(a.X, b.X);
-            r.Y = SafeShare(a.Y, b.Y);
-            r.Z = SafeShare(a.Z, b.Z);
-            return r;
-        }
-
-        private static float SafeShare(float numerator, float denominator)
-        {
-            if (denominator == 0f || float.IsNaN(numerator / denominator))
-            {
-                return 1f; // the game's !IsValid() -> 1
-            }
-            return numerator / denominator;
-        }
-
-        private static Vector3 Normalize(Vector3 force, Vector3 maxPos, Vector3 maxNeg)
-        {
-            return new Vector3(
-                NormalizeAxis(force.X, force.X >= 0f ? maxPos.X : maxNeg.X),
-                NormalizeAxis(force.Y, force.Y >= 0f ? maxPos.Y : maxNeg.Y),
-                NormalizeAxis(force.Z, force.Z >= 0f ? maxPos.Z : maxNeg.Z));
-        }
-
-        private static float NormalizeAxis(float force, float max)
-        {
-            if (force == 0f)
-            {
-                return 0f;
-            }
-            if (max == 0f)
-            {
-                return 0f;
-            }
-            return force / max;
         }
     }
 }

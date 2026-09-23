@@ -337,7 +337,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
             // world -> grid so the control and the angular velocity share a
             // frame (game :227-229).
-            Matrix worldToGrid = Matrix.Transpose(((Matrix)_grid.WorldMatrix).GetOrientation());
+            Matrix worldToGrid = _grid.WorldToLocal;
             Vector3 vector = Vector3.Transform(body.AngularVelocity, worldToGrid);
             if (!vector.IsValid())
             {

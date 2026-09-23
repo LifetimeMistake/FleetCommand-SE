@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FleetCommand.Common;
 using FleetCommand.Test.Framework;
 
 namespace FleetCommand.Test.Observations
@@ -24,13 +25,12 @@ namespace FleetCommand.Test.Observations
     /// Nothing is recorded unless the caller asks for a recorder. Numeric
     /// convenience accessors (<see cref="MaximumOverLast"/>,
     /// <see cref="MinimumOverLast"/>, <see cref="AverageOverLast"/>) let tests
-    /// assert on recent windows without importing the samples.
+    /// assert on recent windows without importing the samples. Storage is a
+    /// <see cref="RingBuffer{T}"/>.
     /// </summary>
     public sealed class TraceRecorder<T> : ITickSampler
     {
-        private readonly T[] _buffer;
-        private int _tail;
-        private int _count;
+        private readonly RingBuffer<T> _ring;
         private readonly Func<FleetTestContext, T> _sample;
         private readonly FleetTestContext _context;
 
@@ -38,13 +38,13 @@ namespace FleetCommand.Test.Observations
         public int Capacity { get; }
 
         /// <summary>The number of samples recorded so far (&lt;= <see cref="Capacity"/>).</summary>
-        public int Count => _count;
+        public int Count => _ring.Count;
 
         /// <summary>True once <see cref="Count"/> has reached <see cref="Capacity"/>.</summary>
-        public bool IsFull => _count == Capacity;
+        public bool IsFull => _ring.Count == Capacity;
 
         /// <summary>The most recent sample recorded (empty when nothing yet).</summary>
-        public bool IsEmpty => _count == 0;
+        public bool IsEmpty => _ring.Count == 0;
 
         internal TraceRecorder(Func<FleetTestContext, T> sample, FleetTestContext context, int capacity)
         {
@@ -63,7 +63,7 @@ namespace FleetCommand.Test.Observations
             _sample = sample;
             _context = context;
             Capacity = capacity;
-            _buffer = new T[capacity];
+            _ring = new RingBuffer<T>(capacity);
         }
 
         void ITickSampler.Sample()
@@ -74,35 +74,20 @@ namespace FleetCommand.Test.Observations
         /// <summary>Records a sample; when full the oldest sample is dropped (ring).</summary>
         public void Add(T value)
         {
-            _buffer[_tail] = value;
-            _tail = (_tail + 1) % Capacity;
-            if (_count < Capacity)
-            {
-                _count++;
-            }
+            _ring.Push(value);
         }
 
         /// <summary>The sample at <paramref name="index"/>, oldest first (index 0 = earliest retained).</summary>
-        public T this[int index]
-        {
-            get
-            {
-                if (index < 0 || index >= _count)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(index));
-                }
-                return _buffer[(_tail - _count + index + Capacity) % Capacity];
-            }
-        }
+        public T this[int index] => _ring[index];
 
         /// <summary>The most recent sample.</summary>
         public T Last()
         {
-            if (_count == 0)
+            if (_ring.Count == 0)
             {
                 throw new InvalidOperationException("The recorder is empty; there is no latest sample.");
             }
-            return this[_count - 1];
+            return _ring.Last();
         }
 
         /// <summary>The maximum of the most recent <paramref name="n"/> samples (or all if fewer).</summary>
@@ -119,7 +104,7 @@ namespace FleetCommand.Test.Observations
 
         private T ExtremeOverLast(int n, bool maximum)
         {
-            if (_count == 0)
+            if (_ring.Count == 0)
             {
                 throw new InvalidOperationException("The recorder is empty; there is no window to scan.");
             }
@@ -127,9 +112,9 @@ namespace FleetCommand.Test.Observations
             {
                 throw new ArgumentOutOfRangeException(nameof(n));
             }
-            int start = _count - Math.Min(n, _count);
+            int start = _ring.Count - Math.Min(n, _ring.Count);
             T best = this[start];
-            for (int i = start + 1; i < _count; i++)
+            for (int i = start + 1; i < _ring.Count; i++)
             {
                 T candidate = this[i];
                 int cmp = Comparer<T>.Default.Compare(candidate, best);
@@ -144,7 +129,7 @@ namespace FleetCommand.Test.Observations
         /// <summary>The arithmetic mean of the most recent <paramref name="n"/> samples (numeric <c>T</c> only).</summary>
         public double AverageOverLast(int n)
         {
-            if (_count == 0)
+            if (_ring.Count == 0)
             {
                 throw new InvalidOperationException("The recorder is empty; there is no window to average.");
             }
@@ -152,32 +137,19 @@ namespace FleetCommand.Test.Observations
             {
                 throw new ArgumentOutOfRangeException(nameof(n));
             }
-            int start = _count - Math.Min(n, _count);
+            int start = _ring.Count - Math.Min(n, _ring.Count);
             double sum = 0.0;
-            for (int i = start; i < _count; i++)
+            for (int i = start; i < _ring.Count; i++)
             {
                 sum += Convert.ToDouble(this[i]);
             }
-            return sum / (_count - start);
+            return sum / (_ring.Count - start);
         }
 
         /// <summary>A copy of the retained samples, oldest first.</summary>
-        public T[] ToArray()
-        {
-            T[] result = new T[_count];
-            for (int i = 0; i < _count; i++)
-            {
-                result[i] = this[i];
-            }
-            return result;
-        }
+        public T[] ToArray() => _ring.ToArray();
 
         /// <summary>Discards all retained samples.</summary>
-        public void Clear()
-        {
-            _tail = 0;
-            _count = 0;
-            Array.Clear(_buffer, 0, _buffer.Length);
-        }
+        public void Clear() => _ring.Clear();
     }
 }
