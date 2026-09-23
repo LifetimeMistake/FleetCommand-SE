@@ -121,13 +121,40 @@ namespace FleetCommand.Test.SpaceEngineers
         private const float ApproachWn = 2f;      // magnet spring natural frequency (rad/s)
         private const float ApproachAmax = 6f;    // max pull acceleration (m/s^2)
         private const float ApproachDampingRatio = 1f;  // near-critically damped
-        // The fixed frame constraint's rotational tie (the torsional
-        // spring that restores the two connection frames to coincident
-        // orientation), as a torsion spring on the relative
-        // frame-orientation error with the reduced rotational inertia.
-        private const float ApproachRotWn = 1.2f;     // torsion natural frequency (rad/s)
-        private const float ApproachRotDamping = 1f;
-        private const float ApproachRotAmax = 1.5f;   // max torsion acceleration (rad/s^2)
+        // The fixed frame constraint's rotational tie: a torque-limited
+        // velocity-servo alignment controller that restores the two
+        // connection frames to coincident orientation (the connect axes
+        // anti-parallel). It measures the grid's current relative
+        // angular rate (which already includes the grid's angular
+        // damping, MyPerGameSettings.DefaultAngularDamping = 0.1,
+        // MyPerGameSettings.cs:137) and actively re-drives it onto an
+        // exponentially-closing target — so it stays stable under that
+        // damping, unlike an open-loop spring relying on its own
+        // damping term (which the one here had hand-tuned for zero grid
+        // damping and, once the realistic 0.1 damping arrived, drove
+        // the connect axes through alignment into a constant-amplitude
+        // oscillation that never settled within the lock tolerance).
+        // The game's own convergence is a velocity-solved
+        // HkMalleable/HkHingeConstraint (MyShipConnector.cs:1912-1919)
+        // — strongly stable under grid damping for exactly this reason.
+        private const float ApproachTorsionServoRate = 8f;   // servo rate for rate-tracking (1/s)
+        private const float ApproachTorsionCloseTime = 0.4f; // exponential closing time constant (s)
+        private const float ApproachTorsionMaxRate = 1.5f;   // max commanded closing rate (rad/s)
+        private const float ApproachTorsionAmax = 1.5f;      // max torsion acceleration (rad/s^2)
+
+        // The magnetic-capture settling drag: a viscous force opposing
+        // the full relative linear velocity between the two bodies,
+        // applied at their centers of mass (so it adds no torque and
+        // leaves the off-COM r × F alignment physics intact). Without it
+        // the central magnet only damps the along-axis component and
+        // the pair arrives at the lock gap (0.2 m) still closing at
+        // ~0.9 m/s, so the relative-velocity latch gate (0.5 m/s)
+        // never passes and the dock never latches (it just bounces).
+        // The game's malleable connector is a velocity-solved
+        // constraint whose magnetic pull settles the dock to rest
+        // (MyShipConnector.cs:1562-1565, Strength); this drag is the
+        // sim's equivalent settling so the latch gate can fire.
+        private const float ApproachDrag = 1.5f;   // relative-velocity decay rate (1/s)
 
         /// <summary>The magnet spring natural frequency (rad/s).</summary>
         internal static float MagnetNaturalFrequency => ApproachWn;
@@ -138,14 +165,23 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The magnet spring damping ratio.</summary>
         internal static float MagnetDampingRatio => ApproachDampingRatio;
 
-        /// <summary>The frame-tie torsion natural frequency (rad/s).</summary>
-        internal static float FrameTieNaturalFrequency => ApproachRotWn;
+        /// <summary>The frame-tie alignment servo rate: how quickly the measured relative
+        /// angular rate is re-driven onto the closing target (1/s).</summary>
+        internal static float FrameTieServoRate => ApproachTorsionServoRate;
 
-        /// <summary>The frame-tie torsion damping ratio.</summary>
-        internal static float FrameTieDampingRatio => ApproachRotDamping;
+        /// <summary>The frame-tie exponential closing time constant (s): the alignment error
+        /// is commanded to shrink with this time constant.</summary>
+        internal static float FrameTieCloseTime => ApproachTorsionCloseTime;
+
+        /// <summary>The frame-tie max commanded closing rate (rad/s).</summary>
+        internal static float FrameTieMaxClosingRate => ApproachTorsionMaxRate;
 
         /// <summary>The frame-tie maximum torsion acceleration (rad/s^2).</summary>
-        internal static float FrameTieMaxAcceleration => ApproachRotAmax;
+        internal static float FrameTieMaxAcceleration => ApproachTorsionAmax;
+
+        /// <summary>The magnetic-capture settling drag: relative linear velocity decay rate
+        /// between the two bodies (1/s).</summary>
+        internal static float ApproachVelocityDrag => ApproachDrag;
 
         /// <summary>Starts the approach for a connectable pair (the game's
         /// <c>TryAttach</c>→<c>CreateConstraint</c>, MyShipConnector.cs:1478-1520, :1882): the
@@ -226,6 +262,12 @@ namespace FleetCommand.Test.SpaceEngineers
             Vector3D rA = a.WorldPosition;   // A's connection frame
             Vector3D rB = b.WorldPosition;   // B's connection frame
 
+            // The frame constraint's orientational DOF first, reading the
+            // body state as it was at the start of this tick (before the
+            // positional impulse below), so the tie drives the actual
+            // relative rate the grid currently carries.
+            FrameRotationalTie(a, b, ba, bb, (float)TickClock.FixedStep);
+
             // The magnet: an under-damped spring between the two
             // connection frames, on the reduced mass — force at A's frame
             // pulling it to B's, and its equal-and-opposite reaction at
@@ -265,50 +307,81 @@ namespace FleetCommand.Test.SpaceEngineers
                 bb.ApplyPointImpulse(-impulseA, rB);  // linear + r_B × (−F) (off-COM torque)
             }
 
-            // The fixed frame constraint's rotational tie: a torsion
-            // spring that restores the two connection frames to
-            // coincident orientation (the connect axes anti-parallel).
-            // This is the frame constraint's orientational DOF — the
-            // counterpart to the positional spring above, with each
-            // body's actual rotational inertia.
-            FrameRotationalTie(a, b, ba, bb, (float)TickClock.FixedStep);
+            // Magnetic-capture settling: damp the full relative linear
+            // velocity between the two bodies, applied at the centers
+            // of mass (equal and opposite, no net torque — so it does
+            // not disturb the frame-tie above). This lets the dock
+            // settle to rest, so the relative-velocity latch gate is
+            // satisfiable at the lock gap instead of forever bouncing.
+            Vector3 relLin = (Vector3)(ba.LinearVelocity - bb.LinearVelocity);
+            Vector3 dragImpulse = -(ApproachDrag * mRed) * relLin * (float)TickClock.FixedStep;
+            if (dragImpulse != Vector3.Zero)
+            {
+                ba.ApplyLinearImpulse(dragImpulse);
+                bb.ApplyLinearImpulse(-dragImpulse);
+            }
         }
 
-        /// <summary>Restores the two connection frames to coincident orientation: a torsion spring
-        /// on the RELATIVE frame-orientation error (target: the connect axes anti-parallel),
-        /// applied as an equal-and-opposite angular impulse to the two bodies scaled by the reduced
-        /// rotational inertia about the error axis. Because the correction acts only on the
-        /// relative DOF and adds no net angular impulse, it is intrinsically stable — the physical
-        /// counterpart of the positional magnet (the fixed constraint ties both position and
-        /// orientation of the frames).</summary>
+        /// <summary>Restores the two connection frames to coincident orientation (the connect
+        /// axes anti-parallel) with a torque-limited velocity servo on the RELATIVE frame-
+        /// orientation error, applied as an equal-and-opposite angular impulse scaled by the
+        /// reduced rotational inertia about the error axis. The servos' element is the grid's
+        /// own relative angular rate measured on the error axis (which already includes the grid's
+        /// 0.1 angular damping, MyPerGameSettings.cs:137), re-driven onto an exponentially
+        /// closing target — so it converges robustly under that damping (a rate-servo has no
+        /// resonant spring to drive into a sustained oscillation), the rotational counterpart of
+        /// the game's velocity-solved HkHinge/HkMalleable connector convergence
+        /// (MyShipConnector.cs:1912-1919). The error is computed with atan2, so its
+        /// sign is preserved through a quarter-turn (an open-loop <c>asin(|cross|)</c> loses
+        /// the sign and can push the axes the wrong way once past 90°). Because the applied
+        /// impulse is equal and opposite, it adds no net angular momentum (matches the fixed
+        /// constraint tying position and orientation of the frames).</summary>
         private static void FrameRotationalTie(
             SimShipConnector a, SimShipConnector b, SimRigidBody ba, SimRigidBody bb, float dt)
         {
+            // Error state: the rotation taking A's connect axis onto the
+            // anti-parallel of B's (target t = −B).
             Vector3 axisA = (Vector3)Vector3D.Normalize(a.ConnectAxisWorld);
             Vector3 axisB = (Vector3)Vector3D.Normalize(b.ConnectAxisWorld);
-            // Error axis: rotate A's connect axis onto anti-parallel of B's.
-            Vector3 cross = Vector3.Cross(axisA, -axisB);
-            float s = cross.Length();
-            if (s < 1e-9f)
+            Vector3 target = -axisB;
+            Vector3 cross = Vector3.Cross(axisA, target);
+            float sinTh = cross.Length();
+            if (sinTh < 1e-6f)
             {
-                return;
+                return;   // frames already coincident (or degenerate)
             }
-            float angle = (float)Math.Asin(s > 1f ? 1f : s);
-            Vector3 n = cross / s;
+            Vector3 n = cross / sinTh;
+            float cosTh = Vector3.Dot(axisA, target);
+            float theta = (float)Math.Atan2(sinTh, cosTh);   // sign-preserving error, [0, π]
 
-            // Relative angular rate and reduced rotational inertia about
-            // the error axis.
+            // Relative angular rate about the error axis (the grid's own,
+            // post-damping rate).
             Vector3 wRel = (Vector3)(ba.AngularVelocity - bb.AngularVelocity);
-            float rate = Vector3.Dot(wRel, n);
+            float s = Vector3.Dot(wRel, n);
+
+            // Closing target: shrink theta exponentially with ApproachTorsionCloseTime,
+            // rate-capped so a large error never commands a wild turn.
+            float sDes = theta / ApproachTorsionCloseTime;
+            if (sDes > ApproachTorsionMaxRate)
+            {
+                sDes = ApproachTorsionMaxRate;
+            }
+
             float iA = ScalarInertia(ba);
             float iB = ScalarInertia(bb);
             float iRed = (iA * iB) / (iA + iB);
 
-            float k = iRed * ApproachRotWn * ApproachRotWn;
-            float cd = 2f * ApproachRotDamping * iRed * ApproachRotWn;
-            float torque = k * angle + cd * rate;
-            float torqueMax = iRed * ApproachRotAmax;
-            Vector3 impulse = CapImpulse(n * (torque * dt), torqueMax * dt);
+            // Velocity servo: torque to drive s → sDes, torque-limited.
+            float accel = ApproachTorsionServoRate * (sDes - s);
+            if (accel > ApproachTorsionAmax)
+            {
+                accel = ApproachTorsionAmax;
+            }
+            else if (accel < -ApproachTorsionAmax)
+            {
+                accel = -ApproachTorsionAmax;
+            }
+            Vector3 impulse = n * (iRed * accel * dt);
             if (impulse == Vector3.Zero)
             {
                 return;

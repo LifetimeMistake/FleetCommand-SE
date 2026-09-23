@@ -847,8 +847,10 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             static readonly float Wn = ConnectorSystem.MagnetNaturalFrequency;
             static readonly float Amax = ConnectorSystem.MagnetMaxAcceleration;
             static readonly float Zeta = ConnectorSystem.MagnetDampingRatio;
-            static readonly float RotWn = ConnectorSystem.FrameTieNaturalFrequency;
-            static readonly float RotDamping = ConnectorSystem.FrameTieDampingRatio;
+            static readonly float Drag = ConnectorSystem.ApproachVelocityDrag;
+            static readonly float ServoRate = ConnectorSystem.FrameTieServoRate;
+            static readonly float CloseTime = ConnectorSystem.FrameTieCloseTime;
+            static readonly float MaxRate = ConnectorSystem.FrameTieMaxClosingRate;
             static readonly float RotAmax = ConnectorSystem.FrameTieMaxAcceleration;
 
             public static void Step(ref AnalyticBody a, ref AnalyticBody b, float dt)
@@ -876,26 +878,37 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 }
                 Vector3 imp = -sepDir * (f * dt); // impulse on A (toward B)
 
-                // Frame-tie torsional spring (relative, equal-opposite).
+                // Frame-tie alignment velocity servo (relative, equal-
+                // opposite): drive the relative rate about the error axis
+                // onto an exponentially-closing target, torque-limited —
+                // the sim's FrameRotationalTie.
                 Vector3 cross = Vector3.Cross(axisA, -axisB);
-                float s = cross.Length();
+                float sinTh = cross.Length();
                 Vector3 J = Vector3.Zero;
-                if (s > 1e-9f)
+                if (sinTh > 1e-6f)
                 {
-                    float angle = (float)Math.Asin(s > 1f ? 1f : s);
-                    Vector3 nn = Vector3.Normalize(cross);
-                    float rate = Vector3.Dot(a.AngularVelocity - b.AngularVelocity, nn);
+                    Vector3 nn = cross / sinTh;
+                    float cosTh = Vector3.Dot(axisA, -axisB);
+                    float theta = (float)Math.Atan2(sinTh, cosTh);
+                    float s = Vector3.Dot(a.AngularVelocity - b.AngularVelocity, nn);
+                    float sDes = theta / CloseTime;
+                    if (sDes > MaxRate)
+                    {
+                        sDes = MaxRate;
+                    }
                     float iA = AnalyticBody.AxisInertia(nn, a.InvDiagBody);
                     float iB = AnalyticBody.AxisInertia(nn, b.InvDiagBody);
                     float iRed = (iA * iB) / (iA + iB);
-                    float kR = iRed * RotWn * RotWn;
-                    float cR = 2f * RotDamping * iRed * RotWn;
-                    float torque = kR * angle + cR * rate;
-                    if (torque > iRed * RotAmax)
+                    float accel = ServoRate * (sDes - s);
+                    if (accel > RotAmax)
                     {
-                        torque = iRed * RotAmax;
+                        accel = RotAmax;
                     }
-                    J = Cap(nn * (torque * dt), (iRed * RotAmax) * dt);
+                    else if (accel < -RotAmax)
+                    {
+                        accel = -RotAmax;
+                    }
+                    J = nn * (iRed * accel * dt);
                 }
 
                 // Apply impulses: linear + off-COM torque (r × F) + torsion.
@@ -907,6 +920,13 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 b.LinearVelocity -= imp / b.Mass;
                 b.AngularVelocity += b.WorldInverseInertiaTimes(Vector3.Cross(rB, -imp));
                 b.AngularVelocity += b.WorldInverseInertiaTimes(-J);
+
+                // Magnetic-capture settling drag (relative linear velocity,
+                // at the centers of mass, equal and opposite) — as the sim.
+                Vector3 relLin = a.LinearVelocity - b.LinearVelocity;
+                Vector3 dragImp = -(Drag * mRed) * relLin * dt;
+                a.LinearVelocity += dragImp / a.Mass;
+                b.LinearVelocity += -dragImp / b.Mass;
 
                 // Semi-implicit Euler advance.
                 a.Position += new Vector3D(a.LinearVelocity) * dt;
@@ -922,12 +942,6 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 Quaternion nq = q + dq;
                 nq.Normalize();
                 return nq;
-            }
-
-            private static Vector3 Cap(Vector3 v, float cap)
-            {
-                float len = v.Length();
-                return len > cap ? v / len * cap : v;
             }
         }
     }
