@@ -24,9 +24,12 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             // The thruster's forward (exhaust) is -Z (Vector3I.Forward in
             // this build); the game applies force = -forward, pushing +Z.
+            // Mounted on the grid's forward axis (x=y=0, CoM at the origin
+            // from the heavy hull) so the +Z force passes through the CoM —
+            // a pure linear response, no block-offset torque.
             SimShip ship = Fc.Spawn(
                 HullPlusThrusters("vac", hullMass: 2000f,
-                    Thruster("T", new Vector3I(2, 0, 0), Vector3I.Forward, maxThrust: 60000f)),
+                    Thruster("T", new Vector3I(0, 0, 2), Vector3I.Forward, maxThrust: 60000f)),
                 SpawnState.At(Vector3D.Zero));
             IMyThrust thruster = (IMyThrust)ship.TerminalSystem.GetBlockWithName("T");
             thruster.ThrustOverride = 45000f;
@@ -92,9 +95,12 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             Fc.World.SetGravity(SimGravityField.Uniform(new Vector3(0, -9.81f, 0)));
             // forward = -Y (Vector3I.Down), so the grid is pushed +Y.
+            // Mounted on the grid's vertical axis (x=z=0, CoM at the
+            // origin) so the +Y force passes through the CoM and produces
+            // no block-offset torque.
             SimShip ship = Fc.Spawn(
                 HullPlusThrusters("hover", hullMass: 2000f,
-                    Thruster("T", new Vector3I(2, 0, 0), Vector3I.Down, maxThrust: 90000f)),
+                    Thruster("T", new Vector3I(0, 2, 0), Vector3I.Down, maxThrust: 90000f)),
                 SpawnState.At(Vector3D.Zero).WithVelocity(new Vector3D(0, -2, 0)));
             IMyThrust thruster = (IMyThrust)ship.TerminalSystem.GetBlockWithName("T");
             thruster.ThrustOverride = ship.Grid.Body.Mass * 9.81f; // exactly the weight
@@ -113,7 +119,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Fc.World.SetGravity(SimGravityField.Uniform(new Vector3(0, -9.81f, 0)));
             SimShip ship = Fc.Spawn(
                 HullPlusThrusters("climb", hullMass: 2000f,
-                    Thruster("T", new Vector3I(2, 0, 0), Vector3I.Down, maxThrust: 120000f)),
+                    Thruster("T", new Vector3I(0, 2, 0), Vector3I.Down, maxThrust: 120000f)),
                 SpawnState.At(Vector3D.Zero));
             IMyThrust thruster = (IMyThrust)ship.TerminalSystem.GetBlockWithName("T");
             float m = ship.Grid.Body.Mass;
@@ -278,16 +284,18 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "Both scaled delivered forces must feed the single resultant.");
         }
 
-        // — zero unintended torque from an off-center fixed thruster —
-        // The net force is applied at the grid COM (source-verified),
-        // so block position must not torque the grid.
+        // — torque from an off-center fixed thruster —
+        // Each thruster's force acts at ITS OWN block position (the game
+        // applies each thruster's force at its block), so an off-COM mount
+        // produces a point impulse whose torque rotates the grid about the
+        // COM (I⁻¹ (r × impulse)) exactly like the real game.
 
         [Test]
-        public void OffCenterThruster_ProducesZeroUnintendedTorque()
+        public void OffCenterThruster_ProducesTorque_AboutCom()
         {
-            // A single thruster mounted far from the hull's center: if the
-            // force were applied at the block there would be a large arm;
-            // applied at the grid COM it must translate without rotating.
+            // A single +X thruster mounted far off the hull's center line:
+            // its +X force has a lever arm about the CoM, so the grid must
+            // yaw about the CoM while still translating along +X.
             SimShip ship = Fc.Spawn(
                 HullPlusThrusters("lopsided", hullMass: 4000f,
                     Thruster("T", new Vector3I(8, 6, 4), Vector3I.Left, maxThrust: 80000f)),
@@ -297,15 +305,83 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             Fc.RunFor(1.0);
 
+            // The off-center +X thruster also yaws the grid, so the world +X
+            // speed is NOT the full 80000/m impulse — its line of thrust
+            // rotates away as the grid pitches. The key contract is that it
+            // still translates along +X AND the block offset produces rotation.
+            Assert.That(ship.Body.LinearVelocity.X, Is.GreaterThan(1.0),
+                "The off-center thruster must still translate the grid along +X.");
+            // r (off the CoM) × F (+X) is non-zero, so the grid must have
+            // picked up a large angular velocity about the cross (Y) axis.
+            Assert.That(ship.Body.AngularVelocity.Length(), Is.GreaterThan(0.5),
+                "An off-center fixed thruster must torque the grid about the CoM (force applied at its own block, not the grid CoM).");
+        }
+
+        [Test]
+        public void OnAxisThruster_ThroughCoM_ProducesNoTorque()
+        {
+            // Control: a +X thruster mounted so its force line passes
+            // through the CoM (r parallel to F, x-axis, CoM at the origin
+            // from the heavy hull) must translate without rotating.
+            SimShip ship = Fc.Spawn(
+                HullPlusThrusters("balanced", hullMass: 8000f,
+                    Thruster("T", new Vector3I(3, 0, 0), Vector3I.Left, maxThrust: 80000f)),
+                SpawnState.At(Vector3D.Zero));
+            IMyThrust thruster = (IMyThrust)ship.TerminalSystem.GetBlockWithName("T");
+            thruster.ThrustOverride = 80000f;
+
+            Fc.RunFor(1.0);
+
             float m = ship.Grid.Body.Mass;
-            float expectedV = 80000f / m;
-            Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(expectedV).Within(expectedV * 0.02),
-                "The off-center thruster must still produce its full linear impulse.");
-            Assert.That(ship.Body.LinearVelocity.Y, Is.EqualTo(0).Within(1e-3));
-            Assert.That(ship.Body.LinearVelocity.Z, Is.EqualTo(0).Within(1e-3));
+            Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(80000f / m).Within((80000f / m) * 0.02),
+                "The on-axis thruster must still produce its full linear impulse.");
             Assert.That(ship.Body.AngularVelocity.Length(), Is.LessThan(1e-3),
-                "Fixed grid thrusters must generate no torque from block position (force applied at the grid COM).");
-            Assert.That(ship.Body.PositionWorld.Z, Is.EqualTo(0).Within(1e-3));
+                "A thruster whose force passes through the CoM must produce no torque.");
+        }
+
+        // — capacity: unpowered thrusters are not counted (RecomputeTypeThrustParameters) —
+
+        [Test]
+        public void UnpoweredThruster_NotCounted_InDirectionCapacity()
+        {
+            // Game: RecomputeTypeThrustParameters adds +0 for a !IsPowered thruster into the
+            // per-direction capacity (MyEntityThrustComponent.cs:1407-1416), so a power deficit
+            // must reduce the grid's dampening/capacity exactly like the game.
+            // Craft: two +X thrusters (both max 50000). The battery supplies only 6 MW; the
+            // higher-priority Engine (demand 6) takes it all, so the lower-priority Engine2
+            // (demand 20) is left unpowered (ratio 0).
+            ShipTemplate template = new ShipTemplate("cap", 2.5f, new[]
+            {
+                new TemplateBlock("Hull", Vector3I.Zero, 8000f, 2.5f),
+                new TemplateBlock("Battery", new Vector3I(1, 0, 0), 400f, 2.5f,
+                    kind: BlockKind.Battery, maxOutput: 6f, maxStoredPower: 100f),
+                new TemplateBlock("Engine", new Vector3I(2, 0, 0), 400f, 2.5f,
+                    kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left,
+                    maxThrust: 50000f, powerDemand: 6f),
+                new TemplateBlock("Engine2", new Vector3I(3, 0, 0), 400f, 2.5f,
+                    kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left,
+                    maxThrust: 50000f, powerDemand: 20f),
+            });
+            SimShip ship = Fc.Spawn(template, SpawnState.At(Vector3D.Zero));
+            SimThrust engine = (SimThrust)ship.TerminalSystem.GetBlockWithName("Engine");
+            SimThrust engine2 = (SimThrust)ship.TerminalSystem.GetBlockWithName("Engine2");
+            engine.PowerPriority = 2; // served first, takes all 6 MW
+            engine2.PowerPriority = 1; // remainder is zero -> unpowered
+
+            Fc.Step(); // phase 4 allocates power before actuation
+
+            Assert.That(engine.IsPowered, Is.True,
+                "The affordable, higher-priority engine must be powered.");
+            Assert.That(engine2.IsPowered, Is.False,
+                "The over-demanded, lower-priority engine must be unpowered (no delivered ratio).");
+
+            // Recompute capacity the base path does each phase 5.
+            ship.Grid.ForceAggregator.RecalculateCapacities();
+
+            // Only the powered engine counts toward +X capacity: 50000, not 100000.
+            Assert.That(ship.Grid.ForceAggregator.MaxPositiveThrust.X, Is.EqualTo(50000f).Within(1e-2),
+                "An unpowered thruster must contribute +0 to the per-direction capacity (game RecomputeTypeThrustParameters).");
+            Assert.That(ship.Grid.ForceAggregator.MaxNegativeThrust.X, Is.EqualTo(0f).Within(1e-4));
         }
 
         // — SimThrust interface surface —
@@ -459,13 +535,23 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         /// <summary>The asymmetric fixture: thrusters pushing +X (Main 60 kN, Aux 40 kN) and -Y
-        /// (Down 80 kN), with no push on -X or Z, expressed as data.</summary>
+        /// (Down 80 kN), no push on -X or Z — expressed as data. Its MASS is mirror-symmetric
+        /// about the origin (each off-axis thruster mirrored by an equal ballast so the CoM sits
+        /// at the origin), so every fired thruster's force passes through the CoM and produces no
+        /// block-offset torque (each thruster's force acts at its own block,
+        /// MyThrusterBlockThrustComponent / point impulse).</summary>
         private static ShipTemplate AsymmetricCraft()
         {
-            return HullPlusThrusters("asym", hullMass: 2000f,
+            return new ShipTemplate("asym", 2.5f, new[]
+            {
+                new TemplateBlock("Hull", Vector3I.Zero, 2000f, 2.5f),
                 Thruster("Main", new Vector3I(2, 0, 0), Vector3I.Left, maxThrust: 60000f),
                 Thruster("Aux", new Vector3I(3, 0, 0), Vector3I.Left, maxThrust: 40000f),
-                Thruster("Down", new Vector3I(0, 2, 0), Vector3I.Up, maxThrust: 80000f));
+                Thruster("Down", new Vector3I(0, 2, 0), Vector3I.Up, maxThrust: 80000f),
+                new TemplateBlock("MirM", new Vector3I(-2, 0, 0), 400f, 2.5f),
+                new TemplateBlock("MirA", new Vector3I(-3, 0, 0), 400f, 2.5f),
+                new TemplateBlock("MirD", new Vector3I(0, -2, 0), 400f, 2.5f),
+            });
         }
 
         /// <summary>A battery-powered +X engine with the given bus shortfall.</summary>

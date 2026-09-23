@@ -230,13 +230,17 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         /// <summary>A craft with a controller at the origin (heavy hull) plus the given thrusters;
-        /// dampeners and ControlThrusters on.</summary>
+        /// dampeners and ControlThrusters on. A matching-mass ballast mirrors the off-axis Pilot
+        /// (below the origin) so the grid CoM sits on the heavy-hull origin: whichever dampening
+        /// thruster fires, its force line passes through the CoM and produces no block-offset
+        /// torque (per-thruster block-position force, MyThrusterBlockThrustComponent).</summary>
         private static ShipTemplate DampeningCraft(string name, TemplateBlock[] thrusters, float hullMass = 2000f)
         {
             var blocks = new System.Collections.Generic.List<TemplateBlock>
             {
                 new TemplateBlock("Hull", Vector3I.Zero, hullMass, 2.5f),
                 new TemplateBlock("Pilot", new Vector3I(0, 0, 1), 400f, 2.5f, kind: BlockKind.ShipController),
+                new TemplateBlock("Bal", new Vector3I(0, 0, -1), 400f, 2.5f), // mirrors the Pilot -> CoM at origin
             };
             blocks.AddRange(thrusters);
             return new ShipTemplate(name, 2.5f, blocks, maxLinearVelocity: 120f, maxAngularVelocity: 12f);

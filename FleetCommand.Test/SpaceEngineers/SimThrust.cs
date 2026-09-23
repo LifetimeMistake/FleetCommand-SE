@@ -15,8 +15,9 @@ namespace FleetCommand.Test.SpaceEngineers
     /// <see cref="SimFunctionalBlock.DeliveredRatio"/>. <see cref="GridThrustDirection"/> is the
     /// grid-body forward (exhaust) axis and the grid is pushed opposite to it (<c>ThrustForce =
     /// -ThrustForwardVector</c>), so the aggregator groups thrusters by forward axis with no
-    /// craft-type branches. Fixed grid thrusters generate no torque from block position (the net
-    /// force is applied at the grid COM).</summary>
+    /// craft-type branches. Each thruster's force is applied at ITS OWN block position, so an
+    /// off-center mount torques the grid about the COM like the real game (the aggregator stages
+    /// the force at the block's template center).</summary>
     public class SimThrust : SimFunctionalBlock, IMyThrust
     {
         private readonly Vector3I _direction;

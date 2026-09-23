@@ -133,6 +133,70 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(rc.CurrentWaypoint.IsEmpty(), Is.True, "With no waypoints CurrentWaypoint is empty.");
         }
 
+        // The turn's response now follows the game's adaptive rotation-speed constants, deadzone,
+        // and angular-authority feedback from MyAutopilotComponent.UpdateGyro (:2439-2500) and the
+        // flight-movement definition (EntityComponents.sbc), NOT the old hand-tuned 0.8/0.5
+        // proportional law. Each test reads the first-tick commanded turn (Autopilot.LastControlTorque),
+        // which is computed from the spawn geometry before any thrust torque disturbs it.
+
+        [Test]
+        public void Autopilot_Turn_BelowMinThreshold_CommandsMinRotationSpeed()
+        {
+            // At/below MinRotationSpeedThresholdRadians (0.2) the game commands MinRotationSpeed
+            // (0.5) — half the gyro's unit control sphere (MyAutopilotComponent.cs:2455-2458, and
+            // EntityComponents.sbc MinRotationSpeed). The old law's proportional gain is gone.
+            Vector3 cmd = TurnOneStep(0.10);
+            Assert.That(Math.Abs(cmd.Y) + Math.Abs(cmd.Z) + Math.Abs(cmd.X), Is.GreaterThan(0f),
+                "A remaining turn must command torque along the error axis.");
+            Assert.That(cmd.Length(), Is.EqualTo(0.5).Within(0.02),
+                "At a small residual the turn rate must be the game's MinRotationSpeed (0.5 rad).");
+        }
+
+        [Test]
+        public void Autopilot_Turn_BetweenThresholds_InterpolatesRotationSpeed()
+        {
+            // Between the 0.2 and 1.0 rad thresholds the rotation speed ramps linearly: at 0.35
+            // rad it is 0.5 + (0.35-0.2)/(1.0-0.2) * 1.5 = 0.78125 (MyAutopilotComponent.cs:2463-2469).
+            Vector3 cmd = TurnOneStep(0.35);
+            Assert.That(cmd.Length(), Is.EqualTo(0.78125).Within(0.02),
+                "Between thresholds the turn rate must be the game's linear rotation-speed ramp.");
+        }
+
+        [Test]
+        public void Autopilot_Turn_AtOrAboveMaxThreshold_SaturatesGyroSphere()
+        {
+            // At/above MaxRotationSpeedTresholdRadians (1.0) the game commands MaxRotationSpeed
+            // (2.0), which saturates the gyro's ±1 unit control sphere to full torque
+            // (MyAutopilotComponent.cs:2459-2462, EntityComponents.sbc MaxRotationSpeed).
+            Vector3 cmd = TurnOneStep(1.5);
+            Assert.That(cmd.Length(), Is.EqualTo(1.0).Within(1e-3),
+                "At a large residual the turn must saturate the gyro's unit control sphere.");
+        }
+
+        [Test]
+        public void Autopilot_Turn_BelowDeadzone_CommandsNoTorque()
+        {
+            // Below RotationDeadzone (0.03 rad) the game returns no torque — the turn is
+            // considered aligned and stops (MyAutopilotComponent.cs:2474-2478,
+            // EntityComponents.sbc RotationDeadzone).
+            Vector3 cmd = TurnOneStep(0.01);
+            Assert.That(cmd.Length(), Is.LessThan(1e-6),
+                "Below the 0.03 rad deadzone the turn must command no torque.");
+        }
+
+        [Test]
+        public void Autopilot_Turn_AngularAuthority_CoastsWhenRotationSuffices()
+        {
+            // Angular-authority feedback (MyAutopilotComponent.cs:2479-2482): with the grid
+            // already rotating fast enough to close the small remaining angle, the adaptively
+            // commanded rate (0.5 here) is fully absorbed by the grid's own on-axis rotation
+            // (0.5 - RotationDamping·2 ≤ 0) and the turn commands no torque — it coasts and the
+            // gyro damps the rotation rather than overshooting.
+            Vector3 cmd = TurnOneStepWithSpin(0.10, 2.0);
+            Assert.That(cmd.Length(), Is.LessThan(1e-6),
+                "A grid already rotating fast enough to close the angle must coast (no turn torque).");
+        }
+
         // — helpers —
 
         private static SimRemoteControl Remote(SimShip ship)
@@ -141,37 +205,99 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             return (SimRemoteControl)ship.Controller;
         }
 
+        /// <summary>Spawns the turn craft at the origin, heads it at a far waypoint placed
+        /// <paramref name="offsetRad"/> from its forward, enables the autopilot, runs one step,
+        /// and returns the first-tick commanded turn (<see cref="AutopilotSystem.LastControlTorque"/>).
+        /// First-tick the grid is at rest, so angular authority leaves the adaptive rotation-speed
+        /// command intact and the turn response reflects the game's constants and deadzone.</summary>
+        private Vector3 TurnOneStep(double offsetRad)
+        {
+            SimShip ship = Fc.Spawn(AutopilotCraft("turn"), SpawnState.At(Vector3D.Zero));
+            SetupTurnWaypoint(ship, offsetRad);
+            Fc.Step();
+            return ship.Grid.Autopilot.LastControlTorque;
+        }
+
+        /// <summary>Like <see cref="TurnOneStep"/> but the grid also spawns already rotating at
+        /// <paramref name="spinRadPerSec"/> about the world error axis, so the first tick
+        /// exercises the angular-authority feedback (the turn must coast while the grid's own
+        /// rotation closes the angle).</summary>
+        private Vector3 TurnOneStepWithSpin(double offsetRad, double spinRadPerSec)
+        {
+            // Probe the identity forward so the world error axis is known, then re-spawn the
+            // turn craft with angular velocity along it.
+            SimShip probe = Fc.Spawn(AutopilotCraft("probe"), SpawnState.At(Vector3D.Zero));
+            Vector3D fwd = probe.Grid.WorldMatrix.Forward;
+            Vector3D perp = Vector3D.CalculatePerpendicularVector(fwd);
+            Vector3D targetDir = Vector3D.Normalize(fwd * Math.Cos(offsetRad) + perp * Math.Sin(offsetRad));
+            Vector3 axisWorld = (Vector3)Vector3D.Normalize(Vector3D.Cross(fwd, targetDir));
+
+            SimShip ship = Fc.Spawn(AutopilotCraft("turn"), SpawnState.At(Vector3D.Zero)
+                .WithAngularVelocity(axisWorld * (float)spinRadPerSec));
+            SetupTurnWaypoint(ship, offsetRad);
+            Fc.Step();
+            return ship.Grid.Autopilot.LastControlTorque;
+        }
+
+        /// <summary>Adds a waypoint <paramref name="offsetRad"/> from the ship's forward (far
+        /// enough that its direction is effectively fixed) and enables the autopilot.</summary>
+        private static void SetupTurnWaypoint(SimShip ship, double offsetRad)
+        {
+            SimRemoteControl rc = (SimRemoteControl)ship.Controller;
+            Vector3D fwd = ship.Grid.WorldMatrix.Forward;
+            Vector3D perp = Vector3D.CalculatePerpendicularVector(fwd);
+            Vector3D targetDir = Vector3D.Normalize(fwd * Math.Cos(offsetRad) + perp * Math.Sin(offsetRad));
+            rc.AddWaypoint(ship.Body.PositionWorld + targetDir * 1000.0, "target");
+            rc.SpeedLimit = 40f;
+            rc.SetAutoPilotEnabled(true);
+        }
+
         private static void AssertVec3D(Vector3D actual, Vector3D expected, string message)
         {
             Assert.That((actual - expected).Length(), Is.LessThan(1e-6), message);
         }
 
         /// <summary>A craft with a remote control, a strong gyro, and six-axis thrusters so the
-        /// autopilot can translate and turn in any direction.</summary>
+        /// autopilot can translate and turn in any direction. The whole craft is mirror-symmetric
+        /// about the origin (RC mirrored by Bal, gyro G mirrored by Bal2, and each thruster
+        /// positioned on ITS own axis through the origin), so the grid CoM sits at the origin and
+        /// every fired thruster's force line passes through the CoM. With per-thruster
+        /// block-position forces (each thruster acts at its own block, MyThrusterBlockThrustComponent),
+        /// this gives clean line-thrust with no block-offset torque, so the gyro alone steers.</summary>
         private static ShipTemplate AutopilotCraft(string name)
         {
             var blocks = new List<TemplateBlock>
             {
                 new TemplateBlock("Hull", Vector3I.Zero, 2000f, 2.5f),
                 new TemplateBlock("RC", new Vector3I(0, 0, 1), 400f, 2.5f, kind: BlockKind.RemoteControl),
+                new TemplateBlock("Bal", new Vector3I(0, 0, -1), 400f, 2.5f), // mirrors the RC
                 new TemplateBlock("G", new Vector3I(2, 0, 0), 400f, 2.5f, kind: BlockKind.Gyro, gyroForce: 5e6f),
+                new TemplateBlock("Bal2", new Vector3I(-2, 0, 0), 400f, 2.5f), // mirrors the gyro
             };
-            blocks.AddRange(AllAxisThrusters(1.2e6f));
+            blocks.AddRange(AllAxisThrusters(1.2e6f, 3));
+
+            // The autopilot steers with its gyro; thrusters translate along their own axis
+            // through the CoM (no block-offset torque).
             return new ShipTemplate(name, 2.5f, blocks, maxLinearVelocity: 120f, maxAngularVelocity: 12f);
         }
 
-        private static IEnumerable<TemplateBlock> AllAxisThrusters(float max)
+        /// <summary>Six thrusters, one per body axis, each mounted on ITS OWN axis through the CoM
+        /// (origin) so its force is collinear with the lever arm and produces no block-offset
+        /// torque. forward = -axis to push +axis (force = -forward).</summary>
+        private static IEnumerable<TemplateBlock> AllAxisThrusters(float max, int arm)
         {
-            // forward = -axis to push +axis (force = -forward).
-            Vector3I[] pushes = { new Vector3I(1, 0, 0), new Vector3I(-1, 0, 0), new Vector3I(0, 1, 0), new Vector3I(0, -1, 0), new Vector3I(0, 0, 1), new Vector3I(0, 0, -1) };
-            string[] names = { "PX", "NX", "PY", "NY", "PZ", "NZ" };
-            int idx = 3; // offset so hull/RC/G occupy 0-2
-            for (int i = 0; i < pushes.Length; i++)
-            {
-                yield return new TemplateBlock(names[i], new Vector3I(idx, 0, 0), 100f, 2.5f,
-                    kind: BlockKind.FixedThruster, thrustDirection: -pushes[i], maxThrust: max);
-                idx++;
-            }
+            yield return new TemplateBlock("PX", new Vector3I(arm, 0, 0), 100f, 2.5f,
+                kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left, maxThrust: max);
+            yield return new TemplateBlock("NX", new Vector3I(-arm, 0, 0), 100f, 2.5f,
+                kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Right, maxThrust: max);
+            yield return new TemplateBlock("PY", new Vector3I(0, arm, 0), 100f, 2.5f,
+                kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Down, maxThrust: max);
+            yield return new TemplateBlock("NY", new Vector3I(0, -arm, 0), 100f, 2.5f,
+                kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Up, maxThrust: max);
+            yield return new TemplateBlock("PZ", new Vector3I(0, 0, arm), 100f, 2.5f,
+                kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Forward, maxThrust: max);
+            yield return new TemplateBlock("NZ", new Vector3I(0, 0, -arm), 100f, 2.5f,
+                kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Backward, maxThrust: max);
         }
 
     }
