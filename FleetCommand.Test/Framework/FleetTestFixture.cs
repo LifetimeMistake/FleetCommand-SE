@@ -5,13 +5,10 @@ using NUnit.Framework.Interfaces;
 namespace FleetCommand.Test.Framework
 {
     /// <summary>
-    /// Standard test fixture (). Each test gets a fresh, isolated
-    /// <see cref="FleetTestContext"/> (with its own world and clock), created
-    /// in <see cref="CreateWorld"/> and fully disposed in
-    /// <see cref="DestroyWorld"/>, so no physics objects outlive a test even
-    /// when it fails. On failure the fixture surfaces the final state and
-    /// recent actuator history (: the short failure ring buffer)
-    /// in NUnit output.
+    /// Standard test fixture: each test gets a fresh, isolated <see cref="FleetTestContext"/>
+    /// (own world and clock), created in <see cref="CreateWorld"/> and fully disposed in
+    /// <see cref="DestroyWorld"/>. On failure it surfaces final state and recent actuator
+    /// history in NUnit output.
     /// </summary>
     public abstract class FleetTestFixture
     {
@@ -46,12 +43,7 @@ namespace FleetCommand.Test.Framework
             Fc = null;
         }
 
-        /// <summary>
-        /// Writes final state + recent actuator history () to NUnit
-        /// output when the test failed, so a failure carries the scenario's
-        /// final state and the last ticks of actuator behaviour without
-        /// recording anything in an ordinary passing run.
-        /// </summary>
+        /// <summary>Writes final state + recent actuator history to NUnit output when the test failed.</summary>
         private static void WriteFailureDiagnostics(FleetTestContext fc)
         {
             var world = fc.World;

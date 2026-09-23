@@ -3,12 +3,9 @@ using Sandbox.ModAPI.Ingame;
 namespace FleetCommand.Test.Framework
 {
     /// <summary>
-    /// Deterministic simulation clock. Advances in fixed 1/60 s steps; time is
-    /// derived purely from the tick count, never from wall-clock reads (spec
-    /// : "The timestep is not derived from wall-clock time"). Update
-    /// cadence is derived from the same monotonic tick counter: Update10 fires
-    /// on ticks where <c>Tick % 10 == 0</c>, Update100 on
-    /// <c>Tick % 100 == 0</c>.
+    /// Deterministic simulation clock: advances in fixed 1/60 s steps, time derived purely
+    /// from the tick count, never from wall-clock. Update cadence derives from the same
+    /// monotonic counter: Update10 on <c>Tick % 10 == 0</c>, Update100 on <c>Tick % 100 == 0</c>.
     /// </summary>
     public sealed class TickClock
     {
@@ -21,11 +18,7 @@ namespace FleetCommand.Test.Framework
         /// <summary>Simulation time in seconds, an exact multiple of <see cref="FixedStep"/>.</summary>
         public double Time => Tick * FixedStep;
 
-        /// <summary>
-        /// Elapsed interval in seconds corresponding to a run of
-        /// <paramref name="steps"/> fixed steps. TimeSinceLastRun is derived
-        /// from the count of elapsed fixed steps, not from wall-clock time.
-        /// </summary>
+        /// <summary>Elapsed interval in seconds for <paramref name="steps"/> fixed steps; derived from step count, not wall-clock.</summary>
         public double TimeSinceLastRun(long steps) => steps * FixedStep;
 
         /// <summary>Advances the clock by one fixed step.</summary>
@@ -46,11 +39,7 @@ namespace FleetCommand.Test.Framework
         /// <summary>True when <paramref name="tick"/> is an Update100 cadence tick.</summary>
         public bool IsUpdate100Due(long tick) => tick % 100 == 0;
 
-        /// <summary>
-        /// Whether a callback registered at <paramref name="frequency"/> is due
-        /// on <paramref name="tick"/>. Update1 is due on every tick; Update10
-        /// and Update100 are due on the matching remainder cadence.
-        /// </summary>
+        /// <summary>Whether a callback at <paramref name="frequency"/> is due on <paramref name="tick"/> (Update1 every tick; others on cadence).</summary>
         public bool IsUpdateDue(UpdateFrequency frequency, long tick)
         {
             if (frequency == UpdateFrequency.None)

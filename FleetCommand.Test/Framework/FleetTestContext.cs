@@ -9,10 +9,8 @@ using VRageMath;
 namespace FleetCommand.Test.Framework
 {
     /// <summary>
-    /// The primary test surface (): owns the isolated world,
-    /// deterministic clock, update scheduler, and trace recorders, and
-    /// forwards scenario controls to it. One context per test; disposed by the
-    /// fixture teardown.
+    /// The primary test surface: owns the isolated world, deterministic clock, update
+    /// scheduler, and trace recorders, and forwards scenario controls to it. One per test.
     /// </summary>
     public sealed class FleetTestContext : IDisposable
     {
@@ -33,14 +31,10 @@ namespace FleetCommand.Test.Framework
         }
 
         /// <summary>
-        /// Spawns a ship: builds a fresh rigid body (compound shape + combined
-        /// mass from the template's physical blocks), inserts it into the
-        /// world at the given <paramref name="initialState"/>, creates fresh
-        /// block state (one terminal or functional block per template block,
-        /// registered with the grid's terminal system), and returns a
-        /// <see cref="SimShip"/> handle whose grid owns the body. Each spawn
-        /// creates independent block state and fresh Havok objects; mutating
-        /// one ship never mutates its template or another instance ().
+        /// Spawns a ship: builds a fresh rigid body and block state from
+        /// <paramref name="template"/>, inserts them into the world at
+        /// <paramref name="initialState"/>, and returns a <see cref="SimShip"/>.
+        /// Each spawn has independent state; mutating one never mutates its template or another.
         /// </summary>
         public SimShip Spawn(ShipTemplate template, in SpawnState initialState)
         {
@@ -56,9 +50,7 @@ namespace FleetCommand.Test.Framework
             World.AddBody(body);
 
             var grid = new SimCubeGrid(id, template.Name, template.GridSize, body, World);
-            // The designated controller () when the template names
-            // one; otherwise the first controller-kind block ('s
-            // behaviour, kept for directly-constructed templates).
+            // The designated controller when the template names one; otherwise the first controller-kind block.
             SimShipController controller = null;
             foreach (TemplateBlock templateBlock in template.Blocks)
             {
@@ -85,12 +77,9 @@ namespace FleetCommand.Test.Framework
         }
 
         /// <summary>
-        /// Instantiates the simulator block matching a template block's kind.
-        /// Stages 4–5 map the kinds onto the hierarchy bases: standard
-        /// blocks become <see cref="SimTerminalBlock"/>; fixed thrusters
-        /// become <see cref="SimThrust"/> (functional blocks in the game,
-        /// ); the ship controller stack and the programmable
-        /// block / text panel become functional leaves.
+        /// Instantiates the simulator block matching a template block's kind: standard blocks
+        /// become <see cref="SimTerminalBlock"/>; fixed thrusters become <see cref="SimThrust"/>
+        /// (functional blocks in the game); controllers and the PB / text panel are functional leaves.
         /// </summary>
         private static SimTerminalBlock CreateBlock(SimWorld world, TemplateBlock templateBlock, SimCubeGrid grid)
         {
@@ -165,23 +154,16 @@ namespace FleetCommand.Test.Framework
         }
 
         /// <summary>
-        /// Requests a bounded time-series recorder (). The
-        /// recorder samples <paramref name="sample"/> once per tick
-        /// (phase 9) from now on, retaining at most
-        /// <see cref="TraceRecorder{T}.Capacity"/> samples (oldest
-        /// dropped when full). Nothing is recorded by default — a recorder
-        /// only exists once this is called.
+        /// Requests a bounded time-series recorder sampling <paramref name="sample"/> once per
+        /// tick, retaining at most <see cref="TraceRecorder{T}.Capacity"/> samples (oldest
+        /// dropped). Nothing is recorded until this is called.
         /// </summary>
         public TraceRecorder<T> Record<T>(Func<FleetTestContext, T> sample)
         {
             return Record(sample, DefaultRecorderCapacity);
         }
 
-        /// <summary>
-        /// Requests a bounded time-series recorder with a caller-specified
-        /// <paramref name="capacity"/> (: "fixed or
-        /// caller-specified capacity").
-        /// </summary>
+        /// <summary>Requests a bounded time-series recorder with a caller-specified <paramref name="capacity"/>.</summary>
         public TraceRecorder<T> Record<T>(Func<FleetTestContext, T> sample, int capacity)
         {
             var recorder = new TraceRecorder<T>(sample, this, capacity);
@@ -189,12 +171,12 @@ namespace FleetCommand.Test.Framework
             return recorder;
         }
 
-        /// <summary>The default time-series recorder capacity ().</summary>
+        /// <summary>The default time-series recorder capacity.</summary>
         public const int DefaultRecorderCapacity = 1024;
 
-        // —  scheduled mutation surface —
+        // — scheduled mutation surface —
 
-        /// <summary>Enables or disables a functional block ().</summary>
+        /// <summary>Enables or disables a functional block.</summary>
         public void SetBlockEnabled(SimFunctionalBlock block, bool enabled)
         {
             if (block == null)
@@ -204,7 +186,7 @@ namespace FleetCommand.Test.Framework
             block.Enabled = enabled;
         }
 
-        /// <summary>Damages (false) or repairs (true) a functional block ().</summary>
+        /// <summary>Damages (false) or repairs (true) a functional block.</summary>
         public void SetBlockFunctional(SimFunctionalBlock block, bool functional)
         {
             if (block == null)
@@ -214,24 +196,22 @@ namespace FleetCommand.Test.Framework
             block.IsFunctional = functional;
         }
 
-        /// <summary>Enables or disables the named functional block on <paramref name="ship"/> ().</summary>
+        /// <summary>Enables or disables the named functional block on <paramref name="ship"/>.</summary>
         public void SetBlockEnabled(SimShip ship, string name, bool enabled)
         {
             SetBlockEnabled(ResolveFunctional(ship, name), enabled);
         }
 
-        /// <summary>Damages or repairs the named functional block on <paramref name="ship"/> ().</summary>
+        /// <summary>Damages or repairs the named functional block on <paramref name="ship"/>.</summary>
         public void SetBlockFunctional(SimShip ship, string name, bool functional)
         {
             SetBlockFunctional(ResolveFunctional(ship, name), functional);
         }
 
         /// <summary>
-        /// Adds a block to <paramref name="ship"/> from a template block at
-        /// runtime (): creates fresh block state, registers it
-        /// with the grid's terminal system and power bus (and the
-        /// actuator / control systems it is an instance of), and rebuilds
-        /// the body mass to include the new block. Returns the new block.
+        /// Adds a block to <paramref name="ship"/> from a template block at runtime: creates
+        /// fresh block state, registers it with the grid (terminal system, power bus), and
+        /// rebuilds the body mass to include it. Returns the new block.
         /// </summary>
         public SimTerminalBlock AddBlock(SimShip ship, TemplateBlock templateBlock)
         {
@@ -256,10 +236,8 @@ namespace FleetCommand.Test.Framework
         }
 
         /// <summary>
-        /// Removes the named block from <paramref name="ship"/> at runtime
-        /// (): deregisters it from the terminal system, power
-        /// bus, and actuator / control systems, disposes it, and rebuilds
-        /// the body mass. A removed connector is disconnected first.
+        /// Removes the named block from <paramref name="ship"/> at runtime: deregisters it,
+        /// disposes it, and rebuilds the body mass. A removed connector is disconnected first.
         /// </summary>
         public void RemoveBlock(SimShip ship, string name)
         {
@@ -277,7 +255,7 @@ namespace FleetCommand.Test.Framework
             ship.Grid.RemoveBlock(block);
         }
 
-        /// <summary>Changes the grid's available electrical ratio (). See <see cref="SpaceEngineers.SimPowerBus.AvailableRatio"/>.</summary>
+        /// <summary>Changes the grid's available electrical ratio. See <see cref="SpaceEngineers.SimPowerBus.AvailableRatio"/>.</summary>
         public void SetPowerAvailableRatio(SimShip ship, float ratio)
         {
             if (ship == null)
@@ -287,7 +265,7 @@ namespace FleetCommand.Test.Framework
             ship.Grid.PowerBus.AvailableRatio = ratio;
         }
 
-        /// <summary>Changes the named reactor's fuel ratio (). See <see cref="SpaceEngineers.SimReactorBlock.FuelRatio"/>.</summary>
+        /// <summary>Changes the named reactor's fuel ratio. See <see cref="SpaceEngineers.SimReactorBlock.FuelRatio"/>.</summary>
         public void SetFuelRatio(SimShip ship, string reactorName, float ratio)
         {
             if (ship == null)
@@ -302,19 +280,19 @@ namespace FleetCommand.Test.Framework
             reactor.FuelRatio = ratio;
         }
 
-        /// <summary>Changes the world's atmosphere effectiveness (, partial).</summary>
+        /// <summary>Changes the world's atmosphere effectiveness (partial).</summary>
         public void SetAtmosphereEffectiveness(float ratio)
         {
             World.SetAtmosphereEffectiveness(ratio);
         }
 
-        /// <summary>Changes the world's natural gravity ().</summary>
+        /// <summary>Changes the world's natural gravity.</summary>
         public void SetGravity(SimGravityField gravity)
         {
             World.SetGravity(gravity);
         }
 
-        /// <summary>Changes a block's inventory mass and rebuilds the body mass ().</summary>
+        /// <summary>Changes a block's inventory mass and rebuilds the body mass.</summary>
         public void SetInventoryMass(SimTerminalBlock block, float mass)
         {
             if (block == null)
@@ -325,22 +303,19 @@ namespace FleetCommand.Test.Framework
             block.Grid.RebuildBodyMass();
         }
 
-        /// <summary>
-        /// Skips the next Update1 callback () without skipping
-        /// physics — models a missed programmable-block update.
-        /// </summary>
+        /// <summary>Skips the next Update1 callback without skipping physics — models a missed update.</summary>
         public void SkipNextUpdate1()
         {
             World.SuppressNextUpdate1();
         }
 
-        /// <summary>Replaces a guidance target snapshot () and refreshes it.</summary>
+        /// <summary>Replaces a guidance target snapshot and refreshes it.</summary>
         public void ReplaceTargetSnapshot(string name, in SimTargetSnapshot snapshot)
         {
             World.Targets.Set(name, snapshot, World.Clock.Tick);
         }
 
-        /// <summary>Stops refreshing <paramref name="name"/> so its snapshot becomes stale ().</summary>
+        /// <summary>Stops refreshing <paramref name="name"/> so its snapshot becomes stale.</summary>
         public void StopRefreshingTarget(string name)
         {
             World.Targets.StopRefreshing(name);
@@ -352,7 +327,7 @@ namespace FleetCommand.Test.Framework
             return World.Targets.TryGet(name, out snapshot);
         }
 
-        /// <summary>Changes the demanded body-vector thrust while the craft is flying ().</summary>
+        /// <summary>Changes the demanded body-vector thrust while the craft is flying.</summary>
         public void SetGroupDemand(SimShip ship, Vector3 bodyDemand)
         {
             if (ship == null)
@@ -362,7 +337,7 @@ namespace FleetCommand.Test.Framework
             ship.Grid.ForceAggregator.SetGroupDemand(bodyDemand);
         }
 
-        /// <summary>Changes the demanded attitude torque while the craft is turning ().</summary>
+        /// <summary>Changes the demanded attitude torque while the craft is turning.</summary>
         public void SetControlTorque(SimShip ship, Vector3 torque)
         {
             if (ship == null)
@@ -372,7 +347,7 @@ namespace FleetCommand.Test.Framework
             ship.Grid.GyroRateSystem.ControlTorque = torque;
         }
 
-        /// <summary>Applies an external world-frame linear impulse to the ship's body ().</summary>
+        /// <summary>Applies an external world-frame linear impulse to the ship's body.</summary>
         public void ApplyLinearImpulse(SimShip ship, Vector3 impulse)
         {
             if (ship == null)
@@ -382,7 +357,7 @@ namespace FleetCommand.Test.Framework
             ship.Grid.Body.ApplyLinearImpulse(impulse);
         }
 
-        /// <summary>Applies an external world-frame angular impulse to the ship's body ().</summary>
+        /// <summary>Applies an external world-frame angular impulse to the ship's body.</summary>
         public void ApplyAngularImpulse(SimShip ship, Vector3 impulse)
         {
             if (ship == null)
@@ -392,7 +367,7 @@ namespace FleetCommand.Test.Framework
             ship.Grid.Body.ApplyAngularImpulse(impulse);
         }
 
-        /// <summary>Applies an external world impulse at an off-COM world point ().</summary>
+        /// <summary>Applies an external world impulse at an off-COM world point.</summary>
         public void ApplyPointImpulse(SimShip ship, Vector3 impulse, Vector3D worldPoint)
         {
             if (ship == null)

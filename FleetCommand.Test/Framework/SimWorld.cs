@@ -10,17 +10,10 @@ using VRageMath;
 namespace FleetCommand.Test.Framework
 {
     /// <summary>
-    /// The isolated simulation world: a fixed 1/60 s tick pipeline over one
-    /// owned <see cref="HkWorld"/>, plus the deterministic clock, scheduler,
-    /// and caller-visible scenario controls. One world per test; it owns every
-    /// Havok object it creates and disposes them all on <see cref="Dispose"/>
-    /// ().  added the rigid bodies (one per grid). 
-    /// adds the grids and their blocks: the world owns each
-    /// <see cref="SimCubeGrid"/> (with its block stack and terminal
-    /// system), recomputes block <c>IsWorking</c> in phase 4, and carries
-    /// the NRE guard — a grid or block disposed mid-world while still in the
-    /// world's collections is skipped by subsequent steps rather than
-    /// dereferencing disposed natives.
+    /// The isolated simulation world: a fixed 1/60 s tick pipeline over one owned
+    /// <see cref="HkWorld"/>, plus the deterministic clock, scheduler, and scenario
+    /// controls. One per test; it owns and disposes every Havok object it creates, and
+    /// carries an NRE guard — a grid or block disposed mid-world is skipped by later steps.
     /// </summary>
     public sealed class SimWorld : IDisposable
     {
@@ -30,47 +23,33 @@ namespace FleetCommand.Test.Framework
         /// <summary>The active physics compatibility profile.</summary>
         public SePhysicsProfile Profile { get; }
 
-        /// <summary>
-        /// Fixed scenario origin for numeric locality. World-visible positions
-        /// are computed from this origin plus a local float offset ().
-        /// </summary>
+        /// <summary>Fixed scenario origin for numeric locality; world-visible positions are origin + local float offset.</summary>
         public Vector3D ScenarioOrigin { get; }
 
-        /// <summary>
-        /// Natural gravity field owned by this world (). Defaults to
-        /// <see cref="SimGravityField.Zero"/>; tests set it per scenario.
-        /// </summary>
+        /// <summary>Natural gravity field owned by this world; defaults to <see cref="SimGravityField.Zero"/>.</summary>
         public SimGravityField Gravity { get; private set; }
 
         /// <summary>
-        /// The shared "short failure ring buffer" (): the one
-        /// always-on recorder. Each tick it retains a short rolling window
-        /// of recent actuator history (per grid), and an uncaught
-        /// component exception is added to it. The fixture surfaces it on
-        /// failure.
+        /// The shared "short failure ring buffer", always on: each tick it retains a short
+        /// rolling window of recent actuator history (per grid), and an uncaught component
+        /// exception is added to it. The fixture surfaces it on failure.
         /// </summary>
         public FailureRingBuffer FailureLog { get; }
 
-        /// <summary>
-        /// A short rolling log of recent Update1 callback invocations —
-        /// callback cadence and exact command-application intervals
-        /// (), kept automatically for observation and failure
-        /// output.
-        /// </summary>
+        /// <summary>A short rolling log of recent Update1 callback invocations — cadence and command-application intervals — for observation and failure output.</summary>
         public UpdateCadenceLog UpdateCadence { get; }
 
         /// <summary>The number of opt-in time-series recorders currently sampling.</summary>
         public int RecorderCount => _samplers.Count;
 
         /// <summary>
-        /// Environmental atmosphere effectiveness in [0, 1] ():
-        /// the multiplier applied to every thruster's template
-        /// effectiveness when aggregating delivered thrust (an atmospheric
+        /// Environmental atmosphere effectiveness in [0, 1]: the multiplier applied to every
+        /// thruster's template effectiveness when aggregating delivered thrust (an atmospheric
         /// thruster in vacuum has effectiveness 0). Default 1.
         /// </summary>
         public float AtmosphereEffectiveness { get; private set; }
 
-        /// <summary>The world's named guidance-target snapshot register ().</summary>
+        /// <summary>The world's named guidance-target snapshot register.</summary>
         public SimTargetStore Targets { get; }
 
         /// <summary>The rigid bodies the world owns, in deterministic insertion (spawn) order.</summary>
@@ -88,9 +67,8 @@ namespace FleetCommand.Test.Framework
         private long _nextEntityId = 1;
         private bool _disposed;
 
-        // Names of the phases executed by the most recent Step(), in order.
-        // Exposed so the nine-phase ordering is observable to conformance
-        // tests and to later stages as they fill the bodies in.
+        // Names of the phases executed by the most recent Step(), in order,
+        // so the nine-phase ordering is observable to conformance tests.
         private readonly List<string> _phaseTrace = new List<string>();
 
         // Scheduler: scheduled scenario mutations (phase 2) and per-Update1
@@ -150,11 +128,7 @@ namespace FleetCommand.Test.Framework
             Gravity = gravity ?? SimGravityField.Zero;
         }
 
-        /// <summary>
-        /// Sets the environmental atmosphere effectiveness in [0, 1]
-        /// ( "change atmosphere effectiveness"). Clamped; 0 means
-        /// no atmospheric thrust. Applied from the next tick's aggregation.
-        /// </summary>
+        /// <summary>Sets the environmental atmosphere effectiveness in [0, 1]; 0 means no atmospheric thrust. Clamped.</summary>
         public void SetAtmosphereEffectiveness(float ratio)
         {
             AtmosphereEffectiveness = ratio < 0f ? 0f : ratio > 1f ? 1f : ratio;
@@ -264,12 +238,7 @@ namespace FleetCommand.Test.Framework
             }
         }
 
-        /// <summary>
-        /// Runs one fixed 1/60 s interval through the nine-phase pipeline:
-        /// publish completed state, run scheduled mutations, invoke due
-        /// callbacks, recompute power, aggregate forces, apply impulses,
-        /// advance Havok, synchronize state, sample and evaluate.
-        /// </summary>
+        /// <summary>Runs one fixed 1/60 s interval through the nine-phase pipeline.</summary>
         public void Step()
         {
             if (_disposed)
@@ -370,12 +339,7 @@ namespace FleetCommand.Test.Framework
             _updateCallbacks.Add(new UpdateCallback(action));
         }
 
-        /// <summary>
-        /// Suppresses the next Update1 (phase 3) without advancing fewer
-        /// physics steps — models a missed programmable-block update ().
-        /// The suppression is one-shot; the following tick's callbacks see the
-        /// accumulated interval.
-        /// </summary>
+        /// <summary>Suppresses the next Update1 without advancing fewer physics steps — models a missed update. One-shot.</summary>
         public void SuppressNextUpdate1()
         {
             _suppressNextUpdate1 = true;
@@ -395,11 +359,8 @@ namespace FleetCommand.Test.Framework
             List<Action> list;
             if (_scheduled.TryGetValue(Clock.Tick, out list))
             {
-                // Iterate by index so a mutation may schedule further work for
-                // the same tick; it runs after the already-registered
-                // actions, preserving registration order. The list is shared
-                // with the caller's registration, so it stays alive past this
-                // tick only while the tick's own list is still referenced.
+                // Iterate by index so a mutation may schedule further work for the same tick,
+                // running after the already-registered actions (registration order preserved).
                 for (int i = 0; i < list.Count; i++)
                 {
                     list[i]();
@@ -426,10 +387,8 @@ namespace FleetCommand.Test.Framework
                 }
                 catch (Exception ex)
                 {
-                    // An uncaught component exception fills the short failure
-                    // ring buffer () so the fixture can surface the
-                    // final state and recent history. Rethrow so the test
-                    // still fails at the point the component threw.
+                    // An uncaught component exception fills the short failure ring buffer so the
+                    // fixture can surface it; rethrow so the test still fails where it threw.
                     FailureLog.Add("tick " + Clock.Tick + " uncaught component exception "
                         + ex.GetType().Name + ": " + ex.Message);
                     throw;
@@ -441,14 +400,10 @@ namespace FleetCommand.Test.Framework
         private void Phase4_RecomputePower()
         {
             _phaseTrace.Add(PhaseNames[3]);
-            // Recompute power availability and block IsWorking state before
-            // actuation.  adds the deterministic per-grid power
-            // bus: phase 4 first recomputes every functional block's
-            // delivered power ratio (priority-ordered demand against the
-            // ideal or finite battery supply), which updates IsPowered,
-            // then recomputes IsWorking from enablement, functionality,
-            // and power (, ). Disposed grids/blocks (NRE
-            // guard) are skipped.
+            // Recompute power availability and block IsWorking before actuation: each grid's
+            // power bus delivers per-block power ratio (priority-ordered demand against ideal
+            // or finite battery supply), then IsWorking is recomputed from enablement,
+            // functionality, and power. Disposed grids/blocks (NRE guard) are skipped.
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -470,19 +425,14 @@ namespace FleetCommand.Test.Framework
         private void Phase5_AggregateForce()
         {
             _phaseTrace.Add(PhaseNames[4]);
-            // Aggregate thruster force (and later, gyro torque) from values
-            // written by callbacks. : each grid's ForceAggregator
-            // gates its thrusters (enabled/functional/powered/
-            // environmentally effective), converts override or group
-            // demand into delivered thrust scaled by the bus's phase-4
-            // DeliveredRatio, and sums it by grid-body direction. Disposed
-            // grids (NRE guard) are skipped; their natives are gone.
-            // .5: run the grid's controller-driven base thrust
-            // demand (occupied controllers' MoveIndicator + inertia
-            // dampening + anti-gravity, the game's ComputeBaseThrust) BEFORE
-            // the force aggregation, so the aggregator consumes it as its
-            // group demand (effectiveness + power + direction all apply).
-            // The base path is idle when no controller is under control.
+            // Aggregate forces from values written by callbacks. Each grid's
+            // controller-driven base thrust demand (MoveIndicator + inertia dampening +
+            // anti-gravity, the game's ComputeBaseThrust) runs first so the aggregator
+            // consumes it as group demand; then the controller's rotation control writes
+            // gyro ControlTorque, the remote autopilot runs after so it wins when enabled
+            // (last-writer), and the ForceAggregator gates thrusters (enabled/functional/
+            // powered/environmentally effective) and sums delivered thrust by direction.
+            // Disposed grids (NRE guard) are skipped.
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -491,11 +441,6 @@ namespace FleetCommand.Test.Framework
                     grid.BaseControl.ComputeBaseDemand();
                 }
             }
-            // .6: the controller's rotation control writes the
-            // gyro ControlTorque (last-under-control-wins), then the
-            // remote autopilot — which flies through the SAME gyro
-            // channel — runs after so it wins when enabled (the game's
-            // per-frame last-writer assignment).
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -520,9 +465,8 @@ namespace FleetCommand.Test.Framework
                     grid.ForceAggregator.Aggregate();
                 }
             }
-            // : each grid's gyro-rate system aggregates the
-            // force-weighted override target rate and the non-override
-            // authority pool ( step 2, ).
+            // Each grid's gyro-rate system aggregates the force-weighted override target
+            // rate and the non-override authority pool.
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -531,23 +475,17 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.Aggregate();
                 }
             }
-            // : evaluate connector docking capture () over
-            // the deterministic connector registry, so a connector's
-            // Connectable state is established before actuation each tick
-            // (Individual grids need not be non-disposed here — the
-            // registry only holds connectors; a closed connector is
-            // skipped by the gate).
+            // Evaluate connector docking capture over the deterministic registry, so a
+            // connector's Connectable state is established before actuation each tick.
             ConnectorSystem.EvaluateCapture(_connectors, Profile);
         }
 
         private void Phase6_ApplyImpulses()
         {
             _phaseTrace.Add(PhaseNames[5]);
-            // Apply natural gravity (and, later, thruster/gyro impulses) to
-            // each dynamic rigid body. The same gravity vector is what a
-            // controller's GetNaturalGravity would return ().
-            // Disposed bodies (NRE guard) are skipped; their natives are
-            // gone.
+            // Apply natural gravity to each dynamic rigid body — the same vector a
+            // controller's GetNaturalGravity would return. Disposed bodies (NRE
+            // guard) are skipped.
             float dt = (float)TickClock.FixedStep;
             for (int i = 0; i < _bodies.Count; i++)
             {
@@ -566,10 +504,10 @@ namespace FleetCommand.Test.Framework
                     body.ApplyLinearImpulse(gravity * body.Mass * dt);
                 }
             }
-            // : apply each grid's ONE resultant body-space thrust
-            // impulse at the grid center of mass (the verified game
-            // application point, MyThrusterBlockThrustComponent.cs:201 —
-            // so fixed thrusters generate no torque from block position).
+            // Apply each grid's ONE resultant body-space thrust impulse at the grid center
+            // of mass (the verified game application point,
+            // MyThrusterBlockThrustComponent.cs:201 — fixed thrusters generate no torque
+            // from block position).
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -578,8 +516,7 @@ namespace FleetCommand.Test.Framework
                     grid.ForceAggregator.ApplyThrust(dt);
                 }
             }
-            // : apply each grid's ONE resultant body-space angular
-            // impulse from the gyro override loop ( step 8).
+            // Apply each grid's ONE resultant body-space angular impulse from the gyro override loop.
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -588,9 +525,8 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.ApplyTorque(dt);
                 }
             }
-            // .5: apply the connector approach convergence (the
-            // magnetic pull at the connector points + axis alignment) for
-            // any approaching pre-lock pair.
+            // Apply connector approach convergence (magnetic pull at the connector points
+            // + axis alignment) for any approaching pre-lock pair.
             ConnectorSystem.ApplyApproach(_connectors);
         }
 
@@ -606,11 +542,9 @@ namespace FleetCommand.Test.Framework
         private void Phase8_SynchronizeState()
         {
             _phaseTrace.Add(PhaseNames[7]);
-            // Synchronize grid/block world matrices, velocities, connector
-            // state, and actuator telemetry. This stage synchronizes each
-            // rigid body's pose and velocities back from Havok; blocks and
-            // connectors arrive in later stages. Disposed bodies (NRE
-            // guard) are skipped — their natives are gone.
+            // Synchronize pose and velocities back from Havok, then clamp post-physics
+            // velocities and update actuator telemetry. Disposed bodies (NRE guard)
+            // are skipped.
             using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
             {
                 for (int i = 0; i < _bodies.Count; i++)
@@ -620,9 +554,8 @@ namespace FleetCommand.Test.Framework
                         _bodies[i].SynchronizeFromHavok();
                     }
                 }
-                // .6: clamp each grid's post-physics velocity to its
-                // enabled autopilot's SpeedLimit (MovementBlockMaxSpeed), so
-                // the cap holds on the observed post-step velocity.
+                // Clamp each grid's post-physics velocity to its enabled autopilot's
+                // SpeedLimit (MovementBlockMaxSpeed).
                 for (int i = 0; i < _grids.Count; i++)
                 {
                     SimCubeGrid grid = _grids[i];
@@ -631,11 +564,9 @@ namespace FleetCommand.Test.Framework
                         grid.Autopilot.ApplySpeedLimitAfterPhysics();
                     }
                 }
-                // : the per-frame grid linear-velocity clamp (the
-                // game's per-frame max-speed clamp, MyGridPhysics /
-                // MyCubeGrid), applied to every dynamic body after physics so
-                // the configured linear cap holds on the observed post-step
-                // velocity — regardless of whether an autopilot is active.
+                // Per-frame grid linear-velocity clamp (MyGridPhysics / MyCubeGrid),
+                // applied to every dynamic body after physics so the configured linear
+                // cap holds on the observed post-step velocity.
                 for (int i = 0; i < _bodies.Count; i++)
                 {
                     SimRigidBody body = _bodies[i];
@@ -645,10 +576,8 @@ namespace FleetCommand.Test.Framework
                     }
                 }
             }
-            // ,  step 6: update each thruster's
-            // CurrentThrust after the physics interval (the delivered
-            // force the phase 5 aggregation computed and phase 6 applied),
-            // so the value is readable from the next tick's callbacks.
+            // Update each thruster's CurrentThrust after the physics interval (the force
+            // phase 5 computed and phase 6 applied), readable from the next tick.
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -657,8 +586,7 @@ namespace FleetCommand.Test.Framework
                     grid.ForceAggregator.UpdateThrusterTelemetry();
                 }
             }
-            // , : publish each gyro's delivered torque and
-            // saturation after the physics interval.
+            // Publish each gyro's delivered torque and saturation after the physics interval.
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -667,18 +595,16 @@ namespace FleetCommand.Test.Framework
                     grid.GyroRateSystem.UpdateGyroTelemetry();
                 }
             }
-            // .5: advance the connector approach — an approaching
-            // pair that has converged is locked (final fixed constraint,
-            // both Connected) once the connectors physically meet.
+            // Advance the connector approach: a converged approaching pair is locked
+            // (final fixed constraint, both Connected) once the connectors meet.
             ConnectorSystem.AdvanceApproach(_connectors, Profile);
         }
 
         private void Phase9_SampleAndEvaluate()
         {
             _phaseTrace.Add(PhaseNames[8]);
-            // Keep the short failure ring buffer topped with recent actuator
-            // history () and sample the opt-in recorders. Neither
-            // exposes future state: both run after the post-step sync.
+            // Keep the short failure ring buffer topped with recent actuator history and
+            // sample the opt-in recorders. Both run after the post-step sync (never future state).
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];

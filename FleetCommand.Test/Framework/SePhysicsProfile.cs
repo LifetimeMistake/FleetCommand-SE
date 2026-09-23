@@ -3,15 +3,10 @@ using System;
 namespace FleetCommand.Test.Framework
 {
     /// <summary>
-    /// Identifies and configures which Space Engineers physics behaviour the
-    /// framework is reproducing. The profile carries the per-grid physical
-    /// knobs that in the real game come from the live sector's environment
-    /// definition (MyGridPhysics reads <c>EnvironmentDefinition.*MaxSpeed</c>
-    /// for caps, and <c>MyGridPhysics</c> applies grid damping from the
-    /// profile's body settings). The framework expresses these as
-    /// profile-configurable values so tests can be explicit about the
-    /// compatibility guarantees they rely on, rather than hardcoding a live
-    /// sector lookup.
+    /// Identifies and configures which SE physics behaviour the framework reproduces: the
+    /// per-grid knobs that in the game come from the live sector env definition
+    /// (MyGridPhysics reads <c>EnvironmentDefinition.*MaxSpeed</c>), expressed as
+    /// profile-configurable values so tests are explicit about the guarantees they rely on.
     /// </summary>
     public sealed class SePhysicsProfile
     {
@@ -24,75 +19,34 @@ namespace FleetCommand.Test.Framework
         /// <summary>Maximum angular velocity (rad/s) applied to each dynamic rigid body.</summary>
         public float MaxAngularVelocity { get; }
 
-        /// <summary>
-        /// Linear damping for dynamic bodies. Zero by default; only a
-        /// profile that specifies it applies non-zero damping (: "zero
-        /// damping unless the selected physics profile specifies it").
-        /// </summary>
+        /// <summary>Linear damping for dynamic bodies; zero unless a profile specifies it.</summary>
         public float LinearDamping { get; }
 
-        /// <summary>
-        /// Angular damping for dynamic bodies. Zero by default.
-        /// </summary>
+        /// <summary>Angular damping for dynamic bodies; zero by default.</summary>
         public float AngularDamping { get; }
 
         /// <summary>Whether rigid-body collision response is enabled by default.</summary>
         public bool CollisionResponse { get; }
 
-        /// <summary>
-        /// Connector docking capture: maximum separation (m) between the two
-        /// connector points for capture. The effective threshold for a pair
-        /// is the minimum of the two connectors' <see cref="SpaceEngineers.SimShipConnector"/>
-        /// per-block reach and this value (). Part of the world
-        /// physics profile and visible to tests.
-        /// </summary>
+        /// <summary>Connector capture: max separation (m) between connector points; effective threshold is the min of this and each connector's reach.</summary>
         public float ConnectorReach { get; }
 
-        /// <summary>
-        /// Connector docking capture: maximum opposing-axis angular error
-        /// (rad) — how far the two connectors' connect axes may deviate from
-        /// exactly opposing — for capture ().
-        /// </summary>
+        /// <summary>Connector capture: max opposing-axis angular error (rad) of the connect axes.</summary>
         public float ConnectorAngularErrorMax { get; }
 
-        /// <summary>
-        /// Connector docking capture: maximum magnitude (m/s) of the
-        /// relative linear velocity at the two connector points for capture
-        /// ().
-        /// </summary>
+        /// <summary>Connector capture: max relative linear velocity (m/s) at the connector points.</summary>
         public float ConnectorLinearVelocityMax { get; }
 
-        /// <summary>
-        /// Connector docking capture: maximum magnitude (rad/s) of the
-        /// relative angular velocity between the two connector bodies for
-        /// capture ().
-        /// </summary>
+        /// <summary>Connector capture: max relative angular velocity (rad/s) between the connector bodies.</summary>
         public float ConnectorAngularVelocityMax { get; }
 
-        /// <summary>
-        /// Connector approach (.5): the separation (m) between the
-        /// two connector points below which the approach has converged and
-        /// the final fixed constraint ("lock", Connected) is created — the
-        /// connectors have physically met. Set above the rigid-body
-        /// contact separation the collision sim settles at, so a pair in
-        /// resting face-to-face contact (as against the hulls) locks.
-        /// </summary>
+        /// <summary>Connector approach: separation (m) below which the final fixed lock (Connected) is created; set above resting contact separation.</summary>
         public float ConnectorApproachGap { get; }
 
-        /// <summary>
-        /// Connector approach (.5): the opposing-axis angular
-        /// error (rad) below which the approach has converged and the
-        /// final fixed constraint is created — the connect axes are
-        /// anti-parallel.
-        /// </summary>
+        /// <summary>Connector approach: opposing-axis angular error (rad) below which the final fixed lock is created.</summary>
         public float ConnectorApproachAngle { get; }
 
-        /// <summary>
-        /// Remote-control autopilot (.6): the distance (m) to the
-        /// current waypoint below which it is considered reached and the
-        /// autopilot advances to the next one (or stops on the last) —
-        /// the sim's waypoint advance radius.
-        /// </summary>
+        /// <summary>Remote-control autopilot: distance (m) to the current waypoint below which it is considered reached (waypoint advance radius).</summary>
         public float AutopilotArrivalDistance { get; }
 
         public SePhysicsProfile(
@@ -129,14 +83,7 @@ namespace FleetCommand.Test.Framework
             AutopilotArrivalDistance = autopilotArrivalDistance;
         }
 
-        /// <summary>
-        /// The initial, always-available profile: representative default
-        /// speed caps, zero damping, collision response enabled. The real
-        /// game's caps come from the live sector environment definition; this
-        /// profile carries representative per-grid values test scenarios can
-        /// rely on, changed through a named profile when a different
-        /// guarantee is required ().
-        /// </summary>
+        /// <summary>The initial, always-available profile: representative default speed caps, zero damping, collision enabled.</summary>
         public static readonly SePhysicsProfile Default = new SePhysicsProfile(
             "SpaceEngineers-Default",
             maxLinearVelocity: 100f,

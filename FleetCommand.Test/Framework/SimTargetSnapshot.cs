@@ -5,13 +5,9 @@ using VRageMath;
 namespace FleetCommand.Test.Framework
 {
     /// <summary>
-    /// A guidance target snapshot the framework carries for the code under
-    /// test (: "replace a guidance target snapshot; stop
-    /// refreshing a target so it becomes stale"). It is a plain value a
-    /// test (or the code under test) publishes under a name; the framework
-    /// records when it was set and can mark it stale to model a target that
-    /// stopped being refreshed. There is no synthetic noise — staleness is a
-    /// distinct, deterministic event.
+    /// A guidance target snapshot a test (or the code under test) publishes under a name;
+    /// the framework records when it was set and can mark it stale to model a target that
+    /// stopped being refreshed. No synthetic noise — staleness is a distinct, deterministic event.
     /// </summary>
     public struct SimTargetSnapshot
     {
@@ -52,10 +48,9 @@ namespace FleetCommand.Test.Framework
     }
 
     /// <summary>
-    /// A named register of guidance target snapshots owned by the world
-    /// (). Sets replace the current snapshot and refresh it
-    /// (<see cref="IsStale"/> false); <see cref="StopRefreshing"/> marks a
-    /// name's snapshot stale without changing its value. Deterministic.
+    /// A named register of guidance target snapshots owned by the world. Sets replace and
+    /// refresh a snapshot (<see cref="IsStale"/> false); <see cref="StopRefreshing"/> marks
+    /// one stale without changing its value. Deterministic.
     /// </summary>
     public sealed class SimTargetStore
     {
@@ -76,11 +71,7 @@ namespace FleetCommand.Test.Framework
             _targets[name] = snapshot;
         }
 
-        /// <summary>
-        /// Stops refreshing <paramref name="name"/>: its last snapshot is
-        /// retained but marked stale (models a target that stopped being
-        /// updated). No-op when the name is unknown.
-        /// </summary>
+        /// <summary>Marks <paramref name="name"/>'s snapshot stale (a target that stopped being updated); no-op when unknown.</summary>
         public void StopRefreshing(string name)
         {
             if (string.IsNullOrEmpty(name))
