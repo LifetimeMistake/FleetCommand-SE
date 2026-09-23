@@ -9,7 +9,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Conformance of inertia dampening in the thrust base path, against the game's ComputeBaseThrust law.</summary>
+    /// <summary>Conformance of inertia dampening in the thrust base path — reproduces MyEntityThrustComponent.cs:1543-1656 ComputeBaseThrust via the controller route (MyShipController.cs:1780-1820).</summary>
     [TestFixture]
     public class DampeningConformanceTests : FleetTestFixture
     {
