@@ -98,13 +98,6 @@ namespace FleetCommand.Test.SpaceEngineers
         /// sphere.</summary>
         public bool LastSaturated => _lastSaturated;
 
-        /// <summary>The non-override authority pool — the sum of MaxGyroForce from the most
-        /// recent <see cref="Aggregate"/> — i.e. the gyro force that drives the autopilot turn
-        /// (<c>ControlTorque</c>, MyAutopilotComponent's <c>UpdateGyro</c>, is applied through
-        /// this pool in the manual path). Read by the autopilot to bound its angular-authority
-        /// feedback (MyAutopilotComponent.cs:2479).</summary>
-        internal float NonOverrideMaxForce => _maxGyroForce;
-
         /// <summary>The current override acceleration-ramp frame count (-1 = unset). Observation
         /// surface so conformance can lock the game's cross-tick countdown
         /// (MyGridGyroSystem.cs:306-324): armed once, counts down each tick, re-armed only on a
