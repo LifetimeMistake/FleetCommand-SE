@@ -12,14 +12,7 @@ using static FleetCommand.Test.Shared.TestHelpers;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (, ): the programmable-block
-    /// runtime surface (<see cref="SimRuntimeInfo"/> — elapsed sim time from
-    /// the fixed tick clock, update frequency, host instruction limits), the
-    /// programmable block's explicit execution hooks and storage context
-    /// (), and the text panel's logger-compatible text
-    /// writes and reads.
-    /// </summary>
+    /// <summary>Conformance of the programmable-block runtime, explicit execution hooks, storage, and text-panel text writes/reads.</summary>
     [TestFixture]
     public class RuntimeProgrammableBlockTextPanelConformanceTests : FleetTestFixture
     {
@@ -97,7 +90,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             AssertThrowsNamed(() => rt.CurrentCallChainDepth, "IMyGridProgramRuntimeInfo.CurrentCallChainDepth");
         }
 
-        // — programmable block: identity and explicit execution () —
+        // — programmable block: identity and explicit execution —
 
         [Test]
         public void ProgrammableBlock_ProvidesIdentityAndFunctionalSurface()

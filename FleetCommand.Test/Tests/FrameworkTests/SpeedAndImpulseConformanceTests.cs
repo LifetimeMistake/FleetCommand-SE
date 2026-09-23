@@ -9,28 +9,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (): "linear ... velocity caps" and
-    /// "angular impulse response about principal and mixed axes". These close
-    /// the physics-conformance gaps in the  list that earlier stages left
-    /// for the rigid-body dynamics.
-    ///
-    /// Linear cap: the per-grid linear-velocity cap set on the Havok body
-    /// (<c>MaxLinearVelocity</c> — MyGridPhysics.EnvironmentDefinition
-    /// max-speed, expressed here through <see cref="SePhysicsProfile"/>; the
-    /// sim also clamps the post-physics grid speed per frame, mirroring the
-    /// game's per-frame max-speed clamp). A ship with no autopilot firing
-    /// thrust whose unconstrained speed would far exceed the cap must climb
-    /// to and hold the cap, never exceed it.
-    ///
-    /// Angular impulse: applying a known body-axis angular impulse J to a
-    /// body must yield the analytic angular velocity Ω = I⁻¹·J (working
-    /// from the closed-form box inertia via
-    /// <see cref="MassProperties.AnalyticFromBoxes"/> — never from the same
-    /// Havok result). About a principal axis Ω is parallel to J; about a
-    /// mixed (non-principal) axis the anisotropic inertia deforms the
-    /// rotation so Ω is not parallel to J. Both are analytic and falsifiable.
-    /// </summary>
+    /// <summary>Conformance of the linear velocity cap and the rigid-body angular impulse response (Ω = I⁻¹·J about principal and mixed axes), both analytic.</summary>
     [TestFixture]
     public class SpeedAndImpulseConformanceTests : FleetTestFixture
     {

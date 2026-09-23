@@ -9,25 +9,11 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance ( autopilot prerequisite gate and 
-    /// definition of done). Locks the parts of the gate that are
-    /// demonstrable as a production-style scenario: the NUnit x64 host can
-    /// create fixtures, spawn the seven baseline templates, run
-    /// production-style component code on Update1, advance Havok, and
-    /// assert observed outcomes; the whole scenario is stable when
-    /// repeated in one process; the active compatibility profile is
-    /// visible in test output; and no production project references
-    /// FleetCommand.Test (no production dependency, ). The remaining
-    /// gate items (every  API covered, unsupported-members-fail-loudly,
-    /// target/missed-Update1 scheduling) are already locked by the
-    /// dedicated conformance suites referenced in the record; they are not
-    /// duplicated here.
-    /// </summary>
+    /// <summary>Conformance of the autopilot prerequisite gate: the NUnit x64 host can run a production-style scenario, and no production project references the test project.</summary>
     [TestFixture]
     public class PrerequisiteGateConformanceTests : FleetTestFixture
     {
-        // —  / : production-style component closes a loop on Update1 —
+        // — production-style component closes a loop on Update1 —
 
         [Test]
         public void ProductionComponent_OnUpdate1_ClosesLoop_AcrossMultipleShips()
@@ -75,7 +61,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "The discovered thruster must report delivered thrust.");
         }
 
-        // —  / : the gate holds repeatedly in one process —
+        // — the gate holds repeatedly in one process —
 
         [Test]
         public void Gate_RunsRepeatedly_InOneProcess_Deterministically()
@@ -106,7 +92,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             } // world fully disposed each iteration
         }
 
-        // — : all seven baseline templates spawn and move —
+        // — all seven baseline templates spawn and move —
 
         [Test]
         public void SevenBaselineTemplates_SpawnAndMove()
@@ -139,15 +125,14 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }
         }
 
-        // — : active compatibility profile visible in test output —
+        // — active compatibility profile visible in test output —
 
         [Test]
         public void ActiveCompatibilityProfile_IsVisibleInTestOutput()
         {
             // The active Space Engineers / Havok compatibility profile must
-            // appear in test output, per definition-of-done . Written
-            // every run; this is the profile scenario results are recorded
-            // against ().
+            // appear in test output. Written every run; this is the
+            // profile scenario results are recorded against.
             var world = new SimWorld();
             try
             {
@@ -168,7 +153,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "The active profile must be the recorded default compatibility profile.");
         }
 
-        // — : no production dependency on the test project —
+        // — no production dependency on the test project —
 
         [Test]
         public void NoProductionProject_References_TestProject()
@@ -180,7 +165,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             string text = File.ReadAllText(fleetCommandProj);
 
             Assert.That(text, Does.Not.Contain("FleetCommand.Test"),
-                "The production PB project must not reference FleetCommand.Test (no production dependency, ).");
+                "The production PB project must not reference FleetCommand.Test (no production dependency).");
 
             // The test project must be excluded from PB packaging: it must
             // not be imported into the production project's build.

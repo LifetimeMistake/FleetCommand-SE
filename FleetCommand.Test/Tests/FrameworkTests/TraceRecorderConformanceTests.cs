@@ -5,12 +5,7 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    ///  conformance (): <see cref="TraceRecorder{T}"/> is
-    /// bounded (fixed or caller-specified capacity, oldest dropped) and
-    /// opt-in — nothing is recorded by default except the short failure
-    /// ring buffer.
-    /// </summary>
+    /// <summary>Conformance of TraceRecorder: bounded (fixed or caller-specified capacity, oldest dropped) and opt-in — nothing is recorded by default.</summary>
     [TestFixture]
     public class TraceRecorderConformanceTests : FleetTestFixture
     {
@@ -19,7 +14,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             Fc.Step(10);
             Assert.That(Fc.World.RecorderCount, Is.EqualTo(0),
-                "No time-series recorder is active unless Record is requested ().");
+                "No time-series recorder is active unless Record is requested.");
         }
 
         [Test]

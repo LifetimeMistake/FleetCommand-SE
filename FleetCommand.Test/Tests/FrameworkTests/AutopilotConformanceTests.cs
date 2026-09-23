@@ -10,17 +10,7 @@ using VRageMath;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>
-    /// Conformance for the remote-control autopilot + SpeedLimit. The
-    /// autopilot behavior (turns toward the waypoint through
-    /// <see cref="GyroRateSystem.ControlTorque"/>, translates via the AI
-    /// thrust path <c>ComputeAiThrust</c>, and caps forward throttle at
-    /// <see cref="SimRemoteControl.SpeedLimit"/> with the
-    /// <c>|v|² &lt; maxSpeed²</c> gate plus the per-frame
-    /// <c>MovementBlockMaxSpeed</c> velocity clamp) is checked
-    /// end-to-end. Expectations are analytic (source formulas), never
-    /// circular.
-    /// </summary>
+    /// <summary>End-to-end conformance of the remote-control autopilot and SpeedLimit, with analytic expectations.</summary>
     [TestFixture]
     public class AutopilotConformanceTests : FleetTestFixture
     {
@@ -155,12 +145,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That((actual - expected).Length(), Is.LessThan(1e-6), message);
         }
 
-        /// <summary>
-        /// A craft with a remote control, a strong gyro, and thrusters
-        /// covering all six grid axes so the autopilot can translate and
-        /// turn in any direction. Thrusters push opposite their forward:
-        /// e.g. forward (-1,0,0) pushes +X.
-        /// </summary>
+        /// <summary>A craft with a remote control, a strong gyro, and six-axis thrusters so the autopilot can translate and turn in any direction.</summary>
         private static ShipTemplate AutopilotCraft(string name)
         {
             var blocks = new List<TemplateBlock>
