@@ -58,7 +58,12 @@ namespace FleetCommand.Test.Framework
         public float ConnectorOpposingAngle { get; }
 
         /// <summary>Remote-control autopilot: distance (m) to the current waypoint below which it
-        /// is considered reached (waypoint advance radius).</summary>
+        /// is considered reached (waypoint advance radius) — an override of the game's default.
+        /// 0 (the default) means "not configured": the sim uses the game's default advance
+        /// radius, <c>gridSize · 3</c> (<c>GetWaypointAdvanceDistance</c>,
+        /// MyAutopilotComponent.cs:1915). A positive value acts as the user-set waypoint
+        /// threshold distance (<c>m_waypointThresholdDistance</c>,
+        /// MyAutopilotComponent.cs:1920-1922).</summary>
         public float AutopilotArrivalDistance { get; }
 
         public SePhysicsProfile(
@@ -72,7 +77,7 @@ namespace FleetCommand.Test.Framework
             float connectorAttachSeparationSquared = 0.35f,
             float connectorKeepSeparationSquared = 0.5f,
             float connectorOpposingAngle = 2.356194490192345f,
-            float autopilotArrivalDistance = 3f)
+            float autopilotArrivalDistance = 0f)
         {
             if (string.IsNullOrEmpty(name))
             {

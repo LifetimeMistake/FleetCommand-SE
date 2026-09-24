@@ -65,8 +65,9 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "ConnectorKeepSeparationSquared must match the game's approach-keep range (MyShipConnector.cs:1574).");
             Assert.That(p.ConnectorOpposingAngle, Is.EqualTo(3.0 * Math.PI / 4.0).Within(1e-6),
                 "ConnectorOpposingAngle must match the game's 3π/4 opposing-angle gate (MyShipConnector.cs:1488).");
-            Assert.That(p.AutopilotArrivalDistance, Is.EqualTo(3f).Within(1e-6),
-                "AutopilotArrivalDistance must match the recorded calibration baseline.");
+            Assert.That(p.AutopilotArrivalDistance, Is.EqualTo(0f).Within(1e-6),
+                "AutopilotArrivalDistance must default 0 (unset), so the sim uses the game's "
+                + "default waypoint-advance radius gridSize · 3 (MyAutopilotComponent.cs:1915).");
         }
     }
 }

@@ -165,7 +165,11 @@ namespace FleetCommand.Test.SpaceEngineers
             Vector3D targetPos = remote.CurrentWaypoint.Coords;
             Vector3D delta = targetPos - refPos;
             double dist = delta.Length();
-            if (dist < _grid.World.Profile.AutopilotArrivalDistance)
+            // The waypoint-advance radius: the profile's override when set, else the game's
+            // default, gridSize · 3 (MyAutopilotComponent.GetWaypointAdvanceDistance,
+            // MyAutopilotComponent.cs:1915) — 7.5 m for a large grid, 1.5 m for a small one.
+            float arrival = ArrivalDistance();
+            if (dist < arrival)
             {
                 remote.AdvanceWaypoint();
                 return;
@@ -426,6 +430,16 @@ namespace FleetCommand.Test.SpaceEngineers
                 }
             }
             return null;
+        }
+
+        /// <summary>The waypoint-advance radius (m): the profile's override when positive,
+        /// else the game's default <c>gridSize · 3</c> (<c>GetWaypointAdvanceDistance</c>,
+        /// MyAutopilotComponent.cs:1915; the fallback used when no waypoint threshold is set and
+        /// the waypoint is not a docking/last one-way target).</summary>
+        private float ArrivalDistance()
+        {
+            float overrideDistance = _grid.World.Profile.AutopilotArrivalDistance;
+            return overrideDistance > 0f ? overrideDistance : _grid.GridSize * 3f;
         }
 
         private static float MaxComponent(Vector3 v)

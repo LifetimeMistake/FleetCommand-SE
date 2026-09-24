@@ -133,6 +133,52 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(rc.CurrentWaypoint.IsEmpty(), Is.True, "With no waypoints CurrentWaypoint is empty.");
         }
 
+        // — waypoint-advance radius: the game's default gridSize · 3 (MyAutopilotComponent:1915) —
+
+        // The default arrival radius is the game's GetWaypointAdvanceDistance fallback,
+        // gridSize · 3 (MyAutopilotComponent.cs:1915): 7.5 m for a 2.5 m large grid. The
+        // profile's AutopilotArrivalDistance defaults 0 (unconfigured) so this grid-size default
+        // applies. An enabled autopilot with a target within that radius advances past it.
+
+        [Test]
+        public void Autopilot_AdvanceRadius_DefaultIsGridSizeTimesThree()
+        {
+            SimShip ship = Fc.Spawn(AutopilotCraft("ar"), SpawnState.At(Vector3D.Zero)); // large grid, 2.5 m
+            SimRemoteControl rc = Remote(ship);
+            // First waypoint just inside the 7.5 m large-grid default radius; second far.
+            Vector3D near = new Vector3D(0, 0, 7.0);
+            Vector3D far = new Vector3D(0, 0, 5000);
+            rc.AddWaypoint(near, "near");
+            rc.AddWaypoint(far, "far");
+            rc.SpeedLimit = 40f;
+            rc.SetAutoPilotEnabled(true);
+
+            Fc.Step(); // the near waypoint is within gridSize·3 → reached on the first compute
+
+            Assert.That((rc.CurrentWaypoint.Coords - far).Length(), Is.LessThan(1e-6),
+                "A waypoint within the default gridSize·3 radius must be considered reached and advance to the next.");
+        }
+
+        [Test]
+        public void Autopilot_AdvanceRadius_JustBeyondDefault_NotReached()
+        {
+            SimShip ship = Fc.Spawn(AutopilotCraft("ar2"), SpawnState.At(Vector3D.Zero)); // large grid
+            SimRemoteControl rc = Remote(ship);
+            // A single waypoint just beyond the 7.5 m default radius (8.0 m) is not reached;
+            // the autopilot keeps flying toward it.
+            Vector3D wp = new Vector3D(0, 0, 8.0);
+            rc.AddWaypoint(wp, "target");
+            rc.SpeedLimit = 40f;
+            rc.SetAutoPilotEnabled(true);
+
+            Fc.Step();
+
+            Assert.That(ship.Grid.Autopilot.FlightActive, Is.True,
+                "A waypoint beyond the default radius must still be flown toward.");
+            Assert.That((rc.CurrentWaypoint.Coords - wp).Length(), Is.LessThan(1e-6),
+                "A waypoint beyond the default radius must not advance past.");
+        }
+
         // The turn's response now follows the game's adaptive rotation-speed constants, deadzone,
         // and angular-authority feedback from MyAutopilotComponent.UpdateGyro (:2439-2500) and the
         // flight-movement definition (EntityComponents.sbc), NOT the old hand-tuned 0.8/0.5
