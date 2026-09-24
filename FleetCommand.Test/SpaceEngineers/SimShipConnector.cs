@@ -31,13 +31,23 @@ namespace FleetCommand.Test.SpaceEngineers
         private readonly Matrix _blockRotation;
         private readonly Matrix _connectorRotation;
         private readonly float _faceDepth;
-        private readonly bool _throwOut;
-        private readonly bool _collectAll;
+
+        /// <summary>The connector's magnetic throw-out flag (default false), stored as a plain
+        /// value exactly as the game stores it (MyShipConnector.cs:533-543). The magnetic
+        /// inventory collection it drives is not modeled (no inventory), so it has no sim effect —
+        /// it is a stored surface value for script parity.</summary>
+        private bool _throwOut;
+
+        /// <summary>The connector's collect-all flag (default false), stored as a plain value
+        /// exactly as the game stores it (MyShipConnector.cs:545-555). No inventory model, so it
+        /// is a stored surface value only.</summary>
+        private bool _collectAll;
 
         /// <summary>The connector's pull strength in [0, 1] (the game's <c>Strength</c> slider,
         /// MyShipConnector.cs:845-869); the effective (min of the pair) drives the malleable
-        /// hinge's hold. Template-default 1.</summary>
-        private readonly float _strength;
+        /// hinge's hold. Template-default 1. Settable via <see cref="PullStrength"/> with the
+        /// game's clamp.</summary>
+        private float _strength;
 
         private bool _parkingEnabled = true;
 
@@ -186,27 +196,38 @@ namespace FleetCommand.Test.SpaceEngineers
         // — IMyShipConnector —
 
         /// <inheritdoc />
+        /// <summary>Stored value (default false), exactly the game's IMyShipConnector.ThrowOut
+        /// (MyShipConnector.cs:533-543); the magnetic item throw it enables is not modeled (no
+        /// inventory), so it only holds the value.</summary>
         public bool ThrowOut
         {
             get { return _throwOut; }
-            set { throw ThrowSet("IMyShipConnector.ThrowOut"); }
+            set { _throwOut = value; }
         }
 
         /// <inheritdoc />
+        /// <summary>Stored value (default false), exactly the game's IMyShipConnector.CollectAll
+        /// (MyShipConnector.cs:545-555); the inventory collection it drives is not modeled, so it
+        /// only holds the value.</summary>
         public bool CollectAll
         {
             get { return _collectAll; }
-            set { throw ThrowSet("IMyShipConnector.CollectAll"); }
+            set { _collectAll = value; }
         }
 
         /// <inheritdoc />
         /// <summary>Reads the connector's Strength (the game's IMyShipConnector.PullStrength
-        /// getter returns Strength, MyShipConnector.cs:557-562). Writing is out-of-contract in
-        /// this framework's stored scenario state (Strength comes from the template).</summary>
+        /// getter returns Strength, MyShipConnector.cs:557-562). The setter clamps to
+        /// [1e-6, 1] and stores, exactly the game's (MyShipConnector.cs:563-570; the game's
+        /// connector is always in Mode.Connector here). The value is read by the approach-keep
+        /// each tick, so a mid-connection change takes effect like the game's.</summary>
         public float PullStrength
         {
             get { return _strength; }
-            set { throw ThrowSet("IMyShipConnector.PullStrength"); }
+            set
+            {
+                _strength = value < 1e-6f ? 1e-6f : value > 1f ? 1f : value;
+            }
         }
 
         /// <inheritdoc />
@@ -472,13 +493,6 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             float ax = Math.Abs(v.X), ay = Math.Abs(v.Y), az = Math.Abs(v.Z);
             return ax >= ay && ax >= az ? 0 : ay >= az ? 1 : 2;
-        }
-
-        /// <summary>Throws for a property setter, naming <paramref name="member"/>.</summary>
-        private static NotSupportedException ThrowSet(string member)
-        {
-            return new NotSupportedException(
-                "SimShipConnector does not implement '" + member + "' (stored scenario state only — no magnetic/inventory model).");
         }
     }
 }

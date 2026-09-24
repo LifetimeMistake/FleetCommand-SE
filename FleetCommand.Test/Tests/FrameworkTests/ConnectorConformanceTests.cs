@@ -88,31 +88,45 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "A spin about Y must impart a -Z velocity at the +X-offset connection point (ω × r).");
         }
 
-        // — stored scenario state: supported getters; setters throw naming the member —
+        // — stored scenario state: game-faithful stored values; setters store, not throw —
 
         [Test]
-        public void Connector_StoredState_UnsupportedSetters_Throw()
+        public void Connector_StoredState_SettersStore_LikeTheGame()
         {
             SimShip ship = Fc.Spawn(ConnectorCraft("ns", hullMass: 1000f), SpawnState.At(Vector3D.Zero));
             SimShipConnector con = Connector(ship);
 
+            // ThrowOut / CollectAll default false, stored as plain values exactly like the game's
+            // IMyShipConnector setters (MyShipConnector.cs:533-555) — the magnetic inventory
+            // effect is not modeled, so they only hold the value.
+            Assert.That(con.ThrowOut, Is.False);
+            con.ThrowOut = true;
+            Assert.That(con.ThrowOut, Is.True, "ThrowOut must store its value (MyShipConnector.cs:533-543).");
+            con.ThrowOut = false;
             Assert.That(con.ThrowOut, Is.False);
             Assert.That(con.CollectAll, Is.False);
-            // PullStrength reads the connector's Strength (the game's IMyShipConnector getter
-            // returns Strength, MyShipConnector.cs:557-562); the template default is whole (1).
+            con.CollectAll = true;
+            Assert.That(con.CollectAll, Is.True, "CollectAll must store its value (MyShipConnector.cs:545-555).");
+
+            // PullStrength reads the connector's Strength (MyShipConnector.cs:557-562); the setter
+            // clamps to [1e-6, 1] and stores (MyShipConnector.cs:563-570). The template default
+            // is whole (1).
             Assert.That(con.PullStrength, Is.EqualTo(1f).Within(1e-6),
                 "PullStrength must return the connector's Strength (default whole).");
+            con.PullStrength = 0.5f;
+            Assert.That(con.PullStrength, Is.EqualTo(0.5f).Within(1e-6),
+                "PullStrength must store a clamped value (the game stores the clamped Strength).");
+            con.PullStrength = 5f;  // above 1 → clamped to 1
+            Assert.That(con.PullStrength, Is.EqualTo(1f).Within(1e-6),
+                "PullStrength clamps to 1 (the game's MathHelper.Clamp(value, 1e-6, 1)).");
+            con.PullStrength = 0f; // below 1e-6 → clamped to 1e-6
+            Assert.That(con.PullStrength, Is.EqualTo(1e-6f).Within(1e-9),
+                "PullStrength clamps to 1e-6 (the game's lower clamp).");
+
             // IsParkingEnabled is stored (default true, the game's representation).
             Assert.That(con.IsParkingEnabled, Is.True);
             con.IsParkingEnabled = false; // a stored value, no throw
             Assert.That(con.IsParkingEnabled, Is.False);
-
-            Assert.That((Action)(() => con.ThrowOut = true), Throws.TypeOf<NotSupportedException>()
-                .With.Message.Contains("ThrowOut"));
-            Assert.That((Action)(() => con.CollectAll = true), Throws.TypeOf<NotSupportedException>()
-                .With.Message.Contains("CollectAll"));
-            Assert.That((Action)(() => con.PullStrength = 1f), Throws.TypeOf<NotSupportedException>()
-                .With.Message.Contains("PullStrength"));
         }
 
         // — the game's auto-detect gates —
