@@ -26,7 +26,6 @@ namespace FleetCommand.Test.SpaceEngineers
         private bool _isUnderControl;
         private bool _controlThrusters = true;
         private bool _controlGyros = true;
-        private bool _dampenersOverride = true;
         private bool _isMainCockpit;
         private Vector3 _moveIndicator;
         private Vector2 _rotationIndicator;
@@ -55,11 +54,27 @@ namespace FleetCommand.Test.SpaceEngineers
             set { _controlThrusters = value; }
         }
 
-        /// <summary>Whether inertial dampeners are on (defaults on, matching the game).</summary>
+        /// <summary>Whether the grid's inertial dampeners are on. This is the game's
+        /// <c>IMyShipController.DampenersOverride</c>, which reads the SHARED per-grid dampener
+        /// state (<c>EntityThrustComponent.DampenersEnabled</c>) and sets the whole grid's
+        /// dampeners via <c>CubeGrid.EnableDampingInternal</c> (MyShipController.cs:770-786) — it
+        /// is not a per-controller flag. All controllers on a grid share the grid's dampening
+        /// state; defaulting on, matching the game (MyEntityThrustComponent.cs:463).</summary>
         public bool DampenersOverride
         {
-            get { return _dampenersOverride; }
-            set { _dampenersOverride = value; }
+            get
+            {
+                SimRigidBody body = Grid.Body;
+                return body != null && !body.IsDisposed && body.DampenersEnabled;
+            }
+            set
+            {
+                SimRigidBody body = Grid.Body;
+                if (body != null && !body.IsDisposed)
+                {
+                    body.DampenersEnabled = value;
+                }
+            }
         }
 
         /// <summary>Whether this controller drives the grid gyros (the game's

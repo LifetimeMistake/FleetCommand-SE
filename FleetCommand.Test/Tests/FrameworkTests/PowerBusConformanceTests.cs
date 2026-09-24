@@ -20,10 +20,10 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class PowerBusConformanceTests : FleetTestFixture
     {
-        // — wiring: SimShip.Power and the default ideal source —
+        // — wiring: SimShip.Power and the source-less grid —
 
         [Test]
-        public void Spawn_ExposesPowerBus_WithIdealSourceByDefault()
+        public void Spawn_ExposesPowerBus_AndBatterySource()
         {
             SimShip ship = Fc.Spawn(TwoLoadTemplate("T"), SpawnState.At(Vector3D.Zero));
 
@@ -31,18 +31,42 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(ship.Power, Is.SameAs(ship.Grid.PowerBus),
                 "SimShip.Power must be the grid's (ship's) power bus.");
             Assert.That(ship.Power.IsBatterySupply, Is.False,
-                "A template without a battery provides the ideal (unlimited) source.");
+                "A template without a producer provides no battery/reactor supply.");
 
-            // Ideal source: however much a block demands, it is satisfied.
+            // A block with no power requirement is always powered and working even on a
+            // source-less grid — the game supplies a sink with required input 0 fully
+            // (MyResourceSinkComponent.cs:353-361).
+            SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
+            load.PowerDemand = 0f;
+            Fc.Step();
+            Assert.That(ship.Power.TotalSupply, Is.EqualTo(0f));
+            Assert.That(load.IsPowered, Is.True);
+            Assert.That(load.IsWorking, Is.True, "A no-power block works on a source-less grid.");
+        }
+
+        // — #9: a source-less grid supplies no power —
+
+        [Test]
+        public void SourceLessGrid_SuppliesNoPower_DemandingBlockIsUnpowered()
+        {
+            // There is no "ideal source": a grid with no producer supplies nothing, exactly
+            // as the game's distributor reports NoPower and gives sinks zero input
+            // (MyResourceDistributorComponent.cs:1731-1734, :2247-2250). A block with a
+            // real power demand is unpowered and stops working.
+            SimShip ship = Fc.Spawn(TwoLoadTemplate("T"), SpawnState.At(Vector3D.Zero));
             SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
             load.PowerDemand = 10000f;
+
             Fc.Step();
 
-            Assert.That(ship.Power.TotalSupply, Is.EqualTo(float.PositiveInfinity));
-            Assert.That(load.DeliveredRatio, Is.EqualTo(1f).Within(1e-6),
-                "An ideal source must fully satisfy any demand by default.");
-            Assert.That(load.IsPowered, Is.True);
-            Assert.That(load.IsWorking, Is.True);
+            Assert.That(ship.Power.IsBatterySupply, Is.False);
+            Assert.That(ship.Power.TotalSupply, Is.EqualTo(0f),
+                "A source-less grid must supply no power.");
+            Assert.That(load.DeliveredRatio, Is.EqualTo(0f).Within(1e-6),
+                "A demanding block on a source-less grid receives no power.");
+            Assert.That(load.IsPowered, Is.False);
+            Assert.That(load.IsWorking, Is.False,
+                "A demanding block without a source must not work.");
         }
 
         // — the delivered ratio: priority ordering and exposure —
@@ -277,6 +301,58 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(load.IsWorking, Is.False);
         }
 
+        // — #13: producers are drawn by source-group priority (battery before reactor) —
+
+        [Test]
+        public void Producers_AreDrawnBySourcePriority_BatteryBeforeReactor()
+        {
+            // The game's source groups are ordered by def.Priority
+            // (ResourceDistributionGroups.sbc: SolarPanels 1, Battery 2, Reactors 3) and
+            // drawn from the highest priority up (MyResourceDistributorComponent.cs:702-743,
+            // :2371-2391). So a charged battery discharges before a reactor supplies, and the
+            // reactor only carries what the battery cannot. A 4 MW load with a 4 MW battery
+            // and a 4 MW reactor must be carried entirely by the battery.
+            SimShip ship = Fc.Spawn(BatteryAndReactorTemplate("bp", batteryMax: 4f, reactorMax: 4f),
+                SpawnState.At(Vector3D.Zero));
+            SimBatteryBlock battery = (SimBatteryBlock)ship.TerminalSystem.GetBlockWithName("Battery");
+            SimReactorBlock reactor = (SimReactorBlock)ship.TerminalSystem.GetBlockWithName("Reactor");
+            SimFunctionalBlock load = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Load");
+            SetLoad(load, demand: 4f, priority: 1);
+
+            Fc.Step();
+
+            Assert.That(load.DeliveredRatio, Is.EqualTo(1f).Within(1e-6));
+            Assert.That(battery.CurrentOutput, Is.EqualTo(4f).Within(1e-4),
+                "The battery (source priority 2) must supply before the reactor.");
+            Assert.That(reactor.CurrentOutput, Is.EqualTo(0f).Within(1e-6),
+                "The reactor is only drawn when the battery is exhausted or short.");
+        }
+
+        // — #13: non-adaptable short tier blackouts and its supply cascades —
+
+        [Test]
+        public void NonAdaptableShortTier_Blackouts_AndSupplyCascades()
+        {
+            // The game's RecomputeResourceDistributionPartial: a non-adaptable tier that
+            // cannot be fully met is blacked out (ratio 0) and does NOT consume its supply,
+            // so it cascades to lower tiers (MyResourceDistributorComponent.cs:2247-2250). A
+            // 6 MW battery, a non-adaptable high-priority block demanding 10 (blackout), and
+            // an adaptable low-priority block demanding 2: the low block is fully served.
+            SimShip ship = Fc.Spawn(FiniteTwoLoadTemplate(maxOutput: 6f, maxStored: 10f), SpawnState.At(Vector3D.Zero));
+            SimFunctionalBlock high = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("High");
+            SimFunctionalBlock low = (SimFunctionalBlock)ship.TerminalSystem.GetBlockWithName("Low");
+            SetLoad(high, demand: 10f, priority: 2);
+            high.IsPowerAdaptable = false; // non-adaptable: blackouts when short
+            SetLoad(low, demand: 2f, priority: 1);
+
+            Fc.Step();
+
+            Assert.That(high.DeliveredRatio, Is.EqualTo(0f),
+                "A non-adaptable tier that cannot be fully met receives no power.");
+            Assert.That(low.DeliveredRatio, Is.EqualTo(1f).Within(1e-6),
+                "The blacked-out tier's unused supply must cascade to the adaptable lower tier.");
+        }
+
         // — helpers —
 
         /// <summary>Scenario-set a functional load's demand and priority on the sim
@@ -324,6 +400,24 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 {
                     new TemplateBlock("Load", new Vector3I(0, 0, 0), 400f, 2.5f, kind: BlockKind.FixedThruster),
                     new TemplateBlock("Payload", new Vector3I(3, 0, 0), 100f, 2.5f),
+                });
+        }
+
+        /// <summary>A battery + reactor + one functional load: battery first in registration,
+        /// so any battery-before-reactor behavior is by source priority, not registration
+        /// order.</summary>
+        private static ShipTemplate BatteryAndReactorTemplate(string name, float batteryMax, float reactorMax)
+        {
+            return new ShipTemplate(
+                name, 2.5f,
+                new[]
+                {
+                    new TemplateBlock("Battery", new Vector3I(0, 0, 0), 400f, 2.5f,
+                        kind: BlockKind.Battery, maxOutput: batteryMax, maxInput: 0f,
+                        maxStoredPower: 10f, initialStoredPower: 1f),
+                    new TemplateBlock("Reactor", new Vector3I(2, 0, 0), 400f, 2.5f,
+                        kind: BlockKind.Reactor, maxOutput: reactorMax),
+                    new TemplateBlock("Load", new Vector3I(4, 0, 0), 400f, 2.5f, kind: BlockKind.FixedThruster),
                 });
         }
     }

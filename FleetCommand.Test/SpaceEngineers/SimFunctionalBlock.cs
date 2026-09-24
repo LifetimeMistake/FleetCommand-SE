@@ -11,8 +11,9 @@ namespace FleetCommand.Test.SpaceEngineers
     /// (the game's <c>MyFunctionalBlock.Enabled</c> setter calls <c>UpdateIsWorking()</c>), while
     /// power is a system quantity: the grid's <see cref="SimPowerBus"/> computes the block's
     /// <see cref="DeliveredRatio"/> in tick phase 4 from this block's <see cref="PowerDemand"/> and
-    /// <see cref="PowerPriority"/> against the available supply, and <see cref="IsPowered"/>
-    /// derives from it. State-change events fire on transitions for observation.</summary>
+    /// <see cref="PowerPriority"/>, and against the available supply, and <see cref="IsPowered"/>
+    /// derives from it (a block with no power requirement is always powered). State-change events
+    /// fire on transitions for observation.</summary>
     public class SimFunctionalBlock : SimTerminalBlock, IMyFunctionalBlock
     {
         private bool _enabled = true;
@@ -83,11 +84,38 @@ namespace FleetCommand.Test.SpaceEngineers
         /// ratio).</summary>
         public int PowerPriority { get; set; }
 
-        /// <summary>Scenario-side power availability, derived from <see cref="DeliveredRatio"/>
-        /// computed by the ship's <see cref="SimPowerBus"/> in tick phase 4. A block whose
-        /// delivered ratio is zero receives no power and stops working on the same phase-4
-        /// recompute.</summary>
-        public bool IsPowered => _deliveredRatio > 0f;
+        /// <summary>Whether this block's power sink is adaptable — the game's
+        /// <c>MyResourceDistributionGroup.IsAdaptible</c>. An adaptable sink shares a tier
+        /// shortfall proportionally and stays powered on partial power; a non-adaptable sink is
+        /// blacked out (no power) when its tier cannot be fully met and its demand is bypassed so
+        /// the supply cascades to lower tiers (MyResourceDistributorComponent.cs:2238-2250). The
+        /// sink's adaptability flags come from its group's definition in
+        /// <c>ResourceDistributionGroups.sbc</c> (Thrust, BatteryBlock and Charging groups are
+        /// adaptable; Gyro and most high-priority groups are not). Default true.</summary>
+        public bool IsPowerAdaptable { get; set; } = true;
+
+        /// <summary>Scenario-side power availability, matching the game's
+        /// <c>MyResourceSinkComponent.SetInputFromDistributor</c> (MyResourceSinkComponent.cs:346-367):
+        /// a block with no power requirement (<see cref="PowerDemand"/> 0) is always powered; an
+        /// adaptable sink is powered on any nonzero delivery; a non-adaptable sink is powered only
+        /// when fully satisfied (<see cref="DeliveredRatio"/> ≥ 1); and zero delivery to a
+        /// demanding block leaves it unpowered.</summary>
+        public bool IsPowered
+        {
+            get
+            {
+                float demand = PowerDemand;
+                if (demand == 0f)
+                {
+                    return true; // no power requirement -> always powered (:353)
+                }
+                if (_deliveredRatio > 0f)
+                {
+                    return IsPowerAdaptable || _deliveredRatio >= 1f;
+                }
+                return false;
+            }
+        }
 
         /// <summary>True while the block is able to do its work (recomputed in phase 4).</summary>
         public override bool IsWorking => _working;
@@ -113,9 +141,17 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>Applies the delivered ratio computed by the power bus in phase 4 (clamped to
         /// [0, 1]) — the single source of truth that drives <see cref="IsPowered"/> and therefore
-        /// <see cref="IsWorking"/>.</summary>
+        /// <see cref="IsWorking"/>. A block with no power requirement is always fully supplied
+        /// (ratio 1, its <c>SuppliedRatio</c>): the game's <c>SetInputFromDistributor</c> reports
+        /// supplied ratio 1 and powered when required input is 0, even on a source-less grid
+        /// (MyResourceSinkComponent.cs:353-361).</summary>
         internal void SetDeliveredRatio(float ratio)
         {
+            if (PowerDemand == 0f)
+            {
+                _deliveredRatio = 1f;
+                return;
+            }
             _deliveredRatio = ratio < 0f ? 0f : ratio > 1f ? 1f : ratio;
         }
 

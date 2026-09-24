@@ -16,6 +16,16 @@ namespace FleetCommand.Test.Physics
     /// </summary>
     public sealed class SimRigidBody : IDisposable
     {
+        /// <summary>The grid-wide inertia-dampener enable state — the sim's analog of the game's
+        /// <c>MyEntityThrustComponent.DampenersEnabled</c>, a single shared per-grid flag that every
+        /// ship controller reads and writes (MyShipController.cs:770-786, MyEntityThrustComponent.cs:299).
+        /// It is shared per grid because the game's dampeners are grid-global, not per-controller:
+        /// toggling any controller's <c>DampenersOverride</c> switches the whole grid's dampeners
+        /// (<c>CubeGrid.EnableDampingInternal(value)</c>, :784). Stored on the shared grid body,
+        /// the per-grid object every controller reaches via <c>Grid.Body</c>. Defaults on, matching
+        /// the game (MyEntityThrustComponent.cs:463).</summary>
+        public bool DampenersEnabled { get; set; } = true;
+
         /// <summary>Stable numeric id, unique per world, in spawn order.</summary>
         public long Id { get; }
 

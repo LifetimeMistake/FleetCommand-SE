@@ -222,6 +222,36 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         // — control flags and scenario control inputs —
 
         [Test]
+        public void Controller_DampenersOverride_IsSharedAcrossTheGrid()
+        {
+            // DampenersOverride is the grid's SHARED dampener state, not a per-controller flag:
+            // the game reads it from EntityThrustComponent.DampenersEnabled (one value for the
+            // whole grid) and the setter toggles the whole grid via CubeGrid.EnableDampingInternal
+            // (MyShipController.cs:770-786). So all controllers on a grid observe the same value
+            // and any controller can switch it for the grid.
+            SimShip ship = Fc.Spawn(TwoControllerTemplate("shared"), SpawnState.At(Vector3D.Zero));
+            SimShipController primary = (SimShipController)ship.TerminalSystem.GetBlockWithName("Primary");
+            SimShipController secondary = (SimShipController)ship.TerminalSystem.GetBlockWithName("Secondary");
+
+            Assert.That(primary.DampenersOverride, Is.True, "Grid dampeners default on (game :299).");
+            Assert.That(secondary.DampenersOverride, Is.True,
+                "Both controllers observe the same shared grid dampener state.");
+
+            primary.DampenersOverride = false; // toggling one controller switches the grid
+
+            Assert.That(primary.DampenersOverride, Is.False);
+            Assert.That(secondary.DampenersOverride, Is.False,
+                "Turning dampeners off via one controller must be observed by the other controller on the grid.");
+
+            secondary.DampenersOverride = true; // the other controller can switch it back on
+
+            Assert.That(primary.DampenersOverride, Is.True,
+                "The shared grid dampener state can be restored from any controller.");
+        }
+
+
+
+        [Test]
         public void Controller_ControlFlags_AndIndicators_ScenarioSettable()
         {
             SimShip ship = Fc.Spawn(ControllerTemplate("C"), SpawnState.At(Vector3D.Zero));

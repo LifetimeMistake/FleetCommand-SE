@@ -8,7 +8,8 @@ namespace FleetCommand.Test.SpaceEngineers
     /// <see cref="Draw"/> records the actually delivered output (returns it, so the bus can track
     /// how much delivered power remains). Batteries are reversible — their stored change is applied
     /// by the net charge path, not by <see cref="Draw"/>, so what the bus delivers and what the
-    /// battery banks never diverge.</summary>
+    /// battery banks never diverge. Sources are drawn by the game's source-group priority tier
+    /// (see <see cref="SimPowerBus.SourceTier"/>), not registration order.</summary>
     internal interface SimPowerSource
     {
         /// <summary>Max power this source can serve on one fixed step (MW).</summary>
@@ -23,24 +24,26 @@ namespace FleetCommand.Test.SpaceEngineers
     /// and a priority with their grid's bus; in tick phase 4 the bus computes the delivered ratio
     /// for every registered consumer and draws the delivered energy from the finite supply
     /// (batteries and reactors). Each functional block's <c>IsPowered</c> derives from its
-    /// delivered ratio, so <c>IsWorking</c> (recomputed in the same phase) follows before actuation
-    /// — phases 5-8 read the state this phase produced.</summary>
-    /// <remarks>Allocation semantics: the available supply is the sum of the grid's producer
-    /// outputs, or effectively unlimited when the template provides no producer (the "ideal
-    /// source"). Consumers are processed from the highest priority tier to the lowest; every block
-    /// in a tier receives the same delivered ratio <c>min(1, available / tierDemand)</c>, so blocks
-    /// of equal priority share a shortfall fairly and deterministically. The constant per-tier
-    /// ratio, the fixed 1/60 s step, and the absence of wall-clock reads and noise make the bus
-    /// exact and repeatable — no divergence between what phase 4 computes and what actuation
-    /// consumes. Charging: after the real consumers (grid loads) are served, the bus routes the
-    /// remaining (surplus) supply to charging batteries in registration order, each up to its
-    /// charge demand (<see cref="SimBatteryBlock.ComputeChargeDemand"/> — the game's
+    /// delivered ratio and power requirement, so <c>IsWorking</c> (recomputed in the same phase)
+    /// follows before actuation — phases 5-8 read the state this phase produced.</summary>
+    /// <remarks>Allocation semantics reproduce <c>MyResourceDistributorComponent</c>. A grid with
+    /// no power-producing block supplies nothing — blocks with a real power demand are unpowered
+    /// (only blocks with no power requirement stay powered). Where producers exist, the available
+    /// supply is the sum of their outputs, consumers are served tier by tier from the highest
+    /// priority to the lowest (a tier is fully satisfied when supply reaches it; an adaptable tier
+    /// that cannot be fully met shares the shortfall proportionally; a non-adaptable tier that
+    /// cannot be fully met is blacked out and its supply cascades to lower tiers), and the
+    /// consumed power is drawn from producers by their source-group priority tier (battery before
+    /// reactor). The fixed 1/60 s step and the absence of wall-clock reads and noise make the bus
+    /// exact and repeatable. Charging: after the real consumers (grid loads) are served, the bus
+    /// routes the remaining (surplus) supply to charging batteries in registration order, each up
+    /// to its charge demand (<see cref="SimBatteryBlock.ComputeChargeDemand"/> — the game's
     /// <c>Sink_ComputeRequiredPower</c>). The charge power actually delivered becomes the battery's
     /// real <see cref="SimBatteryBlock.CurrentInput"/> and is netted against its output
     /// (<see cref="SimBatteryBlock.ApplyCharge(float, float)"/>, the game's <c>TransferPower</c> /
     /// <c>StorePower</c> / <c>ConsumePower</c>), so a battery in <c>Auto</c> charges from surplus
-    /// after grid demand and discharges into a deficit. Charge is strictly lower priority than grid
-    /// loads: batteries sink the surplus, they never starve a load.</remarks>
+    /// after grid demand and discharges into a deficit. Charge is the lowest-priority sink — the
+    /// game's BatteryBlock group — and never starves a load.</remarks>
     public sealed class SimPowerBus
     {
         private readonly SimCubeGrid _grid;
@@ -52,13 +55,13 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid grid (ship) this bus serves.</summary>
         public SimCubeGrid Grid => _grid;
 
-        /// <summary>True when the template provided finite production (a battery and/or reactor);
-        /// false when the ship has the ideal (unlimited) source.</summary>
+        /// <summary>True when the grid has at least one power-producing block (a battery and/or
+        /// reactor); false for a source-less grid, which supplies no power.</summary>
         public bool IsBatterySupply => _sources.Count > 0;
 
         /// <summary>The supply available for the most recent <see cref="Recompute"/>: the summed
-        /// producer output (finite) or <see cref="float.PositiveInfinity"/> for the ideal
-        /// source.</summary>
+        /// producer output; 0 when the grid has no producer (a source-less grid delivers no power —
+        /// the game's NoPower state, never an unlimited source).</summary>
         public float TotalSupply { get; private set; }
 
         /// <summary>Scenario-side electrical availability in [0, 1]: a multiplier applied to the
@@ -140,9 +143,9 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>Recomputes the delivered power ratio for every registered consumer from the
-        /// ideal or finite supply and this tick's demands, then draws the delivered energy from the
-        /// producers and routes the surplus to charging batteries. Called by the world in tick
+        /// <summary>Recomputes the delivered power ratio for every registered consumer from this
+        /// tick's finite supply and demands, then draws the delivered energy from the producers by
+        /// source priority and routes the surplus to charging batteries. Called by the world in tick
         /// phase 4, before actuation.</summary>
         /// <param name="dtSeconds">The fixed step interval in seconds (one 1/60 s tick).</param>
         public void Recompute(float dtSeconds)
@@ -150,6 +153,22 @@ namespace FleetCommand.Test.SpaceEngineers
             if (dtSeconds <= 0f)
             {
                 throw new ArgumentOutOfRangeException(nameof(dtSeconds), "The power bus runs on the fixed positive physics step.");
+            }
+
+            if (_sources.Count == 0)
+            {
+                // A grid with no power-producing block supplies nothing. The game's
+                // distributor computes MaxAvailableResource = 0 -> NoPower and gives every
+                // sink zero input (MyResourceDistributorComponent.cs:1731-1734,
+                // RecomputeResourceDistributionPartial :2247-2250). Blocks with a real power
+                // demand are unpowered and stop working; blocks with no power requirement
+                // (PowerDemand 0) stay powered (MyResourceSinkComponent.cs:353).
+                TotalSupply = 0f;
+                for (int i = 0; i < _consumers.Count; i++)
+                {
+                    _consumers[i].SetDeliveredRatio(0f);
+                }
+                return;
             }
 
             float supply = ComputeAvailableSupply(dtSeconds);
@@ -166,38 +185,47 @@ namespace FleetCommand.Test.SpaceEngineers
             // remaining tracks the supply not yet committed to consumers:
             // after the loop it is the surplus available for charging.
             float remaining = supply;
-            float delivered = 0f;
             int index = 0;
             while (index < _ordered.Count)
             {
                 int priority = _ordered[index].PowerPriority;
                 int tierStart = index;
                 float tierDemand = 0f;
+                bool tierAdaptable = true;
                 while (index < _ordered.Count && _ordered[index].PowerPriority == priority)
                 {
                     tierDemand += _ordered[index].PowerDemand;
+                    if (!_ordered[index].IsPowerAdaptable)
+                    {
+                        tierAdaptable = false; // tier adaptability is the AND across the tier
+                    }
                     index++;
                 }
                 int tierEnd = index;
 
+                // RecomputeResourceDistributionPartial: a tier is fully satisfied when the
+                // supply reaches it (:2229-2236); an adaptable tier that cannot be fully met
+                // shares the shortfall proportionally (:2238-2245); a non-adaptable tier
+                // that cannot be fully met is blacked out and its supply is NOT consumed,
+                // so it cascades to lower tiers (:2247-2250).
                 float ratio;
                 if (tierDemand <= 0f)
                 {
-                    // No demand: nothing to supply, always satisfied.
-                    ratio = 1f;
+                    ratio = 1f; // no demand: nothing to supply, always satisfied
                 }
-                else if (float.IsPositiveInfinity(remaining))
+                else if (tierDemand <= remaining)
                 {
-                    // Ideal source: demand is never limited.
                     ratio = 1f;
+                    remaining -= tierDemand;
+                }
+                else if (tierAdaptable && remaining > 0f)
+                {
+                    ratio = remaining / tierDemand;
+                    remaining = 0f;
                 }
                 else
                 {
-                    // Deliver min(1, available / tierDemand) to the whole tier.
-                    ratio = remaining <= 0f ? 0f : Math.Min(1f, remaining / tierDemand);
-                    float tierDelivered = tierDemand * ratio;
-                    remaining -= tierDelivered;
-                    delivered += tierDelivered;
+                    ratio = 0f;
                 }
 
                 for (int i = tierStart; i < tierEnd; i++)
@@ -206,14 +234,16 @@ namespace FleetCommand.Test.SpaceEngineers
                 }
             }
 
-            // Depletion: the delivered power is drawn from the finite
-            // supply in deterministic registration order, and every
-            // producer's CurrentOutput stays fresh (0 when nothing left
-            // to draw). Ideal supply (no producers) draws nothing.
+            // Depletion: the consumed power (supply minus the surplus still unclaimed) is
+            // drawn from producers by source-group priority tier — lower game Priority drawn
+            // first (battery before reactor; ResourceDistributionGroups.sbc, sources drawn
+            // tier by tier in RecomputeResourceDistributionPartial :2371-2391). Every
+            // producer's CurrentOutput stays fresh (0 when nothing left to draw).
+            float needed = supply - remaining;
+            _sources.Sort((a, b) => SourceTier(a).CompareTo(SourceTier(b)));
             for (int i = 0; i < _sources.Count; i++)
             {
-                SimPowerSource source = _sources[i];
-                delivered = Math.Max(0f, delivered - source.Draw(delivered, dtSeconds));
+                needed = Math.Max(0f, needed - _sources[i].Draw(needed, dtSeconds));
             }
 
             // Charging: route the surplus (what grid loads did not consume)
@@ -239,6 +269,25 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
+        /// <summary>The source-group priority tier of a producer — the game's resource source
+        /// group, drawn in ascending <c>Priority</c> order (<c>ResourceDistributionGroups.sbc</c>:
+        /// SolarPanels 1, Battery 2, Reactors 3; the distributor builds the priority arrays from
+        /// <c>def.Priority</c>, MyResourceDistributorComponent.cs:702-743, and draws source tiers
+        /// from index 0 up, :2371-2391). Lower tier = drawn first, so a battery discharges
+        /// before a reactor.</summary>
+        private static int SourceTier(SimPowerSource source)
+        {
+            if (source is SimBatteryBlock)
+            {
+                return 2; // "Battery"
+            }
+            if (source is SimReactorBlock)
+            {
+                return 3; // "Reactors"
+            }
+            return 1; // generic producer (solar first)
+        }
+
         /// <summary>The delivered power ratio for <paramref name="block"/>: the fraction of its
         /// demand the supply allocated in phase 4 (1 when fully satisfied or when the block demands
         /// nothing); the value that drives the block's <c>IsPowered</c> /
@@ -254,18 +303,13 @@ namespace FleetCommand.Test.SpaceEngineers
 
         private float ComputeAvailableSupply(float dtSeconds)
         {
-            if (_sources.Count == 0)
-            {
-                // Ideal source: unlimited power, demand never limited.
-                return float.PositiveInfinity;
-            }
+            // Called only with at least one producer present (Recompute returns early on a
+            // source-less grid). The scenario electrical availability ratio scales the supply.
             float total = 0f;
             for (int i = 0; i < _sources.Count; i++)
             {
                 total += _sources[i].AvailableOutput(dtSeconds);
             }
-            // The scenario electrical availability ratio scales the finite
-            // supply; ideal supply stays infinite.
             float ratio = AvailableRatio < 0f ? 0f : AvailableRatio > 1f ? 1f : AvailableRatio;
             return total * ratio;
         }
