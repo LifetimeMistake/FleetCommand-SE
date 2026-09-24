@@ -21,7 +21,8 @@ namespace FleetCommand.Test.Shared
         {
             return new ShipTemplate(name, 2.5f, new[]
             {
-                new TemplateBlock("Battery", new Vector3I(0, 0, 0), 400f, 2.5f,
+                // LargeBlockBatteryBlock dry mass (3845 kg) — the real value (CubeBlocks_Energy.sbc).
+                new TemplateBlock("Battery", new Vector3I(0, 0, 0), 3845f, 2.5f,
                     kind: BlockKind.Battery, maxOutput: batteryMaxOutput, maxStoredPower: batteryStored),
                 new TemplateBlock("Hull", new Vector3I(2, 0, 0), 2000f, 2.5f),
                 driver,

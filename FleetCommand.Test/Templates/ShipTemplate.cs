@@ -160,6 +160,16 @@ namespace FleetCommand.Test.Templates
         public float ConnectorStrength { get; }
 
         /// <summary>
+        /// Connector: the block's per-definition attach-direction selector, a six-face
+        /// direction in the block's OWN frame — the game's <c>ConnectDirection</c>
+        /// (<c>MyShipConnector.cs:1489-1490</c>: a = ConnectDirection.X·Left +
+        /// .Y·Up + .Z·Forward). Default <c>Vector3.Forward</c> (0,0,-1), the
+        /// object-builder default (MyObjectBuilder_ShipConnectorDefinition.cs:1659); e.g. the
+        /// structural platform connector sets (0,-1,0) — connect along -Up.
+        /// </summary>
+        public Vector3 ConnectDirection { get; }
+
+        /// <summary>
         /// Grid-local center in meters: ((Min + Max) · 0.5) · GridSize,
         /// matching the game's mass-element placement
         /// (MyCubeBlockCollector.AddMass, MyGridShape.CollectBlockInventories).
@@ -194,7 +204,8 @@ namespace FleetCommand.Test.Templates
             Quaternion? connectorOrientation = null, float connectorReach = 0f,
             float connectorStrength = 1f,
             float slowdownFactor = 1f,
-            float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f)
+            float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f,
+            Vector3? connectDirection = null)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -222,6 +233,13 @@ namespace FleetCommand.Test.Templates
             {
                 throw new ArgumentOutOfRangeException(nameof(connectorStrength), "Connector strength must be in [0, 1].");
             }
+            Vector3 connectDir = connectDirection ?? Vector3.Forward;
+            if (!IsCardinalAxis(connectDir))
+            {
+                throw new ArgumentException(
+                    "A connector's connect direction must be one of the six cardinal axes (+-X, +-Y, +-Z).",
+                    nameof(connectDirection));
+            }
 
             Name = name;
             Min = min;
@@ -242,6 +260,7 @@ namespace FleetCommand.Test.Templates
             GyroPowerDemand = gyroPowerDemand;
             ConnectorOrientation = connectorOrientation ?? Quaternion.Identity;
             ConnectorReach = connectorReach;
+            ConnectDirection = connectDir;
             ConnectorStrength = connectorStrength;
             SlowdownFactor = slowdownFactor;
             InitialFuel = initialFuel;
@@ -272,6 +291,12 @@ namespace FleetCommand.Test.Templates
         private static bool IsCardinalAxis(Vector3I v)
         {
             int sum = Math.Abs(v.X) + Math.Abs(v.Y) + Math.Abs(v.Z);
+            return sum == 1;
+        }
+
+        private static bool IsCardinalAxis(Vector3 v)
+        {
+            int sum = (int)Math.Round(Math.Abs(v.X)) + (int)Math.Round(Math.Abs(v.Y)) + (int)Math.Round(Math.Abs(v.Z));
             return sum == 1;
         }
 

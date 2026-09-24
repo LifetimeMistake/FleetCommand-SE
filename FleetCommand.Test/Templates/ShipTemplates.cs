@@ -13,13 +13,23 @@ namespace FleetCommand.Test.Templates
     /// </summary>
     public static class ShipTemplates
     {
-        // Block masses (large grid, kg) are representative values so every
-        // template has a positive, physically-consistent total mass.
+        // Real large-grid block values (verified against the game SBCs; mass =
+        // Σ component count × component mass, MyCubeBlockDefinition.cs:654-665). Hull is an
+        // abstract structural block (no single game definition), kept as a representative mass.
         private const float HullMass = 2000f;
-        private const float ControllerMass = 400f;
-        private const float GyroMass = 100f;
-        private const float ThrusterMass = 100f;
-        private const float ConnectorMass = 200f;
+        private const float ControllerMass = 368f;    // LargeBlockCockpit (CubeBlocks_Control.sbc)
+        private const float GyroMass = 12817f;        // LargeBlockGyro
+        private const float GyroForce = 3.36e7f;      // LargeBlockGyro ForceMagnitude (N·m)
+        private const float ConnectorMass = 3564f;     // Connector (CubeBlocks_Logistics.sbc)
+        // Large ion thruster: LargeBlockLargeThrust (CubeBlocks_Thrusters.sbc) — 3x2x4, 43200
+        // kg, ForceMagnitude 4.32e6 N.
+        private static readonly Vector3I IonSize = new Vector3I(3, 2, 4);
+        private const float IonMass = 43200f;
+        private const float IonThrust = 4.32e6f;
+        // Small ion thruster: LargeBlockSmallThrust — 1x1x2, 4380 kg, 3.456e5 N.
+        private static readonly Vector3I SmallIonSize = new Vector3I(1, 1, 2);
+        private const float SmallIonMass = 4380f;
+        private const float SmallIonThrust = 3.456e5f;
 
         private static readonly Vector3I Fwd = new Vector3I(-1, 0, 0);  // pushes +X
         private static readonly Vector3I Rev = new Vector3I(1, 0, 0);   // pushes -X
@@ -45,50 +55,51 @@ namespace FleetCommand.Test.Templates
 
         private static ShipTemplate SixAxis()
         {
-            const float m = 600000f; // symmetric full-thrust authority per axis
+            // Symmetric full-thrust authority per axis: one real large ion thruster (4.32e6 N)
+            // per direction.
             return ShipTemplateBuilder.LargeGrid("Six axis craft")
                 .AddStandard("Hull", new Vector3I(0, 0, 0), HullMass)
                 .AddController("Pilot", new Vector3I(0, 0, 1), ControllerMass)
-                .AddGyro("Gyro", new Vector3I(0, -1, 0), 5000f, GyroMass)
-                .AddThrusterGroup("Fwd", Fwd, 1, m, new Vector3I(3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Rev", Rev, 1, m, new Vector3I(-3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Up", Up, 1, m, new Vector3I(1, 3, 0), ThrusterMass)
-                .AddThrusterGroup("Dwn", Dwn, 1, m, new Vector3I(1, -3, 0), ThrusterMass)
-                .AddThrusterGroup("StrR", Rgt, 1, m, new Vector3I(1, 1, 3), ThrusterMass)
-                .AddThrusterGroup("StrL", Lft, 1, m, new Vector3I(1, 1, -3), ThrusterMass)
+                .AddGyro("Gyro", new Vector3I(0, -1, 0), GyroForce, GyroMass)
+                .AddThrusterGroup("Fwd", Fwd, 1, IonThrust, new Vector3I(3, 0, 0), IonMass, IonSize)
+                .AddThrusterGroup("Rev", Rev, 1, IonThrust, new Vector3I(-3, 0, 0), IonMass, IonSize)
+                .AddThrusterGroup("Up", Up, 1, IonThrust, new Vector3I(1, 3, 0), IonMass, IonSize)
+                .AddThrusterGroup("Dwn", Dwn, 1, IonThrust, new Vector3I(1, -3, 0), IonMass, IonSize)
+                .AddThrusterGroup("StrR", Rgt, 1, IonThrust, new Vector3I(1, 1, 3), IonMass, IonSize)
+                .AddThrusterGroup("StrL", Lft, 1, IonThrust, new Vector3I(1, 1, -3), IonMass, IonSize)
                 .WithSpeedLimits(120f, 12f)
                 .Build();
         }
 
         private static ShipTemplate Anisotropic()
         {
-            // Deliberately unequal: X 9x, Y 3x, Z 1x authority.
-            const float strong = 900000f, mid = 300000f, weak = 100000f;
+            // Deliberately unequal authority using real thruster types: X (large ion, 4.32e6 N)
+            // is far stronger than Y and Z (each a small ion, 3.456e5 N).
             return ShipTemplateBuilder.LargeGrid("Anisotropic craft")
                 .AddStandard("Hull", new Vector3I(0, 0, 0), HullMass)
                 .AddController("Pilot", new Vector3I(0, 0, 1), ControllerMass)
-                .AddGyro("Gyro", new Vector3I(0, -1, 0), 5000f, GyroMass)
-                .AddThrusterGroup("Fwd", Fwd, 1, strong, new Vector3I(3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Rev", Rev, 1, strong, new Vector3I(-3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Up", Up, 1, mid, new Vector3I(1, 3, 0), ThrusterMass)
-                .AddThrusterGroup("Dwn", Dwn, 1, mid, new Vector3I(1, -3, 0), ThrusterMass)
-                .AddThrusterGroup("StrR", Rgt, 1, weak, new Vector3I(1, 1, 3), ThrusterMass)
-                .AddThrusterGroup("StrL", Lft, 1, weak, new Vector3I(1, 1, -3), ThrusterMass)
+                .AddGyro("Gyro", new Vector3I(0, -1, 0), GyroForce, GyroMass)
+                .AddThrusterGroup("Fwd", Fwd, 1, IonThrust, new Vector3I(3, 0, 0), IonMass, IonSize)
+                .AddThrusterGroup("Rev", Rev, 1, IonThrust, new Vector3I(-3, 0, 0), IonMass, IonSize)
+                .AddThrusterGroup("Up", Up, 1, SmallIonThrust, new Vector3I(1, 3, 0), SmallIonMass, SmallIonSize)
+                .AddThrusterGroup("Dwn", Dwn, 1, SmallIonThrust, new Vector3I(1, -3, 0), SmallIonMass, SmallIonSize)
+                .AddThrusterGroup("StrR", Rgt, 1, SmallIonThrust, new Vector3I(1, 1, 3), SmallIonMass, SmallIonSize)
+                .AddThrusterGroup("StrL", Lft, 1, SmallIonThrust, new Vector3I(1, 1, -3), SmallIonMass, SmallIonSize)
                 .WithSpeedLimits(120f, 12f)
                 .Build();
         }
 
         private static ShipTemplate Missile()
         {
-            // Main thrust only: a strong rear cluster pushing +X and a
+            // Main thrust only: a strong real-ion cluster pushing +X and a
             // controller whose own forward axis is +X (its forward control
             // axis). No lateral or reverse thrust.
             return ShipTemplateBuilder.LargeGrid("Forward missile")
                 .AddStandard("Nose", new Vector3I(0, 0, 0), 400f)
-                .AddController("Pilot", new Vector3I(0, 0, 1), 200f,
+                .AddController("Pilot", new Vector3I(0, 0, 1), ControllerMass,
                     OrientForward(new Vector3(1, 0, 0), new Vector3(0, 1, 0)))
-                .AddGyro("Gyro", new Vector3I(0, -1, 0), 4000f, 60f)
-                .AddThrusterGroup("Main", Fwd, 4, 700000f, new Vector3I(2, 2, 0), ThrusterMass)
+                .AddGyro("Gyro", new Vector3I(0, -1, 0), GyroForce, GyroMass)
+                .AddThrusterGroup("Main", Fwd, 4, IonThrust, new Vector3I(2, 2, 0), IonMass, IonSize)
                 .WithSpeedLimits(150f, 15f)
                 .Build();
         }
@@ -97,35 +108,34 @@ namespace FleetCommand.Test.Templates
         {
             // Authoritative forward plus full lateral (up/down/left/right);
             // explicitly NO reverse (-X) thrust.
-            const float m = 500000f;
             return ShipTemplateBuilder.LargeGrid("No retro craft")
                 .AddStandard("Hull", new Vector3I(0, 0, 0), HullMass)
                 .AddController("Pilot", new Vector3I(0, 0, 1), ControllerMass)
-                .AddGyro("Gyro", new Vector3I(0, -1, 0), 5000f, GyroMass)
-                .AddThrusterGroup("Fwd", Fwd, 1, m, new Vector3I(3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Up", Up, 1, m, new Vector3I(1, 3, 0), ThrusterMass)
-                .AddThrusterGroup("Dwn", Dwn, 1, m, new Vector3I(1, -3, 0), ThrusterMass)
-                .AddThrusterGroup("StrR", Rgt, 1, m, new Vector3I(1, 1, 3), ThrusterMass)
-                .AddThrusterGroup("StrL", Lft, 1, m, new Vector3I(1, 1, -3), ThrusterMass)
+                .AddGyro("Gyro", new Vector3I(0, -1, 0), GyroForce, GyroMass)
+                .AddThrusterGroup("Fwd", Fwd, 1, IonThrust, new Vector3I(3, 0, 0), IonMass, IonSize)
+                .AddThrusterGroup("Up", Up, 1, IonThrust, new Vector3I(1, 3, 0), IonMass, IonSize)
+                .AddThrusterGroup("Dwn", Dwn, 1, IonThrust, new Vector3I(1, -3, 0), IonMass, IonSize)
+                .AddThrusterGroup("StrR", Rgt, 1, IonThrust, new Vector3I(1, 1, 3), IonMass, IonSize)
+                .AddThrusterGroup("StrL", Lft, 1, IonThrust, new Vector3I(1, 1, -3), IonMass, IonSize)
                 .WithSpeedLimits(120f, 12f)
                 .Build();
         }
 
         private static ShipTemplate Gunship()
         {
-            // Anisotropic translation, generous gyro authority, and a
+            // Real thrust authority, generous double-gyro authority, and a
             // named weapon reference axis along grid +X.
             return ShipTemplateBuilder.LargeGrid("Orbit gunship")
                 .AddStandard("Hull", new Vector3I(0, 0, 0), HullMass)
                 .AddController("Pilot", new Vector3I(0, 0, 1), ControllerMass)
-                .AddGyro("GyroA", new Vector3I(0, -1, 0), 8000f, GyroMass)
-                .AddGyro("GyroB", new Vector3I(0, -1, 1), 8000f, GyroMass)
-                .AddThrusterGroup("Fwd", Fwd, 1, 800000f, new Vector3I(3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Rev", Rev, 1, 250000f, new Vector3I(-3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Up", Up, 1, 400000f, new Vector3I(1, 3, 0), ThrusterMass)
-                .AddThrusterGroup("Dwn", Dwn, 1, 400000f, new Vector3I(1, -3, 0), ThrusterMass)
-                .AddThrusterGroup("StrR", Rgt, 1, 150000f, new Vector3I(1, 1, 3), ThrusterMass)
-                .AddThrusterGroup("StrL", Lft, 1, 150000f, new Vector3I(1, 1, -3), ThrusterMass)
+                .AddGyro("GyroA", new Vector3I(0, -1, 0), GyroForce, GyroMass)
+                .AddGyro("GyroB", new Vector3I(0, -1, 1), GyroForce, GyroMass)
+                .AddThrusterGroup("Fwd", Fwd, 1, IonThrust, new Vector3I(3, 0, 0), IonMass, IonSize)
+                .AddThrusterGroup("Rev", Rev, 1, SmallIonThrust, new Vector3I(-3, 0, 0), SmallIonMass, SmallIonSize)
+                .AddThrusterGroup("Up", Up, 1, SmallIonThrust, new Vector3I(1, 3, 0), SmallIonMass, SmallIonSize)
+                .AddThrusterGroup("Dwn", Dwn, 1, SmallIonThrust, new Vector3I(1, -3, 0), SmallIonMass, SmallIonSize)
+                .AddThrusterGroup("StrR", Rgt, 1, SmallIonThrust, new Vector3I(1, 1, 3), SmallIonMass, SmallIonSize)
+                .AddThrusterGroup("StrL", Lft, 1, SmallIonThrust, new Vector3I(1, 1, -3), SmallIonMass, SmallIonSize)
                 .WithNamedAxis("Weapon reference", new Vector3(1, 0, 0))
                 .WithSpeedLimits(120f, 12f)
                 .Build();
@@ -133,20 +143,20 @@ namespace FleetCommand.Test.Templates
 
         private static ShipTemplate Docking()
         {
-            // Six-axis translation plus a named front connector frame.
-            const float m = 500000f;
+            // Six-axis translation plus a front connector facing +X (grid-external), selected by
+            // ConnectDirection (-1,0,0) → attach axis a = CD.X·Left = +X.
             return ShipTemplateBuilder.LargeGrid("Docking craft")
                 .AddStandard("Hull", new Vector3I(0, 0, 0), HullMass)
                 .AddController("Pilot", new Vector3I(0, 0, 1), ControllerMass)
-                .AddGyro("Gyro", new Vector3I(0, -1, 0), 5000f, GyroMass)
-                .AddThrusterGroup("Fwd", Fwd, 1, m, new Vector3I(3, 1, 0), ThrusterMass)
-                .AddThrusterGroup("Rev", Rev, 1, m, new Vector3I(-3, 0, 0), ThrusterMass)
-                .AddThrusterGroup("Up", Up, 1, m, new Vector3I(1, 3, 0), ThrusterMass)
-                .AddThrusterGroup("Dwn", Dwn, 1, m, new Vector3I(1, -3, 0), ThrusterMass)
-                .AddThrusterGroup("StrR", Rgt, 1, m, new Vector3I(1, 1, 3), ThrusterMass)
-                .AddThrusterGroup("StrL", Lft, 1, m, new Vector3I(1, 1, -3), ThrusterMass)
+                .AddGyro("Gyro", new Vector3I(0, -1, 0), GyroForce, GyroMass)
+                .AddThrusterGroup("Fwd", Fwd, 1, IonThrust, new Vector3I(3, 1, 0), IonMass, IonSize)
+                .AddThrusterGroup("Rev", Rev, 1, IonThrust, new Vector3I(-3, 0, 0), IonMass, IonSize)
+                .AddThrusterGroup("Up", Up, 1, IonThrust, new Vector3I(1, 3, 0), IonMass, IonSize)
+                .AddThrusterGroup("Dwn", Dwn, 1, IonThrust, new Vector3I(1, -3, 0), IonMass, IonSize)
+                .AddThrusterGroup("StrR", Rgt, 1, IonThrust, new Vector3I(1, 1, 3), IonMass, IonSize)
+                .AddThrusterGroup("StrL", Lft, 1, IonThrust, new Vector3I(1, 1, -3), IonMass, IonSize)
                 .AddConnector("Dock", new Vector3I(3, 0, 1), ConnectorMass,
-                    connectorOrientation: OrientForward(new Vector3(1, 0, 0), new Vector3(0, 1, 0)))
+                    connectDirection: new Vector3(-1, 0, 0))
                 .WithSpeedLimits(120f, 12f)
                 .Build();
         }
@@ -158,19 +168,18 @@ namespace FleetCommand.Test.Templates
             // non-isotropic inertia tensor (the parallel-axis term dominates
             // along the offset axis), while retaining full translation
             // authority.
-            const float m = 400000f;
             return ShipTemplateBuilder.LargeGrid("Heavy asymmetric craft")
                 .AddStandard("Heavy", new Vector3I(3, 0, 0), 8000f)
                 .AddStandard("Center", new Vector3I(0, 0, 0), HullMass)
                 .AddStandard("Light", new Vector3I(-3, 0, 0), 300f)
                 .AddController("Pilot", new Vector3I(0, 0, 1), ControllerMass)
-                .AddGyro("Gyro", new Vector3I(0, -1, 0), 5000f, GyroMass)
-                .AddThrusterGroup("Fwd", Fwd, 1, m, new Vector3I(3, 2, 0), ThrusterMass)
-                .AddThrusterGroup("Rev", Rev, 1, m, new Vector3I(-3, 2, 0), ThrusterMass)
-                .AddThrusterGroup("Up", Up, 1, m, new Vector3I(1, 3, 0), ThrusterMass)
-                .AddThrusterGroup("Dwn", Dwn, 1, m, new Vector3I(1, -3, 0), ThrusterMass)
-                .AddThrusterGroup("StrR", Rgt, 1, m, new Vector3I(1, 1, 3), ThrusterMass)
-                .AddThrusterGroup("StrL", Lft, 1, m, new Vector3I(1, 1, -3), ThrusterMass)
+                .AddGyro("Gyro", new Vector3I(0, -1, 0), GyroForce, GyroMass)
+                .AddThrusterGroup("Fwd", Fwd, 1, IonThrust, new Vector3I(3, 2, 0), IonMass, IonSize)
+                .AddThrusterGroup("Rev", Rev, 1, IonThrust, new Vector3I(-3, 2, 0), IonMass, IonSize)
+                .AddThrusterGroup("Up", Up, 1, IonThrust, new Vector3I(1, 3, 0), IonMass, IonSize)
+                .AddThrusterGroup("Dwn", Dwn, 1, IonThrust, new Vector3I(1, -3, 0), IonMass, IonSize)
+                .AddThrusterGroup("StrR", Rgt, 1, IonThrust, new Vector3I(1, 1, 3), IonMass, IonSize)
+                .AddThrusterGroup("StrL", Lft, 1, IonThrust, new Vector3I(1, 1, -3), IonMass, IonSize)
                 .WithSpeedLimits(120f, 12f)
                 .Build();
         }

@@ -32,16 +32,38 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             // -> block centre local (1,0,0). At identity grid orientation
             // the world position is origin + (1,0,0). The connection
             // point sits at the connector's mating face: offset from the
-            // block centre along the connect axis (identity forward
-            // (0,0,-1)) by the block's half-extent (0.25).
-            Vector3D expected = new Vector3D(0, 0, 7) + new Vector3D(1, 0, 0) + new Vector3D(0, 0, -0.25);
+            // block centre along the connect axis by the block's half-extent
+            // (0.25) — the game's centre + dominant-axis face projection
+            // (MyShipConnector.cs:1944-1952).
+            Vector3D expected = new Vector3D(0, 0, 7) + new Vector3D(1, 0, 0) + new Vector3D(0, 0, 0.25);
             AssertDot(con.WorldPosition, expected, 1e-3,
                 "The connection point must be the block's world position offset to the mating face.");
 
-            // Default connect axis (identity mount, block identity) is the
-            // connection frame's local forward = (0,0,-1) in world.
-            AssertDot(con.ConnectAxisWorld, new Vector3D(0, 0, -1), 1e-3,
-                "An identity-mounted connector must extend along the connection frame's local forward (0,0,-1).");
+            // Default connect axis (identity mount, block identity) is the game's default
+            // attach direction: ConnectDirection = Vector3.Forward (0,0,-1) maps through
+            // a = CD.X·Left + CD.Y·Up + CD.Z·Forward = (0,0,1) (MyShipConnector.cs:1489-1490).
+            AssertDot(con.ConnectAxisWorld, new Vector3D(0, 0, 1), 1e-3,
+                "An identity-mounted connector must extend along the game's default attach direction (0,0,1).");
+        }
+
+        [Test]
+        public void ConnectDirection_SelectsFaceLikeTheGame()
+        {
+            // ConnectDirection is the game's six-face attach-direction selector
+            // (MyShipConnector.cs:1489-1490): a = CD.X·Left + .Y·Up + .Z·Forward in the block
+            // frame. The structural platform connector's (0,-1,0) must connect along -Up; the
+            // Docking craft's (-1,0,0) along +X.
+            SimShip down = Fc.Spawn(
+                ConnectorCraft("cdd", hullMass: 1000f, connectDirection: new Vector3(0, -1, 0)),
+                SpawnState.At(Vector3D.Zero));
+            AssertDot(Connector(down).ConnectAxisWorld, new Vector3D(0, -1, 0), 1e-3,
+                "(0,-1,0) must map to -Up (the platform connector's downward attach face).");
+
+            SimShip posx = Fc.Spawn(
+                ConnectorCraft("cdp", hullMass: 1000f, connectDirection: new Vector3(-1, 0, 0)),
+                SpawnState.At(new Vector3D(60, 0, 0)));
+            AssertDot(Connector(posx).ConnectAxisWorld, new Vector3D(1, 0, 0), 1e-3,
+                "(-1,0,0) must map to +X (CD.X·Left = (-1)·Left = +X).");
         }
 
         [Test]
@@ -452,7 +474,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         /// <summary>A small-grid craft with a heavy hull and one connector on the face it faces;
         /// connOrient reorients the connect face.</summary>
         private static ShipTemplate ConnectorCraft(string name, float hullMass, Quaternion? connOrient = null,
-            float reach = 0f, float strength = 1f)
+            float reach = 0f, float strength = 1f, Vector3? connectDirection = null)
         {
             Vector3I connCell;
             if (connOrient == null)
@@ -462,7 +484,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             else
             {
                 Vector3 fwd = Vector3.TransformNormal(
-                    new Vector3(0, 0, -1f), Matrix.CreateFromQuaternion(connOrient.Value));
+                    new Vector3(0, 0, 1f), Matrix.CreateFromQuaternion(connOrient.Value));
                 // The dominant component of the connect forward: which
                 // axis it points along and which direction.
                 float ax = Math.Abs(fwd.X), ay = Math.Abs(fwd.Y), az = Math.Abs(fwd.Z);
@@ -484,15 +506,16 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 new TemplateBlock("Hull", Vector3I.Zero, hullMass, 0.5f),
                 new TemplateBlock("C", connCell, 50f, 0.5f,
                     kind: BlockKind.Connector,
-                    connectorOrientation: connOrient, connectorReach: reach, connectorStrength: strength),
+                    connectorOrientation: connOrient, connectorReach: reach, connectorStrength: strength,
+                    connectDirection: connectDirection),
             }, maxLinearVelocity: 100f, maxAngularVelocity: 10f);
         }
 
-        /// <summary>A rotation mapping the connection frame's local forward (0,0,-1) onto
-        /// <paramref name="target"/>.</summary>
+        /// <summary>A rotation mapping the connection frame's block-local attach direction
+        /// (0,0,1) onto <paramref name="target"/>.</summary>
         private static Quaternion RotateForwardTo(Vector3 target)
         {
-            Vector3 from = new Vector3(0, 0, -1f);
+            Vector3 from = new Vector3(0, 0, 1f);
             target = Vector3.Normalize(target);
             float dot = Vector3.Dot(from, target);
             if (dot > 0.99999f)

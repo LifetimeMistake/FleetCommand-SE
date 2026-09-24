@@ -125,7 +125,7 @@ namespace FleetCommand.Test.Templates
         /// template's designated (primary) controller. Use <see cref="WithController"/>
         /// to choose a different one.
         /// </summary>
-        public ShipTemplateBuilder AddController(string blockName, Vector3I min, float dryMass = 400f,
+        public ShipTemplateBuilder AddController(string blockName, Vector3I min, float dryMass = 368f,
             Quaternion? orientation = null)
         {
             CheckNotFrozen();
@@ -147,7 +147,7 @@ namespace FleetCommand.Test.Templates
         /// <summary>Adds a gyroscope of the given maximum gyro force (N·m); its grid-local
         /// orientation gives its override axes.</summary>
         public ShipTemplateBuilder AddGyro(string blockName, Vector3I min, float gyroForce,
-            float dryMass = 100f, Quaternion? orientation = null, float gyroPowerDemand = 0f)
+            float dryMass = 12817f, Quaternion? orientation = null, float gyroPowerDemand = 0f)
         {
             CheckNotFrozen();
             _blocks.Add(new BlockSpec
@@ -174,7 +174,8 @@ namespace FleetCommand.Test.Templates
         /// <c>groupName + index</c>.
         /// </summary>
         public ShipTemplateBuilder AddThrusterGroup(string groupName, Vector3I forward, int count,
-            float maxThrust, Vector3I startMin = default(Vector3I), float dryMass = 100f,
+            float maxThrust, Vector3I startMin = default(Vector3I), float dryMass = 43200f,
+            Vector3I? size = null,
             float effectiveness = 1f, float slowdownFactor = 1f, float powerDemandPer = 0f)
         {
             CheckNotFrozen();
@@ -190,6 +191,7 @@ namespace FleetCommand.Test.Templates
                     Name = blockName,
                     Kind = BlockKind.FixedThruster,
                     Min = startMin + forward * i,
+                    Size = size,
                     DryMass = dryMass,
                     ThrustDirection = forward,
                     MaxThrust = maxThrust,
@@ -206,9 +208,9 @@ namespace FleetCommand.Test.Templates
         /// grid-local orientation plus an optional extra
         /// <paramref name="connectorOrientation"/> rotation.
         /// </summary>
-        public ShipTemplateBuilder AddConnector(string blockName, Vector3I min, float dryMass = 200f,
+        public ShipTemplateBuilder AddConnector(string blockName, Vector3I min, float dryMass = 3564f,
             Quaternion? orientation = null, Quaternion? connectorOrientation = null,
-            float connectorReach = 0f, float connectorStrength = 1f)
+            float connectorReach = 0f, float connectorStrength = 1f, Vector3? connectDirection = null)
         {
             CheckNotFrozen();
             _blocks.Add(new BlockSpec
@@ -221,13 +223,14 @@ namespace FleetCommand.Test.Templates
                 ConnectorOrientation = connectorOrientation,
                 ConnectorReach = connectorReach,
                 ConnectorStrength = connectorStrength,
+                ConnectDirection = connectDirection,
             });
             return this;
         }
 
         /// <summary>Adds a battery power producer with the given output/capacity.</summary>
         public ShipTemplateBuilder AddBattery(string blockName, Vector3I min, float maxOutput,
-            float maxInput, float maxStoredPower, float dryMass = 100f, float initialStoredPower = 1f)
+            float maxInput, float maxStoredPower, float dryMass = 3845f, float initialStoredPower = 1f)
         {
             CheckNotFrozen();
             _blocks.Add(new BlockSpec
@@ -248,7 +251,8 @@ namespace FleetCommand.Test.Templates
         /// store (initial fuel and per-second-at-full-output consumption, both in item-count
         /// units).</summary>
         public ShipTemplateBuilder AddReactor(string blockName, Vector3I min, float maxOutput,
-            float dryMass = 100f, float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f)
+            float dryMass = 73795f, Vector3I? size = null,
+            float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f)
         {
             CheckNotFrozen();
             _blocks.Add(new BlockSpec
@@ -256,6 +260,7 @@ namespace FleetCommand.Test.Templates
                 Name = blockName,
                 Kind = BlockKind.Reactor,
                 Min = min,
+                Size = size,
                 DryMass = dryMass,
                 MaxOutput = maxOutput,
                 InitialFuel = initialFuel,
@@ -496,6 +501,7 @@ namespace FleetCommand.Test.Templates
             public float GyroForce, GyroPowerDemand;
             public Quaternion? ConnectorOrientation;
             public float ConnectorReach, ConnectorStrength, SlowdownFactor;
+            public Vector3? ConnectDirection;
 
             public BlockSpec()
             {
@@ -532,6 +538,7 @@ namespace FleetCommand.Test.Templates
                 ConnectorReach = b.ConnectorReach;
                 ConnectorStrength = b.ConnectorStrength;
                 SlowdownFactor = b.SlowdownFactor;
+                ConnectDirection = b.ConnectDirection;
             }
 
             public TemplateBlock ToTemplateBlock(float gridSize)
@@ -543,7 +550,8 @@ namespace FleetCommand.Test.Templates
                     ThrustDirection, MaxThrust, Effectiveness, PowerDemand,
                     GyroForce, GyroPowerDemand, ConnectorOrientation, ConnectorReach, ConnectorStrength,
                     SlowdownFactor,
-                    InitialFuel, FuelConsumptionPerSecond);
+                    InitialFuel, FuelConsumptionPerSecond,
+                    ConnectDirection);
             }
         }
     }

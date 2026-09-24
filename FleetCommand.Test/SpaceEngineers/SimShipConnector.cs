@@ -17,9 +17,16 @@ namespace FleetCommand.Test.SpaceEngineers
     /// game's full connector lifecycle, driven each tick by <see cref="ConnectorSystem"/></summary>
     public class SimShipConnector : SimFunctionalBlock, IMyShipConnector
     {
-        /// <summary>Local forward axis of the connection frame (VRageMath: Forward = (0, 0,
-        /// -1)).</summary>
-        private static readonly Vector3 LocalForward = new Vector3(0f, 0f, -1f);
+        /// <summary>
+        /// The connect (attach) direction in the block's OWN frame, from the block's
+        /// definition <c>ConnectDirection</c> — the game's mapping
+        /// (MyShipConnector.cs:1489-1490): a = ConnectDirection.X·Left + .Y·Up + .Z·Forward,
+        /// with Left = (-1,0,0), Up = (0,1,0), Forward = (0,0,-1) in VRageMath. The default
+        /// ConnectDirection is Vector3.Forward (0,0,-1) (MyObjectBuilder_ShipConnectorDefinition.cs:
+        /// 1659), giving a = (0,0,1) — the vanilla connector connects along +Z. This is a
+        /// cardinal unit axis.
+        /// </summary>
+        private readonly Vector3 _connectAxisBlock;
 
         private readonly Matrix _blockRotation;
         private readonly Matrix _connectorRotation;
@@ -48,12 +55,19 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             _blockRotation = Matrix.CreateFromQuaternion(template.Orientation);
             _connectorRotation = Matrix.CreateFromQuaternion(template.ConnectorOrientation);
-            // The connection point sits at the connector's mating face, not the block centre:
-            // offset from the block centre along the connect axis by the block's half-extent.
-            // This is the game's detector radius too — m_detectorRadius = halfExtents.AbsMax()
-            // (MyShipConnector.cs:1280), the connector's own block size.
-            _faceDepth = Math.Max(template.HalfExtents.X,
-                Math.Max(template.HalfExtents.Y, template.HalfExtents.Z));
+            Vector3 cd = template.ConnectDirection;
+            _connectAxisBlock = new Vector3(-cd.X, cd.Y, -cd.Z);
+            // The connect contact point sits on the block's own mating face, not the centre —
+            // the game's ConstraintPositionInGridSpace = block centre +
+            // DominantAxisProjection(model-connector offset) (MyShipConnector.cs:1944-1952). Every
+            // block definition's ModelOffset is (0,0,0), so the ring sits on the block's own
+            // face: the face depth is the block's half-extent along the connect axis (the
+            // dominant-axis projection of the face at the block half-length). This is also the
+            // game's detector radius — m_detectorRadius = halfExtents.AbsMax() (guarded by the
+            // connect axis, MyShipConnector.cs:1280).
+            int axis = DominantAxis(_connectAxisBlock);
+            _faceDepth = axis == 0 ? template.HalfExtents.X
+                : axis == 1 ? template.HalfExtents.Y : template.HalfExtents.Z;
             _throwOut = false;
             _collectAll = false;
             _strength = template.ConnectorStrength;
@@ -93,7 +107,7 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             get
             {
-                Vector3 axis = Vector3.TransformNormal(LocalForward, (Matrix)WorldOrientation);
+                Vector3 axis = Vector3.TransformNormal(_connectAxisBlock, (Matrix)WorldOrientation);
                 return new Vector3D(axis);
             }
         }
@@ -105,7 +119,7 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             get
             {
-                return Vector3.TransformNormal(Vector3.TransformNormal(LocalForward, _blockRotation), _connectorRotation);
+                return Vector3.TransformNormal(Vector3.TransformNormal(_connectAxisBlock, _blockRotation), _connectorRotation);
             }
         }
 
@@ -451,6 +465,13 @@ namespace FleetCommand.Test.SpaceEngineers
                 m.Translation = WorldPosition;
                 return m;
             }
+        }
+
+        /// <summary>The dominant (largest |component|) axis of a cardinal direction: 0, 1, or 2.</summary>
+        private static int DominantAxis(Vector3 v)
+        {
+            float ax = Math.Abs(v.X), ay = Math.Abs(v.Y), az = Math.Abs(v.Z);
+            return ax >= ay && ax >= az ? 0 : ay >= az ? 1 : 2;
         }
 
         /// <summary>Throws for a property setter, naming <paramref name="member"/>.</summary>
