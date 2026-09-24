@@ -157,6 +157,37 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
+        public void Controller_UniformGravityField_IsConstantDirectionAndMagnitude()
+        {
+            // The game's natural-gravity field is uniform across a sector/region —
+            // constant direction + magnitude while inside the field (MyGravityProviderSystem;
+            // a grid hovering in it reads the same GetNaturalGravity vector everywhere).
+            // The sim's SimGravityField.Uniform must be exactly that: the same vector at
+            // every point, so the controller's GetNaturalGravity is position-independent
+            // within the field.
+            Vector3 g = new Vector3(-2f, -9.81f, 3f);
+            Fc.World.SetGravity(SimGravityField.Uniform(g));
+
+            // Sample across widely separated points (far outside any hypothetical body extent):
+            // the field must be constant — the game's per-field uniform natural gravity.
+            foreach (Vector3D pos in new[]
+            {
+                new Vector3D(0, 0, 0),
+                new Vector3D(1e6, 2e6, -3e6),
+                new Vector3D(-4e5, 7e5, 9e5)
+            })
+            {
+                AssertVector3D(Fc.World.Gravity.GetNaturalGravity(pos), new Vector3D(g), 1e-6,
+                    "Uniform natural gravity must be a constant direction + magnitude everywhere in the field.");
+            }
+
+            // A controller soaring through the field reads the same world-frame vector.
+            SimShip ship = Fc.Spawn(ControllerTemplate("ug"), SpawnState.At(new Vector3D(1000, 2000, 3000)));
+            AssertVector3D(ship.Controller.GetNaturalGravity(), new Vector3D(g), 1e-4,
+                "GetNaturalGravity must return the field's constant world-frame vector.");
+        }
+
+        [Test]
         public void Controller_GetNaturalGravity_PointField_MatchesBodyApplicationPoint()
         {
             // In a non-uniform field, GetNaturalGravity must be the vector
