@@ -251,6 +251,37 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
+        public void TextPanel_WriteText_StringBuilder_CappedAndTruncatesHead()
+        {
+            // Both IMyTextSurface.WriteText overloads are documented "capped with 100000 symbols"
+            // (IMyTextSurface.cs:110, :126). The game's string overload truncates the incoming
+            // value so the total is 100000 (MyTextPanel.cs:1310-1312); the sim reproduces the
+            // same head-preserving cap on both overloads. This pins the StringBuilder overload
+            // (the common logger path) and the append-at-cap behavior.
+            SimTextPanel panel = SpawnPanel();
+
+            // String builder overload caps at the same limit.
+            panel.WriteText(new StringBuilder(new string('b', SimTextPanel.MaxTextLength + 5000)));
+            Assert.That(panel.GetText().Length, Is.EqualTo(SimTextPanel.MaxTextLength),
+                "The StringBuilder overload must be capped at the same 100000-symbol limit.");
+
+            // Appending beyond the cap keeps the FIRST 100000 characters (head preserved) —
+            // the game's value.Remove(100000 - current.Length) keeps the head of the writing
+            // value (MyTextPanel.cs:1310-1312).
+            SimTextPanel panel2 = SpawnPanel();
+            panel2.WriteText(new string('x', SimTextPanel.MaxTextLength - 10));
+            panel2.WriteText(new string('y', 100), append: true); // 90 over the cap
+            string text = panel2.GetText();
+            Assert.That(text.Length, Is.EqualTo(SimTextPanel.MaxTextLength),
+                "append to a near-full panel must be capped at 100000 total.");
+            Assert.That(text.Substring(0, 10), Is.EqualTo(new string('x', 10)),
+                "The head of the existing text must be preserved.");
+            string tail = text.Substring(text.Length - 10);
+            Assert.That(tail, Is.EqualTo(new string('y', 10)),
+                "The tail must be the FIRST characters of the appended value (the game keeps the head of the write).");
+        }
+
+        [Test]
         public void TextPanel_SurfaceAttributes_Stored()
         {
             SimTextPanel panel = SpawnPanel();

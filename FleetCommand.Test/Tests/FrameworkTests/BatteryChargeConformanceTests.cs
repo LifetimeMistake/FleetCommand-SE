@@ -208,6 +208,50 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(load.IsWorking, Is.True);
         }
 
+        // — output-vs-charge: the game's piecewise charge factor (MaxOutputLimitedByCapacity) —
+
+        [Test]
+        public void OutputFollows_GameChargeFactor_NearDepletion()
+        {
+            // The battery's max available output as a function of stored energy is the game's
+            // MaxOutputLimitedByCapacity (MyResourceSourceComponent.cs:274-277):
+            //   min(MaxOutput, RemainingCapacity · ProductionToCapacityMultiplier · 60)
+            // where ProductionToCapacityMultiplier = 3600 for a battery (MyBatteryBlock.cs:460).
+            // Full while stored energy is healthy; a linear ramp over the last ≈MaxOutput/216000
+            // MWh near depletion. The factor is fixed (no ÷ dt) — independent of the update
+            // step, exactly as the game computes it.
+            SimShip ship = Fc.Spawn(ChargeTemplate("vd", reactorMaxOut: 100f, batteryMaxOut: 4f,
+                batteryMaxIn: 0f, batteryMaxStored: 10f, batteryInitial: 0.5f), SpawnState.At(Vector3D.Zero));
+            SimBatteryBlock battery = Battery(ship);
+
+            // Healthy stored: full MaxOutput regardless of step.
+            Assert.That(battery.AvailableOutput(1f / 60f), Is.EqualTo(4f).Within(1e-6),
+                "Full output while stored energy is healthy (the capacity term is far above MaxOutput).");
+
+            // Near depletion the cap is min(MaxOutput, stored · 3600 · 60): a linear ramp.
+            // stored = 1e-5 MWh → cap = 1e-5 · 216000 = 2.16 MW (< MaxOutput 4).
+            battery.CurrentStoredPower = 1e-5f;
+            Assert.That(battery.AvailableOutput(1f / 60f), Is.EqualTo(1e-5f * 3600f * 60f).Within(1e-4),
+                "Near depletion the available output is stored · 3600 · 60 (MyResourceSourceComponent.cs:276).");
+            Assert.That(battery.AvailableOutput(1f / 60f), Is.LessThan(battery.MaxOutput),
+                "The near-depletion ramp must be below MaxOutput.");
+
+            // The game's factor is not step-rate dependent: the same cap at any valid step.
+            Assert.That(battery.AvailableOutput(1f / 10f), Is.EqualTo(1e-5f * 3600f * 60f).Within(1e-4),
+                "The capacity cap is a fixed piecewise factor (no ÷ dt) — independent of the step.");
+
+            // Full linearly: the ramp reaches min(MaxOutput, ·) exactly at stored = MaxOutput/216000.
+            float fullAt = battery.MaxOutput / (3600f * 60f);
+            battery.CurrentStoredPower = fullAt;
+            Assert.That(battery.AvailableOutput(1f / 60f), Is.EqualTo(battery.MaxOutput).Within(1e-4),
+                "The ramp meets MaxOutput exactly at stored = MaxOutput/216000.");
+
+            battery.CurrentStoredPower = 0f;
+            Assert.That(battery.HasCapacityRemaining, Is.False);
+            Assert.That(battery.AvailableOutput(1f / 60f), Is.EqualTo(0f),
+                "An empty battery has no available output (HasCapacityRemaining gate).");
+        }
+
         // — determinism —
 
         [Test]

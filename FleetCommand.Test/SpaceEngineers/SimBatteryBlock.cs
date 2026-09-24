@@ -22,6 +22,11 @@ namespace FleetCommand.Test.SpaceEngineers
     {
         private const float SecondsPerHour = 3600f; // capacity conversion: MWh = MW · h (ProductionToCapacityMultiplier)
         private const float ChargeSinkAggression = 0.6f; // MyBatteryBlock.cs:551 (60f / 100f)
+        /// <summary>The fixed multiplier in the battery's output-vs-charge cap — the game's
+        /// literal <c>* 60</c> in <c>MaxOutputLimitedByCapacity</c>
+        /// (MyResourceSourceComponent.cs:276): max output = min(MaxOutput,
+        /// RemainingCapacity · ProductionToCapacityMultiplier · 60). Not step-rate dependent.</summary>
+        private const float BatteryCapacityOutputFactor = 60f;
 
         private float _currentStoredPower;
         private float _currentOutput;
@@ -116,7 +121,11 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>The maximum power this battery can serve on one fixed step: its
         /// <see cref="MaxOutput"/> while enabled, functional, not in Recharge, and holding
-        /// capacity, and never more than its remaining energy can supply over the step.</summary>
+        /// capacity, capped by the game's output-vs-charge relationship. The capacity cap is the
+        /// game's <c>MaxOutputLimitedByCapacity</c> (MyResourceSourceComponent.cs:274-277) —
+        /// <c>min(MaxOutput, RemainingCapacity · ProductionToCapacityMultiplier · 60)</c> — a
+        /// fixed piecewise factor of stored energy (constant until the fraction near depletion,
+        /// where it ramps linearly to zero), not a function of the update step.</summary>
         public float AvailableOutput(float dtSeconds)
         {
             if (!Enabled || !IsFunctional)
@@ -131,9 +140,13 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return 0f;
             }
-            // Max power drawable this step without going negative:
-            // stored (MWh) ÷ step (h) = MW.
-            float byCapacity = _currentStoredPower * SecondsPerHour / dtSeconds;
+            // MaxOutputLimitedByCapacity (MyResourceSourceComponent.cs:274-277):
+            // RemainingCapacity · ProductionToCapacityMultiplier · 60. This is the game's
+            // piecewise curve: full output while stored energy is healthy (the·factor term is
+            // far above MaxOutput), a linear ramp over the last fraction as the battery is
+            // within ≈MaxOutput/216000 MWh of empty. Depletion itself (stored hitting 0 →
+            // output 0) is handled by ConsumePower.
+            float byCapacity = _currentStoredPower * SecondsPerHour * BatteryCapacityOutputFactor;
             return Math.Min(MaxOutput, byCapacity);
         }
 
