@@ -21,6 +21,18 @@
       <HintPath>..\..\se\bin\NLog.dll</HintPath>
       <Private>true</Private>
     </Reference>
+    <Reference Include="Sandbox.Common">
+      <HintPath>..\..\se\bin\Sandbox.Common.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="VRage.Game">
+      <HintPath>..\..\se\bin\VRage.Game.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="VRage.Math">
+      <HintPath>..\..\se\bin\VRage.Math.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol.Core" Version="2.2.0" />

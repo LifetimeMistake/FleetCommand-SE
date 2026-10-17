@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FleetCommand.MCP.Tools;
 using ModelContextProtocol.Server;
 using NLog;
 using NLog.Config;
@@ -37,7 +38,7 @@ namespace FleetCommand.MCP
 
             _dispatcher = new SimDispatcher();
             _world = new GameWorldHandle(_dispatcher);
-            _endpoint = new McpEndpoint(BuildTools());
+            _endpoint = new McpEndpoint(BuildTools(_world));
 
             var prefix = $"http://localhost:{ServerPort}/";
             _host = new McpHttpHost(_endpoint, prefix, msg => _log.Info(msg));
@@ -112,9 +113,9 @@ namespace FleetCommand.MCP
             }
         }
 
-        private static McpServerTool[] BuildTools()
+        private static McpServerTool[] BuildTools(GameWorldHandle world)
         {
-            return Array.Empty<McpServerTool>();
+            return new McpServerTool[] { ListGridsTool.Create(world) };
         }
 
         private Logger CreateLogger()
