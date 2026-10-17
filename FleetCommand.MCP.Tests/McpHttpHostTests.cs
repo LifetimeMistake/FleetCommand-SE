@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +43,30 @@ namespace FleetCommand.MCP.Tests
 
             var text = string.Concat(result.Content.OfType<TextContentBlock>().Select(c => c.Text));
             Assert.Contains("5", text);
+        }
+
+        [Fact]
+        public async Task EveryRequest_IsReportedToLogCallback()
+        {
+            var add = McpServerTool.Create(
+                (Func<long, long, long>)((a, b) => a + b),
+                new McpServerToolCreateOptions { Name = "add", Description = "Adds two integers." });
+
+            using var endpoint = new McpEndpoint(new[] { add });
+            var port = FreePort();
+            var logs = new List<string>();
+            using var host = new McpHttpHost(endpoint, $"http://localhost:{port}/", logs.Add);
+            host.Start();
+
+            using (var client = new HttpClient())
+            {
+                var response = await client.GetAsync($"http://localhost:{port}/");
+                Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+            }
+
+            var logged = Assert.Single(logs);
+            Assert.Contains("405", logged);
+            Assert.Contains("GET", logged);
         }
 
         private static int FreePort()

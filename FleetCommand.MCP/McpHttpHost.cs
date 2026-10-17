@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -12,13 +13,15 @@ namespace FleetCommand.MCP
         private readonly McpEndpoint _endpoint;
         private readonly HttpListener _listener;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+        private readonly Action<string> _log;
         private Task _acceptLoop;
         private bool _started;
 
-        public McpHttpHost(McpEndpoint endpoint, string prefix)
+        public McpHttpHost(McpEndpoint endpoint, string prefix, Action<string> log = null)
         {
             _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
             Prefix = prefix ?? throw new ArgumentNullException(nameof(prefix));
+            _log = log ?? (_ => { });
             _listener = new HttpListener();
             _listener.Prefixes.Add(prefix);
         }
@@ -56,41 +59,46 @@ namespace FleetCommand.MCP
 
         private async Task HandleAsync(HttpListenerContext context)
         {
+            var stopwatch = Stopwatch.StartNew();
+            int status = 200;
             try
             {
                 if (!string.Equals(context.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
                 {
-                    context.Response.StatusCode = 405;
-                    context.Response.Close();
-                    return;
-                }
-
-                string body;
-                using (var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding ?? Encoding.UTF8))
-                {
-                    body = await reader.ReadToEndAsync().ConfigureAwait(false);
-                }
-
-                var result = await _endpoint.ProcessAsync(body, _cts.Token).ConfigureAwait(false);
-                if (result.WroteBody)
-                {
-                    byte[] bytes = Encoding.UTF8.GetBytes(result.Body);
-                    context.Response.ContentType = "text/event-stream";
-                    context.Response.ContentLength64 = bytes.Length;
-                    await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
+                    status = 405;
                 }
                 else
                 {
-                    context.Response.StatusCode = 202;
+                    string body;
+                    using (var reader = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding ?? Encoding.UTF8))
+                    {
+                        body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+
+                    var result = await _endpoint.ProcessAsync(body, _cts.Token).ConfigureAwait(false);
+                    if (result.WroteBody)
+                    {
+                        byte[] bytes = Encoding.UTF8.GetBytes(result.Body);
+                        context.Response.ContentType = "text/event-stream";
+                        context.Response.ContentLength64 = bytes.Length;
+                        await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        status = 202;
+                    }
                 }
             }
             catch
             {
-                try { context.Response.StatusCode = 500; } catch { }
+                status = 500;
             }
             finally
             {
+                try { context.Response.StatusCode = status; } catch { }
                 context.Response.Close();
+                _log(string.Format("{0} {1} -> {2} in {3} ms",
+                    context.Request.HttpMethod, context.Request.Url?.AbsolutePath ?? "/", status, stopwatch.ElapsedMilliseconds));
             }
         }
 
