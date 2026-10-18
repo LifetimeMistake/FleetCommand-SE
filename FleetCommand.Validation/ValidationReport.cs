@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using Sandbox.ModAPI.Ingame;
 using VRage.Game.GUI.TextPanel;
@@ -52,7 +51,9 @@ namespace FleetCommand.Validation
 
         public static string Number(double value)
         {
-            return value.ToString("0.000000", CultureInfo.InvariantCulture);
+            // The PB wrapper does not import System.Globalization. Fixed-point
+            // formatting has no grouping; normalize the decimal comma explicitly.
+            return value.ToString("0.000000").Replace(',', '.');
         }
     }
 }

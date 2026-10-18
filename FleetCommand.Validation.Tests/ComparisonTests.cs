@@ -76,14 +76,19 @@ namespace FleetCommand.Validation.Tests
             Assert.That(ReportComparison.Compare(_report, string.Join("\n", lines)).Success, Is.False);
         }
 
-        [Test]
-        public void Reports_AreInvariantCulture()
+        [TestCase("pl-PL")]
+        [TestCase("en-US")]
+        [TestCase("de-DE")]
+        [TestCase("fr-FR")]
+        public void Reports_AreInvariantCulture(string culture)
         {
             var saved = CultureInfo.CurrentCulture;
             try
             {
-                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pl-PL");
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
                 Assert.That(ValidationReport.Number(1.25), Is.EqualTo("1.250000"));
+                Assert.That(ValidationReport.Number(-1234.5), Is.EqualTo("-1234.500000"));
+                Assert.That(ValidationReport.Number(0), Is.EqualTo("0.000000"));
                 Assert.That(ReportComparison.Compare(_report, _report).Success, Is.True);
             }
             finally { CultureInfo.CurrentCulture = saved; }

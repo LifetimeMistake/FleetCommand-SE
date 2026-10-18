@@ -13,6 +13,7 @@ installed MDK analyzer needs that compiler version; the script still uses C# 6.
 
 ```powershell
 dotnet build FleetCommand.Validation.Launcher/FleetCommand.Validation.Launcher.csproj
+./tools/Test-PackedValidation.ps1
 ./FleetCommand.Validation.Launcher/bin/Debug/net48/FleetCommand.Validation.Launcher.exe run artifacts/simulator-report.txt
 ./FleetCommand.Validation.Launcher/bin/Debug/net48/FleetCommand.Validation.Launcher.exe compare artifacts/simulator-report.txt artifacts/game-report.txt
 dotnet test FleetCommand.sln -p:MdkBuildConfiguration=PackExplicitly
@@ -71,6 +72,10 @@ PB Storage is backup. Saving/reloading never resumes a physical maneuver:
 completed reports remain available; a saved partial run is marked INTERRUPTED.
 Ingame instruction accounting and the actual game script engine still require
 the first live game execution even though MDK analysis and packaging pass.
+The packed-output check compiles the exact pasted script with programmable-block
+wrapper imports, catching missing names that source-project using directives can
+hide. Numeric formatting uses fixed-point strings with normalized decimal commas
+without depending on `CultureInfo` in ingame code.
 
 ## Measurements and cases
 
