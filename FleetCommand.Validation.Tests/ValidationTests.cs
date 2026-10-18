@@ -75,6 +75,34 @@ namespace FleetCommand.Validation.Tests
         }
 
         [Test]
+        public void SameFrameFirstUpdate_DoesNotFailCadenceOrAdvanceTheSuite()
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                afterStart: (context, ship, runner) => {
+                    var pb = (SimProgrammableBlock)ship.TerminalSystem.GetBlockWithName("FC Validation");
+                    // Model a scheduled invocation in the same frame as a terminal run.
+                    pb.Runtime.MarkRun();
+                    runner.Main("", UpdateType.Update1);
+                    Assert.That(runner.IsRunning, Is.True, runner.Report);
+                    Assert.That(runner.Report, Does.Not.Contain("CASE|"));
+                });
+            Assert.That(report, Does.Contain("END|COMPLETE|19|133"));
+            Assert.That(report, Does.Contain("INFO|startup_zero_elapsed_callbacks|"));
+        }
+
+        [Test]
+        public void ZeroIntervalDuringMeasurement_StillFailsCadence()
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                afterStart: (context, ship, runner) => context.AtTick(context.Tick + 100, _ => {
+                    var pb = (SimProgrammableBlock)ship.TerminalSystem.GetBlockWithName("FC Validation");
+                    pb.Runtime.MarkRun();
+                    runner.Main("", UpdateType.Update1);
+                }));
+            Assert.That(report, Does.Contain("END|ERROR|CADENCE_0.000000"));
+        }
+
+        [Test]
         public void MissedCallback_IsReportedInsteadOfSilentlyComparingDifferentTiming()
         {
             string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,

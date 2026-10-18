@@ -95,6 +95,7 @@ namespace FleetCommand.Validation.Launcher
             var suite = ValidationCase.CreateSuite();
             int completed = 0, caseSamples = 0, previousTick = -1;
             bool open = false, ended = false, columns = false, lcdCheck = false;
+            bool startupInfo = false;
             double previousTime = -1;
             var coverage = new HashSet<string>();
             foreach (string line in lines.Skip(1))
@@ -107,6 +108,11 @@ namespace FleetCommand.Validation.Launcher
                 }
                 switch (cells[0])
                 {
+                    case "INFO":
+                        if (startupInfo || columns || cells.Length != 3 || cells[1] != "startup_zero_elapsed_callbacks"
+                            || !int.TryParse(cells[2], out int skipped) || skipped < 1 || skipped > 10)
+                            throw new FormatException("Invalid startup timing diagnostic.");
+                        startupInfo = true; break;
                     case "META":
                         if (cells.Length != 3) throw new FormatException("Malformed metadata.");
                         parsed.Meta.Add(cells[1], Number(cells[2])); break;

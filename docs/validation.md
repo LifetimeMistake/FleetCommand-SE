@@ -58,6 +58,10 @@ It does not change your other craft. SE can refresh blueprints without restartin
    `status` prints progress, `abort` clears commands, and `export` rewrites the
    entire retained report onto `FC Report`. A callback gap above 25 ms aborts
    with a cadence error; retry in a world that sustains the required tick cadence.
+   The first scheduled call can share the terminal `start` frame. Zero elapsed
+   callbacks during startup are skipped (at most ten), recorded as an `INFO`
+   diagnostic, and do not advance the test. Cadence checks remain strict after
+   the first positive interval.
 5. Open **FC Report's text editor**, select all and copy the full text, including
    the `FCVALIDATION` header, all `S` rows and final `END|COMPLETE|19|133` line.
    Save that text as `artifacts/game-report.txt`. A screenshot or visible LCD
@@ -66,8 +70,7 @@ It does not change your other craft. SE can refresh blueprints without restartin
 6. Run the comparison command. Send both text files and the world settings for
    investigation. Failed/aborted/truncated runs cannot pass comparison.
 
-The LCD contains the complete report (the current simulator baseline is 40,418
-characters), not a summary.
+The LCD contains the complete report (about 40,000 characters), not a summary.
 PB Storage is backup. Saving/reloading never resumes a physical maneuver:
 completed reports remain available; a saved partial run is marked INTERRUPTED.
 Ingame instruction accounting and the actual game script engine still require

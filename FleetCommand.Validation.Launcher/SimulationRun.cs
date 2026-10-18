@@ -36,7 +36,8 @@ namespace FleetCommand.Validation.Launcher
                     if (!runner.IsRunning) pb.Storage = runner.Report;
                 };
                 pb.TryRun("start");
-                context.Step(); // First scheduled callback is one physics interval after terminal start.
+                // Permit a scheduled callback in the same frame as terminal start,
+                // as the real game does. The shared runner handles the zero interval.
                 afterStart?.Invoke(context, ship, runner);
                 context.EveryUpdate1(frame => {
                     if ((pb.Runtime.UpdateFrequency & UpdateFrequency.Update1) == 0) return;

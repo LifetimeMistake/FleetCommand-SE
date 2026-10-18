@@ -32,6 +32,8 @@ namespace FleetCommand.Validation
         int _caseIndex, _caseTick, _runTicks, _settleTicks, _stableTicks;
         int _caseSamples;
         int _lcdProbeTicks = -1;
+        bool _awaitingFirstInterval;
+        int _startupZeroCallbacks;
         bool _settling;
         bool _lcdBlocked;
         double _mass;
@@ -95,7 +97,17 @@ namespace FleetCommand.Validation
                 if (command.Length != 0) { _echo("Unknown command: " + command); return; }
                 if (!IsRunning || (source & UpdateType.Update1) == 0) return;
                 double dt = _runtime.TimeSinceLastRun.TotalSeconds;
+                // Terminal start and the first Update1 can share a game frame.
+                // No physics elapsed: don't count it as a suite tick or a cadence failure.
+                if (_awaitingFirstInterval && dt == 0 && _startupZeroCallbacks < 10)
+                { _startupZeroCallbacks++; return; }
                 if (dt < 0.010 || dt > 0.025) { Finish("ERROR", "CADENCE_" + ValidationReport.Number(dt)); return; }
+                if (_awaitingFirstInterval)
+                {
+                    _awaitingFirstInterval = false;
+                    if (_startupZeroCallbacks > 0)
+                        _report.Line("INFO|startup_zero_elapsed_callbacks|" + _startupZeroCallbacks);
+                }
                 if (_lcdProbeTicks >= 0)
                 {
                     _lcdProbeTicks++;
@@ -176,6 +188,7 @@ namespace FleetCommand.Validation
             { Finish("ERROR", "LCD_ROUNDTRIP"); return; }
             _caseIndex = 0; _runTicks = 0; _settleTicks = 0; _stableTicks = 0;
             _settling = true; IsRunning = true; _lcdBlocked = false; _lcdProbeTicks = 0;
+            _awaitingFirstInterval = true; _startupZeroCallbacks = 0;
             _runtime.UpdateFrequency = UpdateFrequency.Update1;
             _echo("Validation started. Leave craft untouched; all measurements go to FC Report.");
         }
