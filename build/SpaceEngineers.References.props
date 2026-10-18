@@ -1,0 +1,15 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\MDK.paths.props" Condition="Exists('$(MSBuildThisFileDirectory)..\MDK.paths.props')" />
+  <ItemGroup>
+    <Reference Include="HavokWrapper"><HintPath>$(SpaceEngineersBin)\HavokWrapper.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="Sandbox.Common"><HintPath>$(SpaceEngineersBin)\Sandbox.Common.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="Sandbox.Game"><HintPath>$(SpaceEngineersBin)\Sandbox.Game.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VRage"><HintPath>$(SpaceEngineersBin)\VRage.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VRage.Math"><HintPath>$(SpaceEngineersBin)\VRage.Math.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VRage.Game"><HintPath>$(SpaceEngineersBin)\VRage.Game.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="VRage.Library"><HintPath>$(SpaceEngineersBin)\VRage.Library.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SpaceEngineers.Game"><HintPath>$(SpaceEngineersBin)\SpaceEngineers.Game.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="ProtoBuf.Net"><HintPath>$(SpaceEngineersBin)\ProtoBuf.Net.dll</HintPath><Private>true</Private></Reference>
+    <None Include="$(SpaceEngineersBin)\Havok.dll" Link="Havok.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

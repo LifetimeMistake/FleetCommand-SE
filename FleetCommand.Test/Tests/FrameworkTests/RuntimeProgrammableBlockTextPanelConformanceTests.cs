@@ -204,13 +204,16 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             SimTextPanel panel = SpawnPanel();
             panel.WriteText("line one");
+            Fc.Step(10);
             Assert.That(panel.GetText(), Is.EqualTo("line one"));
 
             panel.WriteText("\nline two", append: true);
+            Fc.Step(10);
             Assert.That(panel.GetText(), Is.EqualTo("line one\nline two"),
                 "append must add to the existing public text.");
 
             panel.WriteText("overwritten");
+            Fc.Step(10);
             Assert.That(panel.GetText(), Is.EqualTo("overwritten"),
                 "non-append must replace the public text.");
         }
@@ -220,6 +223,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             SimTextPanel panel = SpawnPanel();
             Assert.That(panel.WriteText(new StringBuilder("from builder")), Is.True);
+            Fc.Step(10);
 
             var read = new StringBuilder();
             panel.ReadText(read);
@@ -246,6 +250,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             SimTextPanel panel = SpawnPanel();
             panel.WriteText(new string('a', SimTextPanel.MaxTextLength + 5000));
+            Fc.Step(10);
             Assert.That(panel.GetText().Length, Is.EqualTo(SimTextPanel.MaxTextLength),
                 "Public text must be capped at the documented 100000-symbol limit.");
         }
@@ -262,6 +267,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             // String builder overload caps at the same limit.
             panel.WriteText(new StringBuilder(new string('b', SimTextPanel.MaxTextLength + 5000)));
+            Fc.Step(10);
             Assert.That(panel.GetText().Length, Is.EqualTo(SimTextPanel.MaxTextLength),
                 "The StringBuilder overload must be capped at the same 100000-symbol limit.");
 
@@ -271,6 +277,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimTextPanel panel2 = SpawnPanel();
             panel2.WriteText(new string('x', SimTextPanel.MaxTextLength - 10));
             panel2.WriteText(new string('y', 100), append: true); // 90 over the cap
+            Fc.Step(10);
             string text = panel2.GetText();
             Assert.That(text.Length, Is.EqualTo(SimTextPanel.MaxTextLength),
                 "append to a near-full panel must be capped at 100000 total.");

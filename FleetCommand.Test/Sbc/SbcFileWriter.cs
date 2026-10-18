@@ -83,6 +83,13 @@ namespace FleetCommand.Test.Sbc
                     new XAttribute("Forward", block.ForwardName),
                     new XAttribute("Up", block.UpName)));
             }
+            foreach (XElement child in block.Data.Elements())
+            {
+                string key = child.Name.LocalName;
+                if (key != "SubtypeName" && key != "SubtypeId" && key != "EntityId"
+                    && key != "Min" && key != "BlockOrientation")
+                    el.Add(new XElement(child));
+            }
             return el;
         }
 

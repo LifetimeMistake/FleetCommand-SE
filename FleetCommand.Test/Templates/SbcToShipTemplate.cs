@@ -45,7 +45,7 @@ namespace FleetCommand.Test.Templates
                         $"Block '{b.SubtypeId}' (xsi:type {b.TypeId}) is not implemented in the simulator — " +
                         "this blueprint cannot be built as a ShipTemplate.");
                 }
-                TemplateBlock block = adapter.Build(b, gridSize, "B" + n);
+                TemplateBlock block = adapter.Build(b, gridSize, (string)b.Data.Element("CustomName") ?? "B" + n);
                 blocks.Add(block);
                 if (designated == null && block.IsControllerKind)
                 {

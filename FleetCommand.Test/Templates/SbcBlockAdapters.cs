@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using VRageMath;
 using FleetCommand.Test.Sbc;
+using System.Linq;
 
 namespace FleetCommand.Test.Templates
 {
@@ -66,7 +67,14 @@ namespace FleetCommand.Test.Templates
             Vector3I? size = BlockGeometryCatalog.TryGet(block.SubtypeId, out BlockGeometry geo)
                 ? geo.Size
                 : (Vector3I?)null;
-            return new TemplateBlock(
+            float stored = (float?)block.Data.Element("CurrentStoredPower") ?? spec.MaxStoredPower;
+            if (stored < 0 || stored > spec.MaxStoredPower || float.IsNaN(stored) || float.IsInfinity(stored))
+                throw new ArgumentException("Invalid stored battery power: " + name);
+            float fuel = 0;
+            foreach (var item in block.Data.Descendants("MyObjectBuilder_InventoryItem"))
+                if ((string)item.Element("PhysicalContent")?.Element("SubtypeName") == "Uranium")
+                    fuel += (float?)item.Element("Amount") ?? 0;
+            var result = new TemplateBlock(
                 name, block.Min, spec.DryMass, gridSize,
                 size: size,
                 orientation: Orientation(block),
@@ -74,11 +82,21 @@ namespace FleetCommand.Test.Templates
                 maxOutput: spec.MaxOutput,
                 maxInput: spec.MaxInput,
                 maxStoredPower: spec.MaxStoredPower,
+                initialStoredPower: spec.MaxStoredPower > 0 ? stored / spec.MaxStoredPower : 1,
+                initialFuel: spec.Kind == BlockKind.Reactor ? fuel : 0,
+                // MyReactorDefinition.FuelInfo: MaxPowerOutput / 3600 / uranium mass (1 kg).
+                fuelConsumptionPerSecond: spec.Kind == BlockKind.Reactor ? spec.MaxOutput / 3600f : 0,
+                inventoryMass: spec.Kind == BlockKind.Reactor ? fuel : 0,
                 thrustDirection: spec.Kind == BlockKind.FixedThruster ? block.Frame.Forward : (Vector3I?)null,
                 maxThrust: spec.MaxThrust,
                 powerDemand: spec.ThrustPowerDemand,
                 gyroForce: spec.GyroForce,
                 gyroPowerDemand: spec.GyroPowerDemand);
+            result.InitialEnabled = (bool?)block.Data.Element("Enabled") ?? true;
+            result.InitialDampeners = (bool?)block.Data.Element("DampenersEnabled") ?? true;
+            string mode = (string)block.Data.Element("ChargeMode") ?? "Auto";
+            result.InitialChargeMode = (Sandbox.ModAPI.Ingame.ChargeMode)Enum.Parse(typeof(Sandbox.ModAPI.Ingame.ChargeMode), mode);
+            return result;
         }
 
         protected static Quaternion Orientation(SbcBlock b)

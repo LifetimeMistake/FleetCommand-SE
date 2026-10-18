@@ -20,6 +20,8 @@ namespace FleetCommand.Test.SpaceEngineers
         public const int MaxTextLength = 100000;
 
         private readonly StringBuilder _text = new StringBuilder();
+        private string _publishedText = string.Empty;
+        private bool _textDirty;
         private string _title = string.Empty;
 
         public SimTextPanel(long entityId, string name, SimCubeGrid grid, TemplateBlock template)
@@ -46,7 +48,16 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public string GetText()
         {
-            return _text.ToString();
+            return _publishedText;
+        }
+
+        // MyTextPanel.UpdateAfterSimulation10 -> UpdateModApiText publishes the
+        // helper buffer. GetText/ReadText read the published buffer, not pending writes.
+        internal void PublishPendingText()
+        {
+            if (!_textDirty) return;
+            _publishedText = _text.ToString();
+            _textDirty = false;
         }
 
         /// <inheritdoc />
@@ -60,7 +71,7 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 buffer.Clear();
             }
-            buffer.Append(_text);
+            buffer.Append(_publishedText);
         }
 
         /// <inheritdoc />
@@ -79,6 +90,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
         private void ApplyText(string value, bool append)
         {
+            _textDirty = true;
             string content = value ?? string.Empty;
             if (append)
             {

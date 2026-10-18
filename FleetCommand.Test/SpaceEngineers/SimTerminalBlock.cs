@@ -81,13 +81,10 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             get
             {
-                // World pose = grid body pose * block local (grid-local)
-                // pose, matching the game's hierarchy (block world matrix is
-                // the grid world matrix times the block's grid-local
-                // transform — MyCubeGrid.GetBlockWorldMatrix / FatBlock
-                // WorldMatrix composition).
+                // VRage uses row-vector transforms: local then parent.
+                // MyPositionComponentBase.cs:457,567 multiplies local * parentWorld.
                 MatrixD gridWorld = _grid.WorldMatrix;
-                return gridWorld * _template.LocalTransform;
+                return (MatrixD)_template.LocalTransform * gridWorld;
             }
         }
 

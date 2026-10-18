@@ -55,6 +55,9 @@ namespace FleetCommand.Test.Templates
     /// </summary>
     public sealed class TemplateBlock
     {
+        public bool InitialEnabled { get; internal set; } = true;
+        public Sandbox.ModAPI.Ingame.ChargeMode InitialChargeMode { get; internal set; }
+        public bool InitialDampeners { get; internal set; } = true;
         /// <summary>The block's name (unique per grid; used by later stages).</summary>
         public string Name { get; }
 
@@ -266,7 +269,10 @@ namespace FleetCommand.Test.Templates
             InitialFuel = initialFuel;
             FuelConsumptionPerSecond = fuelConsumptionPerSecond;
 
-            Vector3I max = Min + Size - Vector3I.One;
+            Matrix placement = Matrix.CreateFromQuaternion(Orientation);
+            Vector3 extents = Vector3.Abs(placement.Right) * Size.X
+                + Vector3.Abs(placement.Up) * Size.Y + Vector3.Abs(placement.Backward) * Size.Z;
+            Vector3I max = Min + new Vector3I((int)Math.Round(extents.X), (int)Math.Round(extents.Y), (int)Math.Round(extents.Z)) - Vector3I.One;
             Vector3 cellSum = (BlockCenter(min) + BlockCenter(max)) * (0.5f * gridSize);
             CenterLocal = cellSum;
             HalfExtents = new Vector3(Size) * gridSize * 0.5f;

@@ -168,23 +168,17 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
         // — integration: the real blueprints the user is testing —
 
-        private static string AppDataLocal(string folder)
+        private static string Fixture(string folder)
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string bp = Path.Combine(appData, "SpaceEngineers", "Blueprints", "local", folder, "bp.sbc");
-            if (!File.Exists(bp))
-            {
-                Assert.Ignore($"blueprint not present: {bp}");
-            }
-            return bp;
+            return Path.Combine(TestContext.CurrentContext.TestDirectory, "blueprints", folder, "bp.sbc");
         }
 
         [Test]
         public void RealEquivalenceBlueprint_DecodesValid()
         {
-            SbcFile file = Reader.ReadFile(AppDataLocal("FleetCommand_EquivalenceTest"));
+            SbcFile file = Reader.ReadFile(Fixture("FleetCommand_Validation_v1"));
             // 18-block cross (RC + 6 armor arms each a thruster + gyro/reactor/battery/PB/LCD)
-            Assert.That(file.Grids[0].Blocks.Count, Is.EqualTo(18));
+            Assert.That(file.Grids[0].Blocks.Count, Is.EqualTo(183));
         }
 
         [Test]
@@ -192,7 +186,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             // The user's "TEST GRID": includes legal-but-weird gyro and thruster
             // placements that the validator must accept (not reject a legal grid).
-            SbcFile file = Reader.ReadFile(AppDataLocal("TEST GRID"));
+            SbcFile file = Reader.ReadFile(Fixture("FleetCommand_Validation_Dock_v1"));
             Assert.That(file.Grids.Count, Is.GreaterThanOrEqualTo(1));
         }
 
@@ -202,8 +196,11 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             // "TEST GRID illegal": the side-mounted gyro rotated so its only mount face
             // (Bottom) points at an empty cell. The user checks it is illegal in-game;
             // the validator must reject it the same way.
-            string bp = AppDataLocal("TEST GRID illegal");
-            var ex = Assert.Throws<SbcValidationException>((Action)(() => Reader.ReadFile(bp)));
+            var doc = System.Xml.Linq.XDocument.Load(Fixture("FleetCommand_Validation_v1"));
+            foreach (var element in doc.Descendants("MyObjectBuilder_CubeBlock"))
+                if ((string)element.Element("CustomName") == "FC Gyro A")
+                    element.Element("BlockOrientation").SetAttributeValue("Up", "Down");
+            var ex = Assert.Throws<SbcValidationException>((Action)(() => Reader.Read(doc.ToString())));
             Assert.That(ex.Message, Does.Contain("no legal mount"));
         }
     }

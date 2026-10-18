@@ -556,6 +556,12 @@ namespace FleetCommand.Test.Framework
         private void Phase8_SynchronizeState()
         {
             _phaseTrace.Add(PhaseNames[7]);
+            if ((Clock.Tick + 1) % 10 == 0)
+                for (int i = 0; i < _functionalBlocks.Count; i++)
+                {
+                    var panel = _functionalBlocks[i] as SimTextPanel;
+                    if (panel != null && !panel.Closed) panel.PublishPendingText();
+                }
             // Synchronize pose and velocities back from Havok, then clamp post-physics
             // velocities and update actuator telemetry. Disposed bodies (NRE guard)
             // are skipped.

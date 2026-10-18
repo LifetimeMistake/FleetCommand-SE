@@ -178,28 +178,22 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
         // — integration: the real blueprints —
 
-        private static string AppDataLocal(string folder)
+        private static string Fixture(string folder)
         {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string bp = Path.Combine(appData, "SpaceEngineers", "Blueprints", "local", folder, "bp.sbc");
-            if (!File.Exists(bp))
-            {
-                Assert.Ignore($"blueprint not present: {bp}");
-            }
-            return bp;
+            return Path.Combine(TestContext.CurrentContext.TestDirectory, "blueprints", folder, "bp.sbc");
         }
 
         [Test]
         public void RealEquivalenceBlueprint_ConvertsToShipTemplate()
         {
-            SbcFile file = Reader.ReadFile(AppDataLocal("FleetCommand_EquivalenceTest"));
+            SbcFile file = Reader.ReadFile(Fixture("FleetCommand_Validation_v1"));
             ShipTemplate template = SbcToShipTemplate.Convert(file, file.Name);
-            Assert.That(template.Blocks.Count, Is.EqualTo(18));
+            Assert.That(template.Blocks.Count, Is.EqualTo(183));
             // six thrusters with real direction each, one RC, one gyro, one battery, one reactor, one PB, one LCD
             Assert.That(Count(template, BlockKind.FixedThruster), Is.EqualTo(6));
             Assert.That(Count(template, BlockKind.Battery), Is.EqualTo(1));
-            Assert.That(Count(template, BlockKind.Reactor), Is.EqualTo(1));
-            Assert.That(Count(template, BlockKind.Gyro), Is.EqualTo(1));
+            Assert.That(Count(template, BlockKind.Reactor), Is.EqualTo(3));
+            Assert.That(Count(template, BlockKind.Gyro), Is.EqualTo(2));
             Assert.That(Count(template, BlockKind.ProgrammableBlock), Is.EqualTo(1));
             Assert.That(Count(template, BlockKind.TextPanel), Is.EqualTo(1));
         }
@@ -207,12 +201,12 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void RealTestGridBlueprint_ConvertsToShipTemplate()
         {
-            SbcFile file = Reader.ReadFile(AppDataLocal("TEST GRID"));
+            SbcFile file = Reader.ReadFile(Fixture("FleetCommand_Validation_Dock_v1"));
             ShipTemplate template = SbcToShipTemplate.Convert(file, file.Name);
             Assert.That(template.Blocks.Count, Is.EqualTo(file.Grids[0].Blocks.Count));
-            Assert.That(template.GridSize, Is.EqualTo(2.5f)); // large grid
-            Assert.That(Count(template, BlockKind.FixedThruster), Is.GreaterThanOrEqualTo(8));
-            Assert.That(Count(template, BlockKind.Gyro), Is.GreaterThanOrEqualTo(2));
+            Assert.That(template.GridSize, Is.EqualTo(0.5f));
+            Assert.That(Count(template, BlockKind.Connector), Is.EqualTo(1));
+            Assert.That(Count(template, BlockKind.Battery), Is.EqualTo(1));
         }
 
         private static int Count(ShipTemplate template, BlockKind kind)

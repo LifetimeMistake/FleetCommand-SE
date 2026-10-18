@@ -120,7 +120,7 @@ namespace FleetCommand.Test.Sbc
                 up = (string)orient.Attribute("Up") ?? CubeFacing.OrientUp;
             }
 
-            return new SbcBlock(simpleType, subtype, min, forward, up);
+            return new SbcBlock(simpleType, subtype, min, forward, up, blockEl);
         }
 
         private static Vector3I ParseMin(XElement minEl)

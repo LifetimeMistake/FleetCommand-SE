@@ -25,7 +25,7 @@ namespace FleetCommand.Test.Framework
         /// <summary>Simulation time in seconds (an exact multiple of 1/60).</summary>
         public double Time => World.Clock.Time;
 
-        internal FleetTestContext(SimWorld world)
+        public FleetTestContext(SimWorld world)
         {
             World = world;
         }
@@ -60,8 +60,13 @@ namespace FleetCommand.Test.Framework
                 SimFunctionalBlock functional = block as SimFunctionalBlock;
                 if (functional != null)
                 {
+                    functional.Enabled = templateBlock.InitialEnabled;
                     World.RegisterFunctionalBlock(functional);
                 }
+                var battery = block as SimBatteryBlock;
+                if (battery != null) battery.ChargeMode = templateBlock.InitialChargeMode;
+                var shipController = block as SimShipController;
+                if (shipController != null) shipController.DampenersOverride = templateBlock.InitialDampeners;
                 if (templateBlock.IsControllerKind)
                 {
                     bool designated = template.DesignatedControllerName != null

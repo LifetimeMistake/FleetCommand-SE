@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using VRageMath;
+using System.Xml.Linq;
 
 namespace FleetCommand.Test.Sbc
 {
@@ -13,6 +14,8 @@ namespace FleetCommand.Test.Sbc
     /// no geometry here.</summary>
     public sealed class SbcBlock
     {
+        // Preserve serialized operating state without coupling structural validation to it.
+        public XElement Data { get; }
         /// <summary>The block's type id (the <c>xsi:type</c> value, e.g.
         /// "CubeBlock", "RemoteControl", "Thrust").</summary>
         public string TypeId { get; }
@@ -33,7 +36,7 @@ namespace FleetCommand.Test.Sbc
 
         public SbcBlock(string typeId, string subtypeId, Vector3I min,
             string forwardName = CubeFacing.OrientForward,
-            string upName = CubeFacing.OrientUp)
+            string upName = CubeFacing.OrientUp, XElement data = null)
         {
             if (string.IsNullOrEmpty(subtypeId))
             {
@@ -44,6 +47,7 @@ namespace FleetCommand.Test.Sbc
             Min = min;
             ForwardName = forwardName;
             UpName = upName;
+            Data = data == null ? new XElement("MyObjectBuilder_CubeBlock") : new XElement(data);
         }
 
         /// <summary>This block's resolved world frame from its orientation.</summary>
