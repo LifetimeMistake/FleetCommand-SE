@@ -1,0 +1,237 @@
+# Game / simulator validation
+
+For the expanded power, waypoint and docking experiment, use the
+[single-paste station mission](station-validation.md): paste
+`FleetCommand_Validation_Station_v1`, load the script and run `dockprobe`.
+Its complete reports are on **FC Dock Report** and **FC Report**.
+
+Current source audit and remaining game-conformance questions:
+[rotation and native physics audit](validation-source-audit-2026-10-19.md).
+
+For the reproducible low-thrust stall near rest, use the separate
+[`restprobe` diagnostic](validation-low-speed-diagnostic.md). Ordinary `start`
+still runs the canonical suite-v5 experiment.
+
+`FleetCommand.Validation` is the single source of test code. Its MDK `Program`
+only forwards ingame services to `ValidationHost`, which selects the experiment.
+The console launcher runs that same compiled host against FleetCommand.Test, then exports **the text read
+from the simulated LCD**. It does not construct a second telemetry report.
+
+## Build, run, compare
+
+Windows, .NET Framework 4.8, x64, the installed game, and the existing
+gitignored `MDK.paths.props` are required. The script pins Roslyn 4.12 because the
+installed MDK analyzer needs that compiler version; the script still uses C# 6.
+
+```powershell
+dotnet build FleetCommand.Validation.Launcher/FleetCommand.Validation.Launcher.csproj -p:Platform=x64
+./tools/Test-PackedValidation.ps1
+./FleetCommand.Validation.Launcher/bin/x64/Debug/net48/FleetCommand.Validation.Launcher.exe run artifacts/simulator-report.txt
+./FleetCommand.Validation.Launcher/bin/x64/Debug/net48/FleetCommand.Validation.Launcher.exe compare artifacts/simulator-report.txt artifacts/game-report.txt
+dotnet test FleetCommand.sln -p:MdkBuildConfiguration=PackExplicitly
+```
+
+`run [report-path] [blueprint-path]` accepts an explicit fixture path. The default
+fixture is copied from the repository to the launcher output at build time.
+The default spawn deliberately has a nonzero position and rotated attitude.
+For a measured game report, append `--frame-from TestResults/result.log` to
+`run` or `restprobe`. This reproduces the reference controller's recorded world
+attitude, accounting for its mounting orientation in the blueprint. Version 5
+requires four initial world-quaternion metadata fields. All motion remains in
+the fixed relative frame; no exact world placement is required. Havok's native
+constrained low-speed stabilization depends on world axes, so the comparator
+rejects different initial world attitudes rather than attributing those physical
+differences to coordinate normalization. Historical v1-v4 reports remain readable
+with their historical schemas, but cannot be mixed with the new revision.
+The quaternion is written with round-trip precision. This replays attitude,
+not a full native physics checkpoint. The current approximate waypoint
+controller remains sensitive to small initial-state differences, and the strict
+comparison still reports those waypoint differences. Frame replay does not
+override a failed comparison or establish full game equivalence.
+Exit codes: 0 = completed run / comparison within provisional limits;
+1 = incomplete run / incompatible reports / measured differences;
+2 = usage or host error. A COMPLETE run means data collection finished, not
+that the simulator has been proven equivalent to the game.
+
+Build output stays in `artifacts/validation-script/FleetCommand.Validation/`.
+Validation builds keep their output local. The test command disables automatic
+MDK packaging across the solution; test code never reads game AppData. Deployment is explicit:
+
+```powershell
+./tools/Deploy-Validation.ps1
+```
+
+This copies the three named blueprints and the packed script into the standard
+SpaceEngineers AppData directories. It verifies hashes, backs up changed files
+as `.previous`, and removes only the named generated blueprint's binary cache.
+It does not change your other craft. SE can refresh blueprints without restarting.
+
+## Game procedure
+
+1. Use an unmodded empty-space world with scripts enabled. Use survival physics,
+   realistic inventory multiplier, no gravity/atmosphere, and no nearby objects.
+   Creative tools may be used to paste the blueprint; record the actual game
+   version, world settings, mods and inventory multiplier with the extracted report.
+2. Paste `FleetCommand_Validation_v1`. It is a 183-block small grid: armor deck,
+   remote, cockpit, PB, six ion thrusters, two differently mounted gyros, three
+   fueled reactors (1.5 MW total), one 0.2 MW battery and one LCD/connector.
+   Default battery charge is 0.025 MWh. Keep the dock away during the main run.
+3. Load `FleetCommand.Validation` into `FC Validation`. Exit the cockpit/remote,
+   leave the craft at rest, and run the PB with argument `start`.
+   Position and orientation are arbitrary. Start battery charge must be between
+   0.02 and 0.04 MWh; paste a fresh fixture if it has charged outside that range.
+4. Leave the craft untouched until the PB says COMPLETE (roughly 1–3 minutes).
+   `status` prints progress, `abort` clears commands, and `export` rewrites the
+   entire retained report onto `FC Report`. A callback gap above 25 ms aborts
+   with a cadence error; retry in a world that sustains the required tick cadence.
+   The first scheduled call can share the terminal `start` frame. Zero elapsed
+   callbacks during startup are skipped (at most ten), recorded as an `INFO`
+   diagnostic, and do not advance the test. Cadence checks remain strict after
+   the first positive interval.
+5. Open **FC Report's text editor**, select all and copy the full text, including
+   the `FCVALIDATION` header, all `S` rows and final `END|COMPLETE|19|133` line.
+   Save that text as `artifacts/game-report.txt`. A screenshot or visible LCD
+   viewport is insufficient: it cannot expose the complete data. Close the editor
+   while a run is active, because it may prevent script writes.
+6. Run the comparison command. Send both text files and the world settings for
+   investigation. Failed/aborted/truncated runs cannot pass comparison.
+
+The LCD contains the complete report (about 62,300 characters in suite v5), not a summary.
+Reports are bounded at 64,000 characters because the game clips published LCD
+text to 65,000, despite accepting up to 100,000 pending string-write characters.
+PB Storage is backup. Saving/reloading never resumes a physical maneuver:
+completed reports remain available; a saved partial run is marked INTERRUPTED.
+Ingame instruction accounting and the actual game script engine still require
+the first live game execution even though MDK analysis and packaging pass.
+The packed-output check compiles the exact pasted script with programmable-block
+wrapper imports, catching missing names that source-project using directives can
+hide. Numeric formatting uses fixed-point strings with trailing zeroes omitted
+for measurement rows and normalized decimal commas
+without depending on `CultureInfo` in ingame code.
+
+## Measurements and cases
+
+At `start`, the runner captures the remote's orientation and center of mass.
+Every position is displacement from that initial COM, expressed in that fixed
+initial controller frame. Linear/angular velocities use the same initial axes.
+Attitude is the normalized relative quaternion, not world Euler angles. The
+frame stays fixed while the ship rotates. Battery readings are **changes from
+the starting charge**, whose absolute value is also saved in the metadata.
+
+Each case records seven samples: its initial observation plus six equally spaced
+samples over a fixed number of ticks. A row records case/tick, run time, observed
+callback dt, relative position/velocity/angular velocity/quaternion, each of the
+six actual thruster outputs, battery input/output/charge change, aggregate reactor
+output, dampener/autopilot flags, connector status and distance to the waypoint.
+Tick-zero actuator telemetry describes the preceding completed physics interval;
+new commands take effect on the following interval in both hosts.
+
+The 19 cases cover baseline/LCD state, six thrust directions, coast, three gyro
+axes, a rotated gyro mount, angular decay, dampener braking, battery discharge
+and recharge, constrained power, a relative forward waypoint and unpaired
+connector calls. Between cases an API-only velocity/rate controller settles the
+craft; its duration is recorded and bounded. Abort/completion clear thrust/gyro
+overrides, stop autopilot, restore reactors/battery auto and enable dampeners.
+
+This is an expandable validation suite, not a claim that every simulator feature
+is exercised. `COVERAGE` lines enumerate automated, manual and uncovered behavior.
+For manual connector checks, paste `FleetCommand_Validation_Dock_v1`, align the
+connectors until Connectable and run `dock`; after it becomes Connected, run
+`dock` again to log the state and disconnect. Those observations append as MANUAL
+records to the LCD and are deliberately excluded from the automated verdict.
+Pilot input, save/reload and paired docking dynamics remain operator-assisted.
+Planetary gravity, atmosphere, collisions, fuel depletion, speed caps, IGC,
+instruction limits and other block variants are not covered by this first suite.
+
+## Comparison rules
+
+Comparison requires the exact schema/fixture/suite revisions, all 19 cases,
+their seven samples, valid timing/quaternions/finite numbers and the completion
+footer. Block capability/coverage mismatches fail. Mass must agree within
+0.05 kg; grid size is exact. Initial charge may differ within preflight bounds,
+since charge deltas are compared. Terminal-system enumeration differences are
+reported as API differences while other channels are still compared.
+
+These limits are **provisional**, chosen before a live game measurement. No limit
+is widened automatically:
+
+| Channel | Absolute limit | Relative limit |
+| --- | ---: | ---: |
+| Position | 0.05 m | 1% |
+| Linear velocity | 0.03 m/s | 1% |
+| Angular velocity | 0.005 rad/s | 1% |
+| Attitude | 0.01 rad quaternion angular distance | — |
+| Thruster output | 0.5 N | 1% |
+| Power | 0.001 MW | 1% |
+| Battery charge change | 0.00001 MWh | 0.1% |
+| Waypoint distance | 0.1 m | 1% |
+| Run time / callback dt | 0.05 s / 0.001 s | — |
+| Flags / status | exact | — |
+| Settling duration | 1 tick | — |
+
+Numeric limits add their absolute and relative terms. There is no bitwise
+floating-point equality claim. Quaternion sign is handled by angular distance.
+
+## Findings already exposed
+
+- Rotated fixtures exposed the simulator composing block matrices as
+  `grid * local`. The game uses `local * parent` (MyPositionComponentBase.cs
+  lines 457/567). This is fixed with a regression test.
+- SBC conversion previously dropped names, startup state and reactor fuel, and
+  computed rotated block centers from unrotated sizes. The fixture path now
+  preserves serialized fields and applies the startup state used by this suite.
+  Reactor uranium consumption is mapped using MaxPowerOutput / 3600 / 1 kg,
+  following MyReactorDefinition.FuelInfo and the default fuel multiplier.
+- Whole-suite translation invariance passes. Rotation invariance is not a valid
+  expectation for the source connector's constrained native low-speed solver:
+  different world attitudes can change actual motion. Suite v5 records and
+  replays that attitude; the comparator retains its numerical tolerances.
+  The simulator's approximate autopilot still requires game comparison at a
+  known matching initial world attitude.
+- Structural armor remains part of grid geometry and mass, but terminal queries
+  now exclude it. The validation fixture exposes 17 terminal blocks, as in game.
+- LCD writes now publish on the simulator's ten-tick update, following
+  MyTextPanel.UpdateAfterSimulation10/UpdateModApiText. The script waits for its
+  append/read probe to become visible before replacing it with report text;
+  the launcher also lets the final write publish before extracting the LCD.
+
+Minor hardening deferred from final review: the comparator counts capability
+records without enforcing unique thruster indices, and checks monotonic sample
+times without reconstructing the complete timing schedule. Normal runner output
+is covered; identically malformed hand-edited reports can evade those two checks.
+
+## Survival measurement repairs (suite v2)
+
+The current script is suite v5: see `docs/validation-diagnostics.md` for the
+motion-aware settling gate and detailed single-LCD transition trace. Reload
+the local library script before running it; the craft blueprint is unchanged.
+
+Follow-up comparison and force/sleep repairs from the updated suite-v2 game
+log are recorded in `docs/validation-conformance-2026-10-19.md`.
+
+The original `TestResults/result.log` completed 19 cases / 133 samples. Its
+source-backed repair findings are recorded in
+`docs/validation-conformance-2026-10-18.md`. Suite v2 explicitly selects
+`FlightMode.OneWay`; the previous default Patrol rejected a single waypoint in
+the actual game. The same checked-in craft blueprint is used. Reload the local
+`FleetCommand.Validation` script in the programmable block and run `start` on a
+fresh fixture in Survival, vacuum, and zero gravity. Leave the cockpit empty
+and allow the test to finish before approaching the grid. The first LCD line
+must end in `suite-v5`; save the complete LCD export to a new result file.
+
+The comparator accepts archived suite v1/v2/v3/v4 reports, but rejects comparisons
+between suite revisions because commands, settling procedures or required initial-condition metadata differ. Earlier game
+data remains useful for diagnosing the unchanged probes. Battery stored-energy
+updates are quantized to 100 frames; the game scheduler's initial phase is not
+controlled by placing the craft, so point samples may remain offset even when
+the underlying power flow agrees. No comparison tolerances were relaxed.
+
+## Extending
+
+Add cases in `ValidationCase.CreateSuite`, implement their commands in the shared
+runner, and add any new ingame observations to the LCD schema. Update the fixture
+and revision strings together. Update the strict host parser/sample contract and
+regression tests when the schema changes. No simulator-specific test logic goes
+in the MDK project. The generator `tools/New-ValidationBlueprint.ps1` reproducibly
+rebuilds the checked-in SBCs; verify changed fixtures in the parser and simulator
+before deploying and checking their legality in game.

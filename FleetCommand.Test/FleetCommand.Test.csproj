@@ -1,0 +1,101 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Import the machine-local game path (this file is gitignored and must not be committed) -->
+  <Import Project="..\MDK.paths.props" Condition="Exists('..\MDK.paths.props')" />
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>FleetCommand.Test</RootNamespace>
+    <LangVersion>7.3</LangVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultItems>true</EnableDefaultItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Configurations>Debug;Release</Configurations>
+    <RunSettingsFilePath>FleetCommand.Test.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\blueprints\**\bp.sbc" Link="blueprints\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="NUnit" Version="4.6.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.3.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+  </ItemGroup>
+
+  <!-- Runtime game set, all resolved from the single SpaceEngineersBin directory.
+       Copied local (Private) so the whole set loads from one folder and the
+       mixed-mode HavokWrapper is never resolved across directories. -->
+  <Target Name="ValidateSpaceEngineersBin" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(SpaceEngineersBin)' == ''"
+           Text="MDK.paths.props is missing or does not set SpaceEngineersBin. Create a gitignored MDK.paths.props at the repo root setting SpaceEngineersBin to the Space Engineers Bin64 folder, e.g. C:\Program Files (x86)\Steam\steamapps\common\SpaceEngineers\Bin64." />
+    <Error Condition="!Exists('$(SpaceEngineersBin)\HavokWrapper.dll')"
+           Text="Space Engineers runtime set not found at '$(SpaceEngineersBin)'. Expected HavokWrapper.dll. Set SpaceEngineersBin in MDK.paths.props to the correct game Bin64 folder." />
+    <Error Condition="!Exists('$(SpaceEngineersBin)\VRage.Library.dll')"
+           Text="Space Engineers runtime set incomplete at '$(SpaceEngineersBin)'. Missing VRage.Library.dll." />
+    <Error Condition="!Exists('$(SpaceEngineersBin)\VRage.Math.dll')"
+           Text="Space Engineers runtime set incomplete at '$(SpaceEngineersBin)'. Missing VRage.Math.dll." />
+    <Error Condition="!Exists('$(SpaceEngineersBin)\VRage.dll')"
+           Text="Space Engineers runtime set incomplete at '$(SpaceEngineersBin)'. Missing VRage.dll." />
+    <Error Condition="!Exists('$(SpaceEngineersBin)\Sandbox.Common.dll')"
+           Text="Space Engineers runtime set incomplete at '$(SpaceEngineersBin)'. Missing Sandbox.Common.dll." />
+    <Error Condition="!Exists('$(SpaceEngineersBin)\Sandbox.Game.dll')"
+           Text="Space Engineers runtime set incomplete at '$(SpaceEngineersBin)'. Missing Sandbox.Game.dll." />
+  </Target>
+
+  <ItemGroup>
+    <Reference Include="HavokWrapper">
+      <HintPath>$(SpaceEngineersBin)\HavokWrapper.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="VRage.Library">
+      <HintPath>$(SpaceEngineersBin)\VRage.Library.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="VRage.Math">
+      <HintPath>$(SpaceEngineersBin)\VRage.Math.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="VRage">
+      <HintPath>$(SpaceEngineersBin)\VRage.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="VRage.Game">
+      <HintPath>$(SpaceEngineersBin)\VRage.Game.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Sandbox.Common">
+      <HintPath>$(SpaceEngineersBin)\Sandbox.Common.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Sandbox.Game">
+      <HintPath>$(SpaceEngineersBin)\Sandbox.Game.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="SpaceEngineers.Game">
+      <HintPath>$(SpaceEngineersBin)\SpaceEngineers.Game.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="ProtoBuf.Net">
+      <HintPath>$(SpaceEngineersBin)\ProtoBuf.Net.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>$(SpaceEngineersBin)\System.Memory.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>$(SpaceEngineersBin)\System.Buffers.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The native Havok library that HavokWrapper P/Invokes at runtime. Must be
+         copied beside the wrapper for mixed-mode loading. -->
+    <None Include="$(SpaceEngineersBin)\Havok.dll" Link="Havok.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Import Project="..\FleetCommand.Common\FleetCommand.Common.projitems" Label="Shared" />
+
+</Project>

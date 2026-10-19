@@ -37,7 +37,7 @@ namespace FleetCommand.Common.Logger
         {
             Log(message, LogLevel.DEBUG, type);
         }
-        
+
         public void Info(string message, string type = null)
         {
             Log(message, LogLevel.INFO, type);
@@ -70,12 +70,12 @@ namespace FleetCommand.Common.Logger
 
         private void Log(string message, LogLevel level, string type = null)
         {
-            LogEntry entry = new LogEntry 
-            { 
-                Timestamp = TimeSource.Timestamp, 
-                Level = level, 
-                Type = type, 
-                Message = message 
+            LogEntry entry = new LogEntry
+            {
+                Timestamp = TimeSource.Timestamp,
+                Level = level,
+                Type = type,
+                Message = message
             };
             _buffer.Push(entry);
             PrintLogs();

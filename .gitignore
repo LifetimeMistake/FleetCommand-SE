@@ -368,3 +368,6 @@ Decompiled/
 
 # Superpowers docs (generated locally)
 docs/superpowers/
+
+# Generated validation bundles and captured reports (fixtures remain in blueprints/)
+artifacts/

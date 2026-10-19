@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Logger\LogEntry.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MathHelpers.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RingBuffer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logger\Logger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Logger\LogLevel.cs" />

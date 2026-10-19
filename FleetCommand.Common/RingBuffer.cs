@@ -83,6 +83,40 @@ namespace FleetCommand.Common
             _count = 0;
         }
 
+        /// <summary>The item at <paramref name="index"/>, oldest first (index 0 = earliest retained).</summary>
+        public T this[int index]
+        {
+            get
+            {
+                if (index < 0 || index >= _count)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
+                return _buffer[(_tail + index) % _buffer.Length];
+            }
+        }
+
+        /// <summary>A copy of the retained items, oldest first.</summary>
+        public T[] ToArray()
+        {
+            T[] result = new T[_count];
+            for (int i = 0; i < _count; i++)
+            {
+                result[i] = _buffer[(_tail + i) % _buffer.Length];
+            }
+            return result;
+        }
+
+        /// <summary>The most recent item (Thrown when the buffer is empty).</summary>
+        public T Last()
+        {
+            if (_count == 0)
+            {
+                throw new InvalidOperationException("The buffer is empty.");
+            }
+            return _buffer[(_tail + _count - 1) % _buffer.Length];
+        }
+
         public IEnumerator<T> GetEnumerator()
         {
             if (_count == 0)

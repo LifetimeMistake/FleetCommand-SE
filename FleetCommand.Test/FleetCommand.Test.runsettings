@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <!--
+    Shadow copy is disabled so the mixed-mode HavokWrapper.dll and its native
+    Havok.dll all load from the single output directory. With shadow copy
+    enabled, test assemblies and their dependencies would be copied to a temp
+    dir and HavokWrapper could be resolved from a different folder than the
+    native Havok.dll, triggering a mixed-mode load collision.
+
+    The setting is provided by the NUnit3TestAdapter (the NUnit node), and the
+    vstest runner honors DisableAppDomain here so the whole set loads from the
+    original build output rather than a shadow dir.
+  -->
+  <RunConfiguration>
+    <DisableAppDomain>true</DisableAppDomain>
+  </RunConfiguration>
+  <NUnit>
+    <DisableShadowCopy>true</DisableShadowCopy>
+  </NUnit>
+</RunSettings>

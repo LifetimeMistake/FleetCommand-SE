@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>7.3</LangVersion>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <Import Project="..\build\SpaceEngineers.References.props" />
+  <ItemGroup>
+    <ProjectReference Include="..\FleetCommand.Test\FleetCommand.Test.csproj" />
+    <ProjectReference Include="..\FleetCommand.Validation\FleetCommand.Validation.csproj" />
+    <None Include="..\blueprints\**\bp.sbc" Link="blueprints\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

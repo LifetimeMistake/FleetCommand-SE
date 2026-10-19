@@ -1,0 +1,2 @@
+# Preserve original LCD export bytes and their documented hashes on every clone.
+*.txt -text
