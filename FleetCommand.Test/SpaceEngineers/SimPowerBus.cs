@@ -26,7 +26,8 @@ namespace FleetCommand.Test.SpaceEngineers
     /// for every registered consumer and draws the delivered energy from the finite supply
     /// (batteries and reactors). Each functional block's <c>IsPowered</c> derives from its
     /// delivered ratio and power requirement, so <c>IsWorking</c> (recomputed in the same phase)
-    /// follows before actuation — phases 5-8 read the state this phase produced.</summary>
+    /// follows before physics. Thrust aggregation precedes this distribution and
+    /// reads its existing supplied ratio, matching source priorities 6 and 14.</summary>
     /// <remarks>Allocation semantics reproduce <c>MyResourceDistributorComponent</c>. A grid with
     /// no power-producing block supplies nothing — blocks with a real power demand are unpowered
     /// (only blocks with no power requirement stay powered). Where producers exist, the available
@@ -52,6 +53,15 @@ namespace FleetCommand.Test.SpaceEngineers
         private readonly List<SimPowerSource> _sources = new List<SimPowerSource>();
         private readonly List<SimBatteryBlock> _batteries = new List<SimBatteryBlock>();
         private readonly List<SimFunctionalBlock> _ordered = new List<SimFunctionalBlock>();
+        private bool _initialized;
+
+        // Grid registration performs an initial distribution in the game
+        // (MyCubeGridSystems.OnAddedToGroup), before scheduled thrust callbacks.
+        // Establish sink ratios without consuming a second physics interval.
+        internal void EnsureInitialized(float dtSeconds)
+        {
+            if (!_initialized) Recompute(dtSeconds, false);
+        }
 
         /// <summary>The rigid grid (ship) this bus serves.</summary>
         public SimCubeGrid Grid => _grid;
@@ -151,10 +161,16 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <param name="dtSeconds">The fixed step interval in seconds (one 1/60 s tick).</param>
         public void Recompute(float dtSeconds)
         {
+            Recompute(dtSeconds, true);
+        }
+
+        private void Recompute(float dtSeconds, bool transferEnergy)
+        {
             if (dtSeconds <= 0f)
             {
                 throw new ArgumentOutOfRangeException(nameof(dtSeconds), "The power bus runs on the fixed positive physics step.");
             }
+            _initialized = true;
 
             if (_sources.Count == 0)
             {
@@ -248,6 +264,8 @@ namespace FleetCommand.Test.SpaceEngineers
                     _ordered[i].SetDeliveredRatio(ratio);
                 }
             }
+
+            if (!transferEnergy) return;
 
             // Storage pairs are handled separately from ordinary sources in the game
             // (MyResourceDistributorComponent.RecomputeResourceDistributionPartial).

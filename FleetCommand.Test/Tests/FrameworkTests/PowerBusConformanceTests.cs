@@ -20,6 +20,21 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class PowerBusConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void FreshSourceLessThruster_DoesNotReceiveAnInitialFreeImpulse()
+        {
+            var ship = Fc.Spawn(new ShipTemplate("unpowered", 0.5f, new[] {
+                new TemplateBlock("Engine", Vector3I.Zero, 100, 0.5f,
+                    kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left,
+                    maxThrust: 10000, powerDemand: 1),
+            }), SpawnState.At(Vector3D.Zero));
+            var engine = (SimThrust)ship.TerminalSystem.GetBlockWithName("Engine");
+            engine.ThrustOverridePercentage = 1;
+            Fc.Step();
+            Assert.That(engine.CurrentThrust, Is.Zero);
+            Assert.That(ship.Body.LinearVelocity.Length(), Is.Zero);
+        }
+
         // — wiring: SimShip.Power and the source-less grid —
 
         [Test]

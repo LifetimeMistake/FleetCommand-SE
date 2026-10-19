@@ -28,7 +28,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void NewPilotCommand_RequestsPowerBeforeDeliveringThrustInSameStep()
+        public void NewPilotCommand_UsesPreviousSupplyRatioBeforeDistributionUpdates()
         {
             var ship = Fc.Spawn(new ShipTemplate("power-command", 2.5f, new[] {
                 new TemplateBlock("Pilot", Vector3I.Zero, 400, 2.5f, kind: BlockKind.ShipController),
@@ -40,7 +40,11 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             }), SpawnState.At(Vector3D.Zero));
             Control(ship).IsUnderControl = true;
             Control(ship).DampenersOverride = false;
+            Fc.Step(); // Establish the supplied ratio at idle before changing demand.
             Control(ship).MoveIndicator = Vector3.UnitX;
+            Fc.Step();
+            Assert.That(((SimThrust)ship.TerminalSystem.GetBlockWithName("Engine")).CurrentThrust,
+                Is.EqualTo(10000f).Within(0.01), "Thrust priority 6 precedes distributor priority 14.");
             Fc.Step();
             Assert.That(((SimThrust)ship.TerminalSystem.GetBlockWithName("Engine")).CurrentThrust,
                 Is.EqualTo(5000f).Within(0.01));

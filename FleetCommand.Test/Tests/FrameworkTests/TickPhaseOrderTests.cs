@@ -18,6 +18,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "PublishCompletedState",
                 "ScheduledMutations",
                 "ComponentCallbacks",
+                "AggregateThrust",
                 "RecomputePower",
                 "AggregateForce",
                 "ApplyImpulses",

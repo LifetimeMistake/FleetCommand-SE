@@ -94,6 +94,9 @@ namespace FleetCommand.Validation.Tests
                     context.Step();
                     Assert.That(gyros.All(g => g.IsWorking), Is.True);
                     Assert.That(((SimGyro)gyros[0]).DeliveredRatio, Is.EqualTo(1f));
+                    Assert.That(thrusters[0].CurrentThrust, Is.EqualTo(14400).Within(0.1),
+                        "The first thrust update precedes distribution of the new load.");
+                    context.Step();
                     Assert.That(thrusters[0].CurrentThrust, Is.EqualTo(14400 * ((0.2 - 0.0075401) / 1.2)).Within(0.1));
                     foreach (var t in thrusters) t.ThrustOverridePercentage = 0;
                     foreach (var r in reactors) r.Enabled = true;

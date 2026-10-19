@@ -292,6 +292,15 @@ namespace FleetCommand.Test.Framework
             Phase1_PublishCompletedState();
             Phase2_ScheduledMutations();
             Phase3_ComponentCallbacks();
+            PrepareControlDemand();
+            foreach (var grid in _grids)
+                if (!grid.IsDisposed) grid.PowerBus.EnsureInitialized((float)TickClock.FixedStep);
+            // MyThrusterBlockThrustComponent is priority 6; the distributor is
+            // priority 14. Thrust reads the existing supplied ratio while publishing
+            // its new required input. Distribution updates that ratio afterward.
+            _phaseTrace.Add("AggregateThrust");
+            foreach (var grid in _grids)
+                if (!grid.IsDisposed) grid.ForceAggregator.Aggregate();
             Phase4_RecomputePower();
             Phase5_AggregateForce();
             Phase6_ApplyImpulses();
@@ -454,7 +463,6 @@ namespace FleetCommand.Test.Framework
         private void Phase4_RecomputePower()
         {
             _phaseTrace.Add(PhaseNames[3]);
-            PrepareControlDemand();
             // Recompute power availability and block IsWorking before actuation: each grid's
             // power bus delivers per-block power ratio (priority-ordered demand against ideal
             // or finite battery supply), then IsWorking is recomputed from enablement,
@@ -516,14 +524,6 @@ namespace FleetCommand.Test.Framework
         private void Phase5_AggregateForce()
         {
             _phaseTrace.Add(PhaseNames[4]);
-            for (int i = 0; i < _grids.Count; i++)
-            {
-                SimCubeGrid grid = _grids[i];
-                if (!grid.IsDisposed)
-                {
-                    grid.ForceAggregator.Aggregate();
-                }
-            }
             // Each grid's gyro-rate system aggregates the force-weighted override target
             // rate and the non-override authority pool.
             for (int i = 0; i < _grids.Count; i++)
