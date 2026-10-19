@@ -9,7 +9,7 @@ namespace FleetCommand.Validation
     /// <summary>All test behavior lives here. Both hosts supply only ingame services.</summary>
     public sealed class ValidationRunner
     {
-        public const string Header = "FCVALIDATION|1|craft-v1|suite-v1";
+        public const string Header = "FCVALIDATION|1|craft-v1|suite-v2";
         public const string Columns = "COLUMNS|case|tick|seconds|dt|px|py|pz|vx|vy|vz|wx|wy|wz|qx|qy|qz|qw|thrust_px|thrust_nx|thrust_py|thrust_ny|thrust_pz|thrust_nz|battery_in|battery_out|battery_delta_mwh|reactor_mw|dampeners|autopilot|connector|waypoint_m";
         readonly IMyGridProgramRuntimeInfo _runtime;
         readonly Action<string> _echo;
@@ -230,6 +230,7 @@ namespace FleetCommand.Validation
                 _reference.ClearWaypoints();
                 _waypoint = _reference.GetPosition() + _reference.WorldMatrix.Forward * 30;
                 _reference.AddWaypoint(_waypoint, "FC validation relative leg");
+                _reference.FlightMode = FlightMode.OneWay;
                 _reference.SpeedLimit = 3;
                 _reference.SetAutoPilotEnabled(true);
             }

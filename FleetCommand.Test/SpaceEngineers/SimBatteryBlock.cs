@@ -32,6 +32,7 @@ namespace FleetCommand.Test.SpaceEngineers
         private float _currentOutput;
         private float _currentInput;
         private ChargeMode _chargeMode = ChargeMode.Auto;
+        private long _lastEnergyUpdateTick;
 
         public SimBatteryBlock(long entityId, string name, SimCubeGrid grid, TemplateBlock template)
             : base(entityId, name, grid, template)
@@ -40,6 +41,16 @@ namespace FleetCommand.Test.SpaceEngineers
             MaxOutput = template.MaxOutput;
             MaxInput = template.MaxInput;
             _currentStoredPower = ClampStored(template.MaxStoredPower * template.InitialStoredPower);
+            RechargeMultiplier = template.BatteryRechargeMultiplier;
+            _lastEnergyUpdateTick = grid.World.Clock.Tick;
+            EnabledChanged += _ => {
+                if (Template.BatteryUpdateIntervalTicks <= 1) return;
+                long now = grid.World.Clock.Tick;
+                // MyBatteryBlock.OnEnabledChanged flushes the prior interval when
+                // disabled and resets m_lastUpdateTime when enabled.
+                if (!Enabled && IsFunctional) IntegrateEnergy((now - _lastEnergyUpdateTick) / 60f);
+                _lastEnergyUpdateTick = now;
+            };
         }
 
         /// <summary>Battery charge efficiency multiplier (the game's
@@ -203,6 +214,25 @@ namespace FleetCommand.Test.SpaceEngineers
         internal void ApplyCharge(float input, float dtSeconds)
         {
             _currentInput = input;
+            if (Template.BatteryUpdateIntervalTicks > 1) return;
+            IntegrateEnergy(dtSeconds);
+        }
+
+        // The real battery samples current input/output on UpdateAfterSimulation100;
+        // it does not integrate all intervening command changes. Synthetic fixtures can
+        // retain a one-step cadence to isolate the charging equations.
+        internal void UpdateStoredEnergy(long completedTick)
+        {
+            int interval = Template.BatteryUpdateIntervalTicks;
+            if (interval <= 1 || completedTick % interval != 0) return;
+            float dt = (completedTick - _lastEnergyUpdateTick) / 60f;
+            _lastEnergyUpdateTick = completedTick;
+            if (Enabled && IsFunctional) IntegrateEnergy(dt);
+        }
+
+        private void IntegrateEnergy(float dtSeconds)
+        {
+            float input = _currentInput;
             switch (ChargeMode)
             {
                 case ChargeMode.Recharge:

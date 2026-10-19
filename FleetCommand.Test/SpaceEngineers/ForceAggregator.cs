@@ -5,49 +5,16 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>The grid thrust aggregation step: the boundary where per-thruster commands
-    /// (override or group demand) become per-thruster body-space forces applied at each
-    /// thruster's own block position. Owned by <see cref="SimCubeGrid"/>; the world drives it
-    /// in three tick phases: phase 5 <see cref="Aggregate"/> (compute
-    /// <see cref="SimThrust.MaxEffectiveThrust"/>, convert override or normalized group demand
-    /// into delivered thrust scaled by <see cref="SimFunctionalBlock.DeliveredRatio"/>, sum by
-    /// grid-body direction, and stage each fired thruster for application at its block); phase 6
-    /// <see cref="ApplyThrust"/> (apply EACH thruster's force as a point impulse at THAT
-    /// thruster's world position — the real game applies each thruster's force at its own
-    /// block, so an off-center mount produces torque about the COM and pitches/yaws the ship,
-    /// matching the game rather than a single resultant at the grid's COM); phase 8
-    /// <see cref="UpdateThrusterTelemetry"/> (commit each thruster's
-    /// <see cref="SimThrust.CurrentThrust"/>). A thruster's
-    /// <see cref="SimThrust.GridThrustDirection"/> is its grid-body FORWARD (exhaust) axis and the
-    /// force is applied along its negation, matching the game's <c>ThrustForce =
-    /// -ThrustForwardVector</c> (MyThrust.cs:188). The group demand is a normalized per-body-axis
-    /// throttle in [-1, 1]; overridden thrusters answer their override instead of the group demand
-    /// (matching the game's IsOverridden / IsUsed). Asymmetric and missing axes need no craft-type
-    /// branches — thrusters carry their push direction as data. Per-direction capacity
-    /// (<see cref="RecalculateCapacities"/>) counts only fired, powered, functional thrusters,
-    /// matching the game's RecomputeTypeThrustParameters.</summary>
+    /// <summary>Aggregates thrust into a resultant applied at the physical group COM, as in
+    /// MyThrusterBlockThrustComponent.UpdateThrusts. Mount position generates no torque.</summary>
     public sealed class ForceAggregator
     {
         private readonly SimCubeGrid _grid;
         private readonly List<SimThrust> _thrusters = new List<SimThrust>();
-        private readonly List<ThrustApplication> _applications = new List<ThrustApplication>();
 
         private Vector3 _groupDemand;
         private Vector3 _netBodyForce;
-
-        /// <summary>One fired thruster's phase-5 demand, staged for phase-6 application at its
-        /// own block position: the body-space force (N) and the grid-local point (m) where the
-        /// game applies it. Each thruster's force acts at ITS world position, so an off-COM
-        /// mount produces a point impulse whose torque rotates the grid about the COM
-        /// (<c>ApplyPointImpulse</c> produces I⁻¹ (r × impulse) — the real game applies each
-        /// thruster's force at its block, so mount placement pitches/yaws the ship like the game).
-        /// Mirrors the per-thruster force application in the game's thrust subsystem
-        /// (MyThrusterBlockThrustComponent, MyEntityThrustComponent.UpdateThrustStrength).</summary>
-        private struct ThrustApplication
-        {
-            public Vector3 BodyForce;
-            public Vector3 GridLocalPoint;
-        }
+        public Vector3 OverrideForce { get; private set; }
 
         // Per-direction delivered-thrust capacity, recomputed from the
         // registered thrusters so the base-control path (BaseControlSystem)
@@ -129,7 +96,7 @@ namespace FleetCommand.Test.SpaceEngineers
         public Vector3 Aggregate()
         {
             Vector3 net = Vector3.Zero;
-            _applications.Clear();
+
             for (int i = 0; i < _thrusters.Count; i++)
             {
                 SimThrust thruster = _thrusters[i];
@@ -147,47 +114,22 @@ namespace FleetCommand.Test.SpaceEngineers
                 if (delivered > 0f)
                 {
                     net += forceAxis * delivered;
-                    // Stage each fired thruster for phase 6 so its force is applied at ITS
-                    // own block position (grid-local center, from the block's template) —
-                    // off-COM mounts then torque the grid, exactly as in the game.
-                    _applications.Add(new ThrustApplication
-                    {
-                        BodyForce = forceAxis * delivered,
-                        GridLocalPoint = thruster.Template.CenterLocal,
-                    });
+
                 }
             }
             _netBodyForce = net;
             return net;
         }
 
-        /// <summary>Tick phase 6: apply each fired thruster's phase-5 force as a world-frame
-        /// point impulse at that thruster's OWN world position — transformed to the world frame
-        /// and timed by the fixed step. <see cref="SimRigidBody.ApplyPointImpulse"/> produces
-        /// linear plus angular change I⁻¹ (r × impulse), so an off-center thruster translates
-        /// the grid AND pitches/yaws it about the COM, matching the real game (each thruster's
-        /// force acts at its block position, not the whole grid's resultant at the COM).</summary>
+        /// <summary>Apply the combined body force at the COM, with no thrust torque.</summary>
         public void ApplyThrust(float dtSeconds)
         {
-            if (_grid.IsDisposed || _applications.Count == 0 || dtSeconds <= 0f)
-            {
-                return;
-            }
+            if (_grid.IsDisposed || dtSeconds <= 0f) return;
             SimRigidBody body = _grid.Body;
-            if (body == null || body.IsDisposed || !body.IsDynamic)
-            {
-                return;
-            }
-            MatrixD world = _grid.WorldMatrix;
-            for (int i = 0; i < _applications.Count; i++)
-            {
-                ThrustApplication app = _applications[i];
-                Vector3 worldForce = Vector3.TransformNormal(app.BodyForce, (Matrix)world);
-                Vector3D worldPoint = Vector3D.Transform(new Vector3D(app.GridLocalPoint), (MatrixD)world);
-                body.ApplyPointImpulse(worldForce * dtSeconds, worldPoint);
-            }
+            if (body == null || body.IsDisposed || !body.IsDynamic) return;
+            Vector3 worldForce = Vector3.TransformNormal(_netBodyForce, (Matrix)_grid.WorldMatrix);
+            body.ApplyLinearImpulse(worldForce * dtSeconds);
         }
-
         /// <summary>Tick phase 8: after the physics interval, publish each thruster's phase-5
         /// delivered force as its <see cref="SimThrust.CurrentThrust"/>.</summary>
         public void UpdateThrusterTelemetry()
@@ -286,6 +228,7 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             Vector3 pos = Vector3.Zero;
             Vector3 neg = Vector3.Zero;
+            OverrideForce = Vector3.Zero;
             float factor = 1f;
             bool haveFactor = false;
             for (int i = 0; i < _thrusters.Count; i++)
@@ -295,6 +238,12 @@ namespace FleetCommand.Test.SpaceEngineers
                 // so the base-control path's capacities match what
                 // aggregation delivers under the current atmosphere.
                 float effective = thruster.Effectiveness * _grid.World.AtmosphereEffectiveness;
+                if (thruster.Closed || !thruster.Enabled || !thruster.IsFunctional) continue;
+                if (thruster.IsOverridden)
+                {
+                    OverrideForce -= new Vector3(thruster.GridThrustDirection) * thruster.ThrustOverride * effective;
+                    continue;
+                }
                 // Game: an unpowered thruster contributes +0 to the per-direction capacity
                 // (RecomputeTypeThrustParameters sums 0 for !IsPowered thrusters —
                 // MyEntityThrustComponent.cs:1407-1416), so a power deficit reduces

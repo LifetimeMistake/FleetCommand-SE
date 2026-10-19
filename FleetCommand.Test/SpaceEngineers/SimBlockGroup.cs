@@ -29,6 +29,7 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 throw new ArgumentNullException(nameof(block));
             }
+            if (block.Template.Kind == FleetCommand.Test.Templates.BlockKind.Standard) return;
             if (!_members.Contains(block))
             {
                 _members.Add(block);

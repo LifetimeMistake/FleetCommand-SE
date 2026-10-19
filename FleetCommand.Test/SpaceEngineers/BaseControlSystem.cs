@@ -6,19 +6,9 @@ using VRageMath;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
-    /// <summary>The grid's controller-driven base thrust demand: the MoveIndicator (manual control)
-    /// + inertia dampening + anti-gravity that occupied ship controllers feed into the thrust base
-    /// path — reproducing the game's <c>MyEntityThrustComponent.ComputeBaseThrust</c>
-    /// (Decompiled/Sandbox.Game/Sandbox/Game/GameSystems/MyEntityThrustComponent.cs, lines
-    /// 1543-1656) driven by the controller route (<c>MyShipController.MoveAndRotate</c>, :1780-1820
-    /// — <c>ControlThrust += Transform(MoveIndicator)</c>, <c>Enabled = ControlThrusters</c>). It
-    /// reproduces the dampening term exactly (cancel grid-frame velocity error plus half of
-    /// gravity, weighted by the manual-control share, with the /0.5 proportional constant scaled by
-    /// <see cref="SimRigidBody.Mass"/>), then normalizes the result back to the grid-body group
-    /// demand the <see cref="ForceAggregator"/> consumes (so effectiveness, power, and direction
-    /// apply exactly as for any group demand). Gating: only an under-control, working controller
-    /// contributes; with none there is no base thrust — a free drifting ship stays
-    /// drifting.</summary>
+    /// <summary>Computes manual control plus grid inertial dampening using
+    /// MyEntityThrustComponent.ComputeBaseThrust. Pilot input requires occupancy;
+    /// dampening uses shared grid state and remains active without a pilot.</summary>
     public sealed class BaseControlSystem
     {
         private readonly SimCubeGrid _grid;
@@ -82,9 +72,9 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>Tick phase 5 (before <see cref="ForceAggregator.Aggregate"/>): recompute the
         /// grid's directional thrust capacity, then reproduce <c>ComputeBaseThrust</c> from the
-        /// under-control controllers' MoveIndicator, the body velocity, gravity, mass, and
+        /// controllers' MoveIndicator, the body velocity, gravity, mass, and
         /// capacities, and set the aggregator's group demand from the normalized base force. With
-        /// no under-control controller the base path is idle (a free drifting ship stays
+        /// no working controller the base path is idle (a free drifting ship stays
         /// drifting).</summary>
         public void ComputeBaseDemand()
         {
@@ -101,17 +91,17 @@ namespace FleetCommand.Test.SpaceEngineers
             // ControlThrusters (MyShipController.cs:1812); only under-control,
             // working controllers contribute their MoveIndicator.
             Vector3 controlThrust = Vector3.Zero;
-            bool anyUnderControl = false;
+            bool anyController = false;
             bool dampenersWanted = false;
             bool controlEnabled = false;
             for (int i = 0; i < _controllers.Count; i++)
             {
                 SimShipController c = _controllers[i];
-                if (c.Closed || !c.IsWorking || !c.IsUnderControl)
+                if (c.Closed || !c.IsWorking)
                 {
                     continue;
                 }
-                anyUnderControl = true;
+                anyController = true; // Dampening is grid state, independent of occupancy.
                 if (!c.ControlThrusters)
                 {
                     continue;
@@ -125,10 +115,11 @@ namespace FleetCommand.Test.SpaceEngineers
                 // block's grid-local orientation maps the pilot's control
                 // input into the grid (body) frame.
                 Matrix blockToGrid = Matrix.CreateFromQuaternion(c.Template.Orientation);
-                controlThrust += Vector3.TransformNormal(c.MoveIndicator, blockToGrid);
+                if (c.IsUnderControl)
+                    controlThrust += Vector3.TransformNormal(c.MoveIndicator, blockToGrid);
             }
 
-            if (!anyUnderControl || !controlEnabled)
+            if (!anyController || !controlEnabled)
             {
                 return; // no base thrust (EntityThrustComponent.Enabled=false)
             }
@@ -172,6 +163,10 @@ namespace FleetCommand.Test.SpaceEngineers
                     Vector3 zero2 = zero2Direction(vector2, vector3, maxNeg, maxPos);
                     zero *= MathHelpers.SafeRatio(zero2, zero2);
                     slowdownThrust = vector4 / 0.5f * body.Mass * zero;
+                    Vector3 overridden = _grid.ForceAggregator.OverrideForce;
+                    slowdownThrust.X = ReduceSlowdownAxis(slowdownThrust.X, overridden.X);
+                    slowdownThrust.Y = ReduceSlowdownAxis(slowdownThrust.Y, overridden.Y);
+                    slowdownThrust.Z = ReduceSlowdownAxis(slowdownThrust.Z, overridden.Z);
                 }
             }
             Vector3 vector6 = Vector3.Clamp(controlThrust, Vector3.Zero, Vector3.One) * maxPos
@@ -189,6 +184,14 @@ namespace FleetCommand.Test.SpaceEngineers
             // this force demand, then effectiveness + power + direction
             // apply as for any group demand).
             _grid.ForceAggregator.SetGroupDemand(MathHelpers.Normalize(vector6, maxPos, maxNeg));
+        }
+
+        private static float ReduceSlowdownAxis(float slowdown, float overridden)
+        {
+            if (slowdown == 0f || overridden == 0f) return slowdown;
+            if (Math.Sign(slowdown) != Math.Sign(overridden)) return 0f;
+            float remaining = slowdown - overridden;
+            return Math.Sign(remaining) != Math.Sign(slowdown) ? 0f : remaining;
         }
 
         private static Vector3 zero2Direction(Vector3 vector2, Vector3 vector3, Vector3 maxNeg, Vector3 maxPos)

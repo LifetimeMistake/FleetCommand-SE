@@ -58,6 +58,11 @@ namespace FleetCommand.Test.Templates
         public bool InitialEnabled { get; internal set; } = true;
         public Sandbox.ModAPI.Ingame.ChargeMode InitialChargeMode { get; internal set; }
         public bool InitialDampeners { get; internal set; } = true;
+        public float RequiredPowerInput { get; internal set; }
+        public float ThrusterIdlePowerDemand { get; internal set; }
+        public float BatteryRechargeMultiplier { get; internal set; } = 1f;
+        public int BatteryUpdateIntervalTicks { get; internal set; } = 1;
+        public bool UseDefinitionPowerGroups { get; internal set; }
         /// <summary>The block's name (unique per grid; used by later stages).</summary>
         public string Name { get; }
 

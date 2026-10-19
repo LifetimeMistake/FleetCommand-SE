@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Sandbox.ModAPI.Ingame;
 
 namespace FleetCommand.Test.SpaceEngineers
 {
@@ -36,7 +37,7 @@ namespace FleetCommand.Test.SpaceEngineers
     /// consumed power is drawn from producers by their source-group priority tier (battery before
     /// reactor). The fixed 1/60 s step and the absence of wall-clock reads and noise make the bus
     /// exact and repeatable. Charging: after the real consumers (grid loads) are served, the bus
-    /// routes the remaining (surplus) supply to charging batteries in registration order, each up
+    /// routes surplus to Recharge storage first, then Auto storage from ordinary producers, each up
     /// to its charge demand (<see cref="SimBatteryBlock.ComputeChargeDemand"/> — the game's
     /// <c>Sink_ComputeRequiredPower</c>). The charge power actually delivered becomes the battery's
     /// real <see cref="SimBatteryBlock.CurrentInput"/> and is netted against its output
@@ -191,10 +192,21 @@ namespace FleetCommand.Test.SpaceEngineers
                 int priority = _ordered[index].PowerPriority;
                 int tierStart = index;
                 float tierDemand = 0f;
+                float thrustCommandDemand = 0f, thrustIdleDemand = 0f;
                 bool tierAdaptable = true;
                 while (index < _ordered.Count && _ordered[index].PowerPriority == priority)
                 {
-                    tierDemand += _ordered[index].PowerDemand;
+                    var consumer = _ordered[index];
+                    if (consumer.Enabled && consumer.IsFunctional)
+                    {
+                        var thruster = consumer as SimThrust;
+                        if (thruster != null && thruster.UsesAutomaticPowerDemand)
+                        {
+                            thrustCommandDemand += thruster.CommandPowerDemand;
+                            thrustIdleDemand += thruster.MinimumPowerDemand;
+                        }
+                        else tierDemand += consumer.PowerDemand;
+                    }
                     if (!_ordered[index].IsPowerAdaptable)
                     {
                         tierAdaptable = false; // tier adaptability is the AND across the tier
@@ -202,6 +214,9 @@ namespace FleetCommand.Test.SpaceEngineers
                     index++;
                 }
                 int tierEnd = index;
+                // One electrical fuel group in the supported rigid-grid model. The game
+                // floors summed command/override demand once, not once per idle thruster.
+                tierDemand += Math.Max(thrustCommandDemand, thrustIdleDemand);
 
                 // RecomputeResourceDistributionPartial: a tier is fully satisfied when the
                 // supply reaches it (:2229-2236); an adaptable tier that cannot be fully met
@@ -234,41 +249,89 @@ namespace FleetCommand.Test.SpaceEngineers
                 }
             }
 
-            // Depletion: the consumed power (supply minus the surplus still unclaimed) is
-            // drawn from producers by source-group priority tier — lower game Priority drawn
-            // first (battery before reactor; ResourceDistributionGroups.sbc, sources drawn
-            // tier by tier in RecomputeResourceDistributionPartial :2371-2391). Every
-            // producer's CurrentOutput stays fresh (0 when nothing left to draw).
-            float needed = supply - remaining;
-            _sources.Sort((a, b) => SourceTier(a).CompareTo(SourceTier(b)));
-            for (int i = 0; i < _sources.Count; i++)
-            {
-                needed = Math.Max(0f, needed - _sources[i].Draw(needed, dtSeconds));
-            }
-
-            // Charging: route the surplus (what grid loads did not consume)
-            // to charging batteries in registration order, each up to its
-            // charge demand. The power actually delivered is CurrentInput
-            // and is netted against output.
-            float surplus = remaining;
+            // Storage pairs are handled separately from ordinary sources in the game
+            // (MyResourceDistributorComponent.RecomputeResourceDistributionPartial).
+            // Recharge storage gets first claim on surplus. Auto storage may absorb only
+            // surplus from ordinary producers, never unused storage output (self-charging).
+            _plannedOutputs.Clear();
+            _chargeInputs.Clear();
+            float rechargeDemand = 0f;
+            for (int i = 0; i < _batteries.Count; i++)
+                if (_batteries[i].ChargeMode == ChargeMode.Recharge)
+                    rechargeDemand += _batteries[i].ComputeChargeDemand();
+            float rechargeInput = Math.Min(remaining, rechargeDemand);
+            float rechargeRatio = rechargeDemand > 0f ? rechargeInput / rechargeDemand : 0f;
             for (int i = 0; i < _batteries.Count; i++)
             {
-                SimBatteryBlock battery = _batteries[i];
-                float demand = battery.ComputeChargeDemand();
-                float input;
-                if (demand <= 0f || surplus <= 0f)
-                {
-                    input = 0f;
-                }
-                else
-                {
-                    input = Math.Min(demand, surplus);
-                    surplus -= input;
-                }
-                battery.ApplyCharge(input, dtSeconds);
+                var battery = _batteries[i];
+                _chargeInputs[battery] = battery.ChargeMode == ChargeMode.Recharge
+                    ? battery.ComputeChargeDemand() * rechargeRatio : 0f;
             }
+            PlanDraw(supply - remaining + rechargeInput, dtSeconds, includeBatteries: true);
+
+            float ordinarySurplus = 0f;
+            for (int i = 0; i < _sources.Count; i++)
+                if (!(_sources[i] is SimBatteryBlock))
+                    ordinarySurplus += Math.Max(0f, SourceCapacity(_sources[i], dtSeconds) - PlannedOutput(_sources[i]));
+            float autoDemand = 0f;
+            for (int i = 0; i < _batteries.Count; i++)
+                if (_batteries[i].ChargeMode == ChargeMode.Auto)
+                    autoDemand += _batteries[i].ComputeChargeDemand();
+            float autoInput = Math.Min(ordinarySurplus, autoDemand);
+            float autoRatio = autoDemand > 0f ? autoInput / autoDemand : 0f;
+            for (int i = 0; i < _batteries.Count; i++)
+                if (_batteries[i].ChargeMode == ChargeMode.Auto)
+                    _chargeInputs[_batteries[i]] = _batteries[i].ComputeChargeDemand() * autoRatio;
+            PlanDraw(autoInput, dtSeconds, includeBatteries: false);
+
+            // Draw once per producer so fuel accounting and telemetry include charge sinks.
+            for (int i = 0; i < _sources.Count; i++)
+                _sources[i].Draw(PlannedOutput(_sources[i]), dtSeconds);
+            for (int i = 0; i < _batteries.Count; i++)
+                _batteries[i].ApplyCharge(_chargeInputs[_batteries[i]], dtSeconds);
         }
 
+        private readonly Dictionary<SimPowerSource, float> _plannedOutputs = new Dictionary<SimPowerSource, float>();
+        private readonly Dictionary<SimBatteryBlock, float> _chargeInputs = new Dictionary<SimBatteryBlock, float>();
+
+        private float PlannedOutput(SimPowerSource source)
+        {
+            float output;
+            return _plannedOutputs.TryGetValue(source, out output) ? output : 0f;
+        }
+
+        private float SourceCapacity(SimPowerSource source, float dt)
+        {
+            return source.AvailableOutput(dt) * Math.Max(0f, Math.Min(1f, AvailableRatio));
+        }
+
+        private void PlanDraw(float needed, float dt, bool includeBatteries)
+        {
+            _sources.Sort((a, b) => SourceTier(a).CompareTo(SourceTier(b)));
+            int start = 0;
+            while (start < _sources.Count)
+            {
+                int end = start;
+                int tier = SourceTier(_sources[start]);
+                float capacity = 0f;
+                while (end < _sources.Count && SourceTier(_sources[end]) == tier)
+                {
+                    var source = _sources[end++];
+                    if (includeBatteries || !(source is SimBatteryBlock))
+                        capacity += Math.Max(0f, SourceCapacity(source, dt) - PlannedOutput(source));
+                }
+                float ratio = capacity > 0f ? Math.Min(1f, needed / capacity) : 0f;
+                for (int i = start; i < end; i++)
+                {
+                    var source = _sources[i];
+                    if (!includeBatteries && source is SimBatteryBlock) continue;
+                    float extra = Math.Max(0f, SourceCapacity(source, dt) - PlannedOutput(source)) * ratio;
+                    _plannedOutputs[source] = PlannedOutput(source) + extra;
+                }
+                needed = Math.Max(0f, needed - capacity * ratio);
+                start = end;
+            }
+        }
         /// <summary>The source-group priority tier of a producer — the game's resource source
         /// group, drawn in ascending <c>Priority</c> order (<c>ResourceDistributionGroups.sbc</c>:
         /// SolarPanels 1, Battery 2, Reactors 3; the distributor builds the priority arrays from

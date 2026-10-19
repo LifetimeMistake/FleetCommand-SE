@@ -22,6 +22,89 @@ namespace FleetCommand.Validation.Tests
     public class ValidationTests
     {
         [Test]
+        public void ImportedBattery_ReenableDoesNotChargeForDisabledFrames()
+        {
+            SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                beforeStart: (context, ship) => {
+                    var battery = (IMyBatteryBlock)ship.TerminalSystem.GetBlockWithName("FC Battery");
+                    battery.Enabled = false;
+                    context.Step(248); // completed frame250
+                    float initial = battery.CurrentStoredPower;
+                    battery.Enabled = true;
+                    battery.ChargeMode = ChargeMode.Recharge;
+                    context.Step(50); // next energy update at300 includes only50 enabled frames
+                    Assert.That(battery.CurrentStoredPower - initial,
+                        Is.EqualTo(0.2 * (50.0 / 60) / 3600 * 0.8).Within(1e-8));
+                    battery.ChargeMode = ChargeMode.Auto;
+                });
+        }
+
+        [Test]
+        public void ImportedPowerGroups_ServeGyrosBeforeAdaptableThrusters()
+        {
+            SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                beforeStart: (context, ship) => {
+                    var reactors = new System.Collections.Generic.List<IMyReactor>();
+                    var thrusters = new System.Collections.Generic.List<IMyThrust>();
+                    var gyros = new System.Collections.Generic.List<IMyGyro>();
+                    ship.TerminalSystem.GetBlocksOfType(reactors);
+                    ship.TerminalSystem.GetBlocksOfType(thrusters);
+                    ship.TerminalSystem.GetBlocksOfType(gyros);
+                    foreach (var r in reactors) r.Enabled = false;
+                    foreach (var t in thrusters) t.ThrustOverridePercentage = 1f;
+                    var battery = (IMyBatteryBlock)ship.TerminalSystem.GetBlockWithName("FC Battery");
+                    battery.ChargeMode = ChargeMode.Discharge;
+                    context.Step();
+                    Assert.That(gyros.All(g => g.IsWorking), Is.True);
+                    Assert.That(((SimGyro)gyros[0]).DeliveredRatio, Is.EqualTo(1f));
+                    Assert.That(thrusters[0].CurrentThrust, Is.EqualTo(14400 * ((0.2 - 0.0075401) / 1.2)).Within(0.1));
+                    foreach (var t in thrusters) t.ThrustOverridePercentage = 0;
+                    foreach (var r in reactors) r.Enabled = true;
+                    battery.ChargeMode = ChargeMode.Auto;
+                    context.Step();
+                });
+        }
+
+        [Test]
+        public void ImportedBattery_UpdatesStoredEnergyEvery100Frames_WithDefinitionEfficiency()
+        {
+            SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                beforeStart: (context, ship) => {
+                    var battery = (IMyBatteryBlock)ship.TerminalSystem.GetBlockWithName("FC Battery");
+                    battery.ChargeMode = ChargeMode.Recharge;
+                    float initial = battery.CurrentStoredPower;
+                    context.Step(97); // spawned world has already completed two ticks
+                    Assert.That(battery.CurrentStoredPower, Is.EqualTo(initial));
+                    context.Step();
+                    Assert.That(battery.CurrentStoredPower - initial,
+                        Is.EqualTo(0.2 * (100.0 / 60) / 3600 * 0.8).Within(1e-8));
+                    battery.ChargeMode = ChargeMode.Auto;
+                });
+        }
+
+        [Test]
+        public void FixtureMass_PreservesFractionalComponentMasses()
+        {
+            SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                beforeStart: (context, ship) => Assert.That(ship.Grid.Body.Mass, Is.EqualTo(7551.8).Within(0.01)));
+        }
+
+        [Test]
+        public void FixtureIdlePower_ChargesFromMeasuredProducerOutput()
+        {
+            SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                beforeStart: (context, ship) => {
+                    context.Step(10);
+                    var battery = (IMyBatteryBlock)ship.TerminalSystem.GetBlockWithName("FC Battery");
+                    var reactors = new System.Collections.Generic.List<IMyReactor>();
+                    ship.TerminalSystem.GetBlocksOfType(reactors);
+                    Assert.That(battery.CurrentOutput, Is.EqualTo(0.007552).Within(0.00002));
+                    Assert.That(battery.CurrentInput, Is.EqualTo(0.2).Within(0.00001));
+                    Assert.That(reactors.Sum(r => r.CurrentOutput), Is.EqualTo(0.2).Within(0.00002));
+                });
+        }
+
+        [Test]
         public void LcdReadback_IsPublishedOnSimulationUpdateRatherThanSynchronously()
         {
             SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,

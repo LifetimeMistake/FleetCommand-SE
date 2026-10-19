@@ -22,6 +22,23 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class BlockHierarchyConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void StructuralBlocks_RemainPhysical_ButAreAbsentFromTerminalQueries()
+        {
+            var ship = Fc.Spawn(TwoBlockTemplate("armor"), SpawnState.At(Vector3D.Zero));
+            var blocks = new List<IMyTerminalBlock>();
+            ship.TerminalSystem.GetBlocks(blocks);
+            Assert.That(blocks, Has.Count.EqualTo(1));
+            ship.TerminalSystem.GetBlocksOfType<IMyTerminalBlock>(blocks);
+            Assert.That(blocks, Has.Count.EqualTo(1));
+            ship.TerminalSystem.SearchBlocksOfName("Payload", blocks);
+            Assert.That(blocks, Is.Empty);
+            Assert.That(ship.TerminalSystem.GetBlockWithName("Payload"), Is.Null);
+            Assert.That(ship.TerminalSystem.GetBlockWithId(ship.Grid.TerminalSystem.Blocks[1].EntityId), Is.Null);
+            Assert.That(ship.Grid.Body.Mass, Is.EqualTo(500));
+            Assert.That(ship.Grid.CubeExists(new Vector3I(3, 0, 0)), Is.True);
+        }
+
         // — hierarchy surface —
 
         [Test]
@@ -77,7 +94,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             // GetBlocks must return only this grid's blocks, never ship B's.
             var all = new List<IMyTerminalBlock>();
             sysA.GetBlocks(all);
-            Assert.That(all, Has.Count.EqualTo(2));
+            Assert.That(all, Has.Count.EqualTo(1));
             foreach (IMyTerminalBlock block in all)
             {
                 Assert.That(block.CubeGrid, Is.SameAs(shipA.Grid), "Lookup must not leak blocks from other grids.");
@@ -93,7 +110,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             var terminal = new List<SimTerminalBlock>();
             sysA.GetBlocksOfType<SimTerminalBlock>(terminal);
-            Assert.That(terminal, Has.Count.EqualTo(2));
+            Assert.That(terminal, Has.Count.EqualTo(1));
 
             var typedFunctional = new List<SimFunctionalBlock>();
             sysA.GetBlocksOfType<SimFunctionalBlock>(typedFunctional);
@@ -332,7 +349,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShip shipB = Fc.Spawn(ThrusterOnlyTemplate("B"), SpawnState.At(new Vector3D(30, 0, 0)));
 
             SimTerminalBlock a1 = (SimTerminalBlock)shipA.TerminalSystem.GetBlockWithName("MainThruster");
-            SimTerminalBlock a2 = (SimTerminalBlock)shipA.TerminalSystem.GetBlockWithName("Payload");
+            SimTerminalBlock a2 = shipA.Grid.TerminalSystem.Blocks[1];
             SimTerminalBlock b1 = (SimTerminalBlock)shipB.TerminalSystem.GetBlockWithName("MainThruster");
 
             Assert.That(a1.IsSameConstructAs(a2), Is.True, "Blocks on the same grid are the same construct.");

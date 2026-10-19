@@ -159,9 +159,8 @@ floating-point equality claim. Quaternion sign is handled by angular distance.
   waypoint differences and their subsequent attitude effects; a regression test
   preserves that finding. This remaining simulator issue is not hidden by
   looser limits or described as a passing game-equivalence check.
-- The simulator currently enumerates structural armor as terminal blocks; the
-  real game's terminal system may enumerate fewer blocks. The raw count is
-  retained so comparison can expose this representation/API discrepancy.
+- Structural armor remains part of grid geometry and mass, but terminal queries
+  now exclude it. The validation fixture exposes 17 terminal blocks, as in game.
 - LCD writes now publish on the simulator's ten-tick update, following
   MyTextPanel.UpdateAfterSimulation10/UpdateModApiText. The script waits for its
   append/read probe to become visible before replacing it with report text;
@@ -171,6 +170,25 @@ Minor hardening deferred from final review: the comparator counts capability
 records without enforcing unique thruster indices, and checks monotonic sample
 times without reconstructing the complete timing schedule. Normal runner output
 is covered; identically malformed hand-edited reports can evade those two checks.
+
+## Survival measurement repairs (suite v2)
+
+The original `TestResults/result.log` completed 19 cases / 133 samples. Its
+source-backed repair findings are recorded in
+`docs/validation-conformance-2026-10-18.md`. Suite v2 explicitly selects
+`FlightMode.OneWay`; the previous default Patrol rejected a single waypoint in
+the actual game. The same checked-in craft blueprint is used. Reload the local
+`FleetCommand.Validation` script in the programmable block and run `start` on a
+fresh fixture in Survival, vacuum, and zero gravity. Leave the cockpit empty
+and allow the test to finish before approaching the grid. The first LCD line
+must end in `suite-v2`; save the complete LCD export to a new result file.
+
+The comparator accepts archived suite v1 reports, but rejects comparisons
+between suite revisions because their waypoint commands differ. Earlier game
+data remains useful for diagnosing the unchanged probes. Battery stored-energy
+updates are quantized to 100 frames; the game scheduler's initial phase is not
+controlled by placing the craft, so point samples may remain offset even when
+the underlying power flow agrees. No comparison tolerances were relaxed.
 
 ## Extending
 

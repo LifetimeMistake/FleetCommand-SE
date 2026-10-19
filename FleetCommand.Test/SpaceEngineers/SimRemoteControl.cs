@@ -19,6 +19,14 @@ namespace FleetCommand.Test.SpaceEngineers
         private float _speedLimit;
         private readonly List<MyWaypointInfo> _waypoints = new List<MyWaypointInfo>();
         private int _waypointIndex;
+        private FlightMode _flightMode = FlightMode.Patrol;
+
+        public override float PowerDemand
+        {
+            get { return Template.RequiredPowerInput == 0f ? base.PowerDemand :
+                (IsUnderControl || IsAutoPilotEnabled ? Template.RequiredPowerInput : 1e-7f); }
+            set { base.PowerDemand = value; }
+        }
 
         public SimRemoteControl(long entityId, string name, SimCubeGrid grid, TemplateBlock template)
             : base(entityId, name, grid, template)
@@ -44,6 +52,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// (no AI command).</summary>
         public void SetAutoPilotEnabled(bool enabled)
         {
+            if (enabled && (!IsFunctional || _waypoints.Count == 0 || (_waypoints.Count == 1 && FlightMode != FlightMode.OneWay))) return;
             if (_isAutoPilotEnabled == enabled)
             {
                 return;
@@ -111,8 +120,8 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public FlightMode FlightMode
         {
-            get { return ThrowNotSupported<FlightMode>("IMyRemoteControl.FlightMode"); }
-            set { ThrowSetNotSupported("IMyRemoteControl.FlightMode"); }
+            get { return _flightMode; }
+            set { _flightMode = value; }
         }
 
         /// <inheritdoc />

@@ -82,7 +82,7 @@ namespace FleetCommand.Test.SpaceEngineers
             for (int i = 0; i < _blocks.Count; i++)
             {
                 SimTerminalBlock block = _blocks[i];
-                if (!block.Closed)
+                if (!block.Closed && block.Template.Kind != FleetCommand.Test.Templates.BlockKind.Standard)
                 {
                     blocks.Add(block);
                 }
@@ -115,7 +115,7 @@ namespace FleetCommand.Test.SpaceEngineers
             for (int i = 0; i < _blocks.Count; i++)
             {
                 SimTerminalBlock block = _blocks[i];
-                if (block.Closed || !(block is T))
+                if (block.Template.Kind == FleetCommand.Test.Templates.BlockKind.Standard || block.Closed || !(block is T))
                 {
                     continue;
                 }
@@ -138,7 +138,7 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 SimTerminalBlock block = _blocks[i];
                 T typed = block as T;
-                if (block.Closed || typed == null)
+                if (block.Template.Kind == FleetCommand.Test.Templates.BlockKind.Standard || block.Closed || typed == null)
                 {
                     continue;
                 }
@@ -161,7 +161,7 @@ namespace FleetCommand.Test.SpaceEngineers
             for (int i = 0; i < _blocks.Count; i++)
             {
                 SimTerminalBlock block = _blocks[i];
-                if (block.Closed || block.CustomName == null)
+                if (block.Template.Kind == FleetCommand.Test.Templates.BlockKind.Standard || block.Closed || block.CustomName == null)
                 {
                     continue;
                 }
@@ -183,7 +183,7 @@ namespace FleetCommand.Test.SpaceEngineers
             for (int i = 0; i < _blocks.Count; i++)
             {
                 SimTerminalBlock block = _blocks[i];
-                if (!block.Closed
+                if (!block.Closed && block.Template.Kind != FleetCommand.Test.Templates.BlockKind.Standard
                     && string.Equals(block.CustomName, name, StringComparison.OrdinalIgnoreCase))
                 {
                     return block;
@@ -216,7 +216,7 @@ namespace FleetCommand.Test.SpaceEngineers
             for (int i = 0; i < _blocks.Count; i++)
             {
                 SimTerminalBlock block = _blocks[i];
-                if (!block.Closed && block.EntityId == id)
+                if (!block.Closed && block.Template.Kind != FleetCommand.Test.Templates.BlockKind.Standard && block.EntityId == id)
                 {
                     return block;
                 }
@@ -233,7 +233,7 @@ namespace FleetCommand.Test.SpaceEngineers
             }
             SimTerminalBlock candidate = (SimTerminalBlock)block;
             // Single rigid grid: all scope values resolve to "same grid".
-            return !candidate.Closed && candidate.Grid == _grid;
+            return !candidate.Closed && candidate.Template.Kind != FleetCommand.Test.Templates.BlockKind.Standard && candidate.Grid == _grid;
         }
 
         /// <inheritdoc />

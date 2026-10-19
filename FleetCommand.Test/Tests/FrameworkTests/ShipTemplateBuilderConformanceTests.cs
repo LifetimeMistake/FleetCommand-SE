@@ -42,7 +42,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             // Every declared block is present on the spawned grid, by name.
             foreach (TemplateBlock block in template.Blocks)
             {
-                Assert.That(ship.TerminalSystem.GetBlockWithName(block.Name), Is.Not.Null,
+                Assert.That(ship.Grid.CubeExists(block.Min), Is.True,
                     $"{name} spawn must carry block '{block.Name}'.");
             }
 

@@ -17,6 +17,15 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class RuntimeProgrammableBlockTextPanelConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void Runtime_OneFrame_UsesGameTimespanTicksWithoutMillisecondRounding()
+        {
+            var rt = SpawnRuntime();
+            rt.MarkRun();
+            Fc.Step();
+            Assert.That(rt.TimeSinceLastRun.Ticks, Is.EqualTo(166666L));
+        }
+
         // — runtime: deterministic time from the fixed clock —
 
         [Test]
@@ -36,7 +45,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             rt.MarkRun(); // the program's Main ran at tick 10
 
             Fc.Step(30); // 30 fixed steps elapse
-            Assert.That(rt.TimeSinceLastRun.TotalSeconds, Is.EqualTo(30.0 / 60.0).Within(1e-9),
+            Assert.That(rt.TimeSinceLastRun.Ticks, Is.EqualTo(30 * 166666L),
                 "TimeSinceLastRun must be the fixed-step interval since the last run — never wall-clock.");
         }
 
@@ -47,7 +56,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             rt.MarkRun(); // tick 0
 
             Fc.Step(60);
-            Assert.That(rt.TimeSinceLastRun.TotalSeconds, Is.EqualTo(60.0 / 60.0).Within(1e-9));
+            Assert.That(rt.TimeSinceLastRun.Ticks, Is.EqualTo(60 * 166666L));
 
             rt.MarkRun(); // resets the interval
             Assert.That(rt.TimeSinceLastRun.TotalSeconds, Is.EqualTo(0.0).Within(1e-9));
@@ -150,7 +159,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(pb.TryRun(""), Is.True, "TryRun must also work without an attached handler (identity/storage tests).");
 
             Fc.Step(30); // 30 fixed steps = exactly 0.5 s (TimeSpan-safe interval)
-            Assert.That(rt.TimeSinceLastRun.TotalSeconds, Is.EqualTo(30.0 / 60.0).Within(1e-9),
+            Assert.That(rt.TimeSinceLastRun.Ticks, Is.EqualTo(30 * 166666L),
                 "TryRun must mark the program's run so the runtime's interval tracks the fixed clock.");
         }
 

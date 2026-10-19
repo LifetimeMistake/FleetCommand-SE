@@ -15,6 +15,49 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class DampeningConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void Dampeners_DoNotCounteractAnOpposingThrustOverride()
+        {
+            var ship = Fc.Spawn(DampeningCraft("override", thrusters: AxialX()),
+                SpawnState.At(Vector3D.Zero).WithVelocity(Vector3D.UnitX));
+            ((SimThrust)ship.TerminalSystem.GetBlockWithName("F")).ThrustOverridePercentage = 1f;
+            Fc.Step();
+            Assert.That(ship.Grid.BaseControl.LastSlowdownThrust.X, Is.Zero);
+            Assert.That(ship.Grid.ForceAggregator.MaxPositiveThrust.X, Is.Zero,
+                "Overridden thrusters are excluded from the controllable capacity pool.");
+        }
+
+        [Test]
+        public void NewPilotCommand_RequestsPowerBeforeDeliveringThrustInSameStep()
+        {
+            var ship = Fc.Spawn(new ShipTemplate("power-command", 2.5f, new[] {
+                new TemplateBlock("Pilot", Vector3I.Zero, 400, 2.5f, kind: BlockKind.ShipController),
+                new TemplateBlock("Battery", new Vector3I(1, 0, 0), 400, 2.5f,
+                    kind: BlockKind.Battery, maxOutput: 5f, maxStoredPower: 100f),
+                new TemplateBlock("Engine", new Vector3I(2, 0, 0), 400, 2.5f,
+                    kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left,
+                    maxThrust: 10000f, powerDemand: 10f),
+            }), SpawnState.At(Vector3D.Zero));
+            Control(ship).IsUnderControl = true;
+            Control(ship).DampenersOverride = false;
+            Control(ship).MoveIndicator = Vector3.UnitX;
+            Fc.Step();
+            Assert.That(((SimThrust)ship.TerminalSystem.GetBlockWithName("Engine")).CurrentThrust,
+                Is.EqualTo(5000f).Within(0.01));
+        }
+
+        [Test]
+        public void UnoccupiedController_DampensVelocity_AndIgnoresStalePilotInput()
+        {
+            SimShip ship = Fc.Spawn(DampeningCraft("unoccupied", thrusters: AxialX()),
+                SpawnState.At(Vector3D.Zero).WithVelocity(new Vector3D(5, 0, 0)));
+            Control(ship).IsUnderControl = false;
+            Control(ship).MoveIndicator = Vector3.UnitX;
+            Fc.Step();
+            Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(5 - 10 * TickClock.FixedStep).Within(0.002));
+            Assert.That(ship.Grid.BaseControl.LastControlThrust, Is.EqualTo(Vector3.Zero));
+        }
+
         // — 1. dampening stops a moving ship —
 
         [Test]

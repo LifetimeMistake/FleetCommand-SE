@@ -123,7 +123,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             TemplateBlock b = SingleKind("MyObjectBuilder_ShipConnector", "ConnectorSmall");
             Assert.That(b.Kind, Is.EqualTo(BlockKind.Connector));
-            Assert.That(b.DryMass, Is.EqualTo(204f)); // real small connector mass
+            Assert.That(b.DryMass, Is.EqualTo(204.8f)); // real small connector mass
         }
 
         [Test]

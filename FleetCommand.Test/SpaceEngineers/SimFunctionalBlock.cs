@@ -34,6 +34,14 @@ namespace FleetCommand.Test.SpaceEngineers
             // before this base constructor body runs; the first phase-4
             // recompute applies the real requirement.
             _working = _enabled && _functional && IsPowered;
+            PowerDemand = template.RequiredPowerInput;
+            if (template.UseDefinitionPowerGroups)
+            {
+                // The simulator sorts larger values first; game priorities ascend.
+                if (template.Kind == BlockKind.FixedThruster) { PowerPriority = -80; IsPowerAdaptable = true; }
+                else if (template.Kind == BlockKind.Gyro) { PowerPriority = -70; IsPowerAdaptable = false; }
+                else { PowerPriority = -50; IsPowerAdaptable = false; }
+            }
         }
 
         /// <inheritdoc />

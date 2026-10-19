@@ -15,9 +15,7 @@ namespace FleetCommand.Test.SpaceEngineers
     /// <see cref="SimFunctionalBlock.DeliveredRatio"/>. <see cref="GridThrustDirection"/> is the
     /// grid-body forward (exhaust) axis and the grid is pushed opposite to it (<c>ThrustForce =
     /// -ThrustForwardVector</c>), so the aggregator groups thrusters by forward axis with no
-    /// craft-type branches. Each thruster's force is applied at ITS OWN block position, so an
-    /// off-center mount torques the grid about the COM like the real game (the aggregator stages
-    /// the force at the block's template center).</summary>
+    /// craft-type branches. The resultant acts at the grid COM, without mount-offset torque.</summary>
     public class SimThrust : SimFunctionalBlock, IMyThrust
     {
         private readonly Vector3I _direction;
@@ -30,6 +28,31 @@ namespace FleetCommand.Test.SpaceEngineers
         // (0..1) write the same fraction of MaxThrust. 0 means "not
         // overridden" (the thruster then answers the grid's group demand).
         private float _overrideFraction;
+        private float? _scenarioDemand;
+        internal bool UsesAutomaticPowerDemand => !_scenarioDemand.HasValue;
+        internal float CommandPowerDemand
+        {
+            get
+            {
+                float throttle = IsOverridden ? _overrideFraction : Math.Max(0f,
+                    Vector3.Dot(Grid.ForceAggregator.GroupDemand, -new Vector3(_direction)));
+                return Template.ThrusterPowerDemand * throttle;
+            }
+        }
+        internal float MinimumPowerDemand => IsOverridden ? 0f : Template.ThrusterIdlePowerDemand;
+
+        /// <summary>Thrust electrical input follows commanded strength, bounded below by
+        /// the definition's idle consumption (MyEntityThrustComponent.UpdatePowerAndThrustStrength).
+        /// An explicit scenario demand remains available for synthetic power-bus fixtures.</summary>
+        public override float PowerDemand
+        {
+            get
+            {
+                if (_scenarioDemand.HasValue) return _scenarioDemand.Value;
+                return Math.Max(MinimumPowerDemand, CommandPowerDemand);
+            }
+            set { _scenarioDemand = value; }
+        }
 
         private float _lastDelivered; // computed by the aggregator in phase 5
         private float _currentThrust; // committed in phase 8, after the physics interval
@@ -41,7 +64,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _maxThrust = template.MaxThrust;
             _effectiveness = template.Effectiveness;
             _slowdownFactor = template.SlowdownFactor;
-            PowerDemand = template.ThrusterPowerDemand;
+            _scenarioDemand = null;
             _overrideFraction = 0f;
             _lastDelivered = 0f;
             _currentThrust = 0f;

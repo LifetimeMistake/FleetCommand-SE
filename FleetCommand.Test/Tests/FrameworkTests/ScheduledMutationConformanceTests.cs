@@ -339,7 +339,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShip ship = Fc.Spawn(HullRig(HullMass), SpawnState.At(Vector3D.Zero));
             float m0 = ship.Grid.Body.Mass;
 
-            SimTerminalBlock hull = (SimTerminalBlock)ship.TerminalSystem.GetBlockWithName("Hull");
+            SimTerminalBlock hull = ship.Grid.TerminalSystem.Blocks[0];
             Fc.SetInventoryMass(hull, 300f);
 
             Assert.That(ship.Grid.Body.Mass, Is.EqualTo(m0 + 300f).Within(1e-3),

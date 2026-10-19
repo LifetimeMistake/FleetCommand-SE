@@ -16,6 +16,23 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     public class AutopilotConformanceTests : FleetTestFixture
     {
         [Test]
+        public void SingleWaypoint_RequiresOneWayFlightMode()
+        {
+            var ship = Fc.Spawn(AutopilotCraft("mode"), SpawnState.At(Vector3D.Zero));
+            var rc = Remote(ship);
+            rc.SetAutoPilotEnabled(true);
+            Assert.That(rc.IsAutoPilotEnabled, Is.False, "No waypoints cannot enable autopilot.");
+            rc.AddWaypoint(new Vector3D(0, 0, 500), "target");
+            rc.SetAutoPilotEnabled(true);
+            Assert.That(rc.IsAutoPilotEnabled, Is.False, "Default Patrol requires more than one waypoint.");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SetAutoPilotEnabled(true);
+            Assert.That(rc.IsAutoPilotEnabled, Is.True);
+            rc.SetAutoPilotEnabled(false);
+            Assert.That(rc.IsAutoPilotEnabled, Is.False);
+        }
+
+        [Test]
         public void Autopilot_Off_Coasts_NoAutoCommand()
         {
             SimShip ship = Fc.Spawn(
@@ -39,6 +56,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimRemoteControl rc = Remote(ship);
             rc.AddWaypoint(new Vector3D(0, 0, 4000), "target");
             rc.SpeedLimit = 40f;
+            rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
 
             double d0 = (ship.Grid.Body.PositionWorld - new Vector3D(0, 0, 4000)).Length();
@@ -62,6 +80,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimRemoteControl rc = Remote(ship);
             rc.AddWaypoint(new Vector3D(0, 0, 20000), "far");
             rc.SpeedLimit = 25f;
+            rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
 
             double peak = 0.0;
@@ -90,6 +109,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimRemoteControl rc = Remote(ship);
             rc.AddWaypoint(new Vector3D(5000, 0, 0), "side");
             rc.SpeedLimit = 40f;
+            rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
 
             // The waypoint is far enough that its direction from the ship
@@ -151,6 +171,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             rc.AddWaypoint(near, "near");
             rc.AddWaypoint(far, "far");
             rc.SpeedLimit = 40f;
+            rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
 
             Fc.Step(); // the near waypoint is within gridSize·3 → reached on the first compute
@@ -169,6 +190,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Vector3D wp = new Vector3D(0, 0, 8.0);
             rc.AddWaypoint(wp, "target");
             rc.SpeedLimit = 40f;
+            rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
 
             Fc.Step();
@@ -295,6 +317,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Vector3D targetDir = Vector3D.Normalize(fwd * Math.Cos(offsetRad) + perp * Math.Sin(offsetRad));
             rc.AddWaypoint(ship.Body.PositionWorld + targetDir * 1000.0, "target");
             rc.SpeedLimit = 40f;
+            rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
         }
 

@@ -414,6 +414,8 @@ namespace FleetCommand.Test.Framework
         private void Phase4_RecomputePower()
         {
             _phaseTrace.Add(PhaseNames[3]);
+            // Demand must reflect this callback interval before allocating electrical input.
+            PrepareControlDemand();
             // Recompute power availability and block IsWorking before actuation: each grid's
             // power bus delivers per-block power ratio (priority-ordered demand against ideal
             // or finite battery supply), then IsWorking is recomputed from enablement,
@@ -436,9 +438,8 @@ namespace FleetCommand.Test.Framework
             }
         }
 
-        private void Phase5_AggregateForce()
+        private void PrepareControlDemand()
         {
-            _phaseTrace.Add(PhaseNames[4]);
             // Aggregate forces from values written by callbacks. Each grid's
             // controller-driven base thrust demand (MoveIndicator + inertia dampening +
             // anti-gravity, the game's ComputeBaseThrust) runs first so the aggregator
@@ -471,6 +472,11 @@ namespace FleetCommand.Test.Framework
                     grid.Autopilot.ComputeAutopilot();
                 }
             }
+        }
+
+        private void Phase5_AggregateForce()
+        {
+            _phaseTrace.Add(PhaseNames[4]);
             for (int i = 0; i < _grids.Count; i++)
             {
                 SimCubeGrid grid = _grids[i];
@@ -556,6 +562,11 @@ namespace FleetCommand.Test.Framework
         private void Phase8_SynchronizeState()
         {
             _phaseTrace.Add(PhaseNames[7]);
+            for (int i = 0; i < _functionalBlocks.Count; i++)
+            {
+                var battery = _functionalBlocks[i] as SimBatteryBlock;
+                if (battery != null && !battery.Closed) battery.UpdateStoredEnergy(Clock.Tick + 1);
+            }
             if ((Clock.Tick + 1) % 10 == 0)
                 for (int i = 0; i < _functionalBlocks.Count; i++)
                 {

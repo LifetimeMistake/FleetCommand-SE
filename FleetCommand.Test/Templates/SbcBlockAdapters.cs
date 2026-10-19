@@ -92,6 +92,20 @@ namespace FleetCommand.Test.Templates
                 powerDemand: spec.ThrustPowerDemand,
                 gyroForce: spec.GyroForce,
                 gyroPowerDemand: spec.GyroPowerDemand);
+            // Definition values and runtime constants, MW; synthetic templates opt in separately.
+            result.UseDefinitionPowerGroups = true;
+            switch (spec.Kind)
+            {
+                case BlockKind.Battery:
+                    result.BatteryRechargeMultiplier = 0.8f;
+                    result.BatteryUpdateIntervalTicks = 100;
+                    break;
+                case BlockKind.FixedThruster: result.ThrusterIdlePowerDemand = 0.000002f; break;
+                case BlockKind.ProgrammableBlock: result.RequiredPowerInput = 0.0005f; break;
+                case BlockKind.Cockpit: result.RequiredPowerInput = 0.003f; break;
+                case BlockKind.RemoteControl: result.RequiredPowerInput = 0.01f; break;
+                case BlockKind.TextPanel: result.RequiredPowerInput = 0.00004f; break;
+            }
             result.InitialEnabled = (bool?)block.Data.Element("Enabled") ?? true;
             result.InitialDampeners = (bool?)block.Data.Element("DampenersEnabled") ?? true;
             string mode = (string)block.Data.Element("ChargeMode") ?? "Auto";
@@ -145,14 +159,14 @@ namespace FleetCommand.Test.Templates
     {
         public override IReadOnlyList<string> SubtypeIds => new[] { "SmallBlockRemoteControl", "LargeBlockRemoteControl" };
         protected override SimBlockSpec SpecFor(SbcBlock block)
-            => block.SubtypeId == "LargeBlockRemoteControl" ? S(BlockKind.RemoteControl, 137f) : S(BlockKind.RemoteControl, 38f);
+            => block.SubtypeId == "LargeBlockRemoteControl" ? S(BlockKind.RemoteControl, 137f) : S(BlockKind.RemoteControl, 38.2f);
     }
 
     public sealed class ProgrammableBlockAdapter : SimBlockAdapter
     {
         public override IReadOnlyList<string> SubtypeIds => new[] { "SmallProgrammableBlock", "LargeProgrammableBlock" };
         protected override SimBlockSpec SpecFor(SbcBlock block)
-            => block.SubtypeId == "LargeProgrammableBlock" ? S(BlockKind.ProgrammableBlock, 534f) : S(BlockKind.ProgrammableBlock, 138f);
+            => block.SubtypeId == "LargeProgrammableBlock" ? S(BlockKind.ProgrammableBlock, 534.4f) : S(BlockKind.ProgrammableBlock, 138.4f);
     }
 
     public sealed class BatteryBlockAdapter : SimBlockAdapter
@@ -164,7 +178,7 @@ namespace FleetCommand.Test.Templates
             {
                 return new SimBlockSpec { Kind = BlockKind.Battery, DryMass = 3845f, MaxOutput = 12f, MaxInput = 12f, MaxStoredPower = 3f };
             }
-            return new SimBlockSpec { Kind = BlockKind.Battery, DryMass = 146f, MaxOutput = 0.2f, MaxInput = 0.2f, MaxStoredPower = 0.05f };
+            return new SimBlockSpec { Kind = BlockKind.Battery, DryMass = 146.4f, MaxOutput = 0.2f, MaxInput = 0.2f, MaxStoredPower = 0.05f };
         }
     }
 
@@ -191,7 +205,7 @@ namespace FleetCommand.Test.Templates
             {
                 return new SimBlockSpec { Kind = BlockKind.Gyro, DryMass = 12817f, GyroForce = 3.36e7f, GyroPowerDemand = 0.01f };
             }
-            return new SimBlockSpec { Kind = BlockKind.Gyro, DryMass = 613f, GyroForce = 4.48e5f, GyroPowerDemand = 0.002f };
+            return new SimBlockSpec { Kind = BlockKind.Gyro, DryMass = 613.6f, GyroForce = 4.48e5f, GyroPowerDemand = 0.002f };
         }
     }
 
@@ -206,7 +220,7 @@ namespace FleetCommand.Test.Templates
     {
         public override IReadOnlyList<string> SubtypeIds => new[] { "SmallLCDPanel", "LargeLCDPanel" };
         protected override SimBlockSpec SpecFor(SbcBlock block)
-            => block.SubtypeId == "LargeLCDPanel" ? S(BlockKind.TextPanel, 222f) : S(BlockKind.TextPanel, 89f);
+            => block.SubtypeId == "LargeLCDPanel" ? S(BlockKind.TextPanel, 222.2f) : S(BlockKind.TextPanel, 89.8f);
     }
 
     public sealed class ConnectorBlockAdapter : SimBlockAdapter
@@ -223,8 +237,8 @@ namespace FleetCommand.Test.Templates
                 case "Connector":
                 case "LargeBlockInsetConnector": return S(BlockKind.Connector, 3564f);
                 case "ConnectorSmall":
-                case "SmallBlockInsetConnector": return S(BlockKind.Connector, 204f);
-                default: return S(BlockKind.Connector, 685f); // ConnectorMedium
+                case "SmallBlockInsetConnector": return S(BlockKind.Connector, 204.8f);
+                default: return S(BlockKind.Connector, 685.2f); // ConnectorMedium
             }
         }
     }

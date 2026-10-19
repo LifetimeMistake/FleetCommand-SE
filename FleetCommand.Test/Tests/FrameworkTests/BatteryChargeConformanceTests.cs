@@ -19,6 +19,18 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class BatteryChargeConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void ChargeInput_IsAccountedForInProducerOutput()
+        {
+            var ship = Fc.Spawn(ChargeTemplate("accounting", reactorMaxOut: 10f, batteryMaxOut: 4f,
+                batteryMaxIn: 6f, batteryMaxStored: 10f, batteryInitial: 0.5f), SpawnState.At(Vector3D.Zero));
+            Battery(ship).ChargeMode = ChargeMode.Recharge;
+            SetLoad(Load(ship), demand: 2f, priority: 1);
+            Fc.Step();
+            Assert.That(Reactor(ship).CurrentOutput, Is.EqualTo(8f).Within(1e-5),
+                "The reactor supplies both the 2 MW load and 6 MW charge input.");
+        }
+
         // MW·h per MW per fixed 1/60 s step: power · dt / 3600.
         private const float StepCharge = 1f / (3600f * 60f);
 
@@ -46,7 +58,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             // Recharge disables output: nothing leaves the battery (conformance 2).
             Assert.That(battery.CurrentOutput, Is.EqualTo(0f), "In Recharge the battery must not supply power.");
-            Assert.That(reactor.CurrentOutput, Is.EqualTo(2f).Within(1e-4),
+            Assert.That(reactor.CurrentOutput, Is.EqualTo(8f).Within(1e-4),
                 "The reactor must carry the load while the battery recharges.");
             Assert.That(load.DeliveredRatio, Is.EqualTo(1f).Within(1e-6), "The load stays fully powered.");
 

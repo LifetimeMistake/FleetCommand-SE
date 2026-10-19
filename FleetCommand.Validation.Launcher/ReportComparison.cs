@@ -90,8 +90,10 @@ namespace FleetCommand.Validation.Launcher
         {
             if (string.IsNullOrEmpty(report) || report.Length >= 100000) throw new FormatException("Empty or oversized report.");
             string[] lines = report.Replace("\r", "").TrimEnd('\n').Split('\n');
-            if (lines[0] != ValidationRunner.Header) throw new FormatException("Unknown report revision.");
+            if (lines[0] != ValidationRunner.Header && lines[0] != "FCVALIDATION|1|craft-v1|suite-v1")
+                throw new FormatException("Unknown report revision.");
             var parsed = new Parsed();
+            parsed.Contract.Add(lines[0]);
             var suite = ValidationCase.CreateSuite();
             int completed = 0, caseSamples = 0, previousTick = -1;
             bool open = false, ended = false, columns = false, lcdCheck = false;

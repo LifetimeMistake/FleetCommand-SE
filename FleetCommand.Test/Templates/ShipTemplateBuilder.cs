@@ -489,6 +489,11 @@ namespace FleetCommand.Test.Templates
         {
             public string Name;
             public BlockKind Kind;
+            public float RequiredPowerInput, ThrusterIdlePowerDemand, BatteryRechargeMultiplier = 1f;
+            public int BatteryUpdateIntervalTicks = 1;
+            public bool UseDefinitionPowerGroups;
+            public bool InitialEnabled = true, InitialDampeners = true;
+            public Sandbox.ModAPI.Ingame.ChargeMode InitialChargeMode;
             public Vector3I Min;
             public Vector3I? Size;
             public float DryMass;
@@ -517,6 +522,14 @@ namespace FleetCommand.Test.Templates
             {
                 Name = b.Name;
                 Kind = b.Kind;
+                RequiredPowerInput = b.RequiredPowerInput;
+                ThrusterIdlePowerDemand = b.ThrusterIdlePowerDemand;
+                BatteryRechargeMultiplier = b.BatteryRechargeMultiplier;
+                BatteryUpdateIntervalTicks = b.BatteryUpdateIntervalTicks;
+                UseDefinitionPowerGroups = b.UseDefinitionPowerGroups;
+                InitialEnabled = b.InitialEnabled;
+                InitialDampeners = b.InitialDampeners;
+                InitialChargeMode = b.InitialChargeMode;
                 Min = b.Min;
                 Size = b.Size;
                 DryMass = b.DryMass;
@@ -551,7 +564,17 @@ namespace FleetCommand.Test.Templates
                     GyroForce, GyroPowerDemand, ConnectorOrientation, ConnectorReach, ConnectorStrength,
                     SlowdownFactor,
                     InitialFuel, FuelConsumptionPerSecond,
-                    ConnectDirection);
+                    ConnectDirection)
+                {
+                    RequiredPowerInput = RequiredPowerInput,
+                    ThrusterIdlePowerDemand = ThrusterIdlePowerDemand,
+                    BatteryRechargeMultiplier = BatteryRechargeMultiplier,
+                    BatteryUpdateIntervalTicks = BatteryUpdateIntervalTicks,
+                    UseDefinitionPowerGroups = UseDefinitionPowerGroups,
+                    InitialEnabled = InitialEnabled,
+                    InitialDampeners = InitialDampeners,
+                    InitialChargeMode = InitialChargeMode,
+                };
             }
         }
     }

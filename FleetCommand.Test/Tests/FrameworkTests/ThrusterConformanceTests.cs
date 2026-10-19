@@ -17,6 +17,37 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class ThrusterConformanceTests : FleetTestFixture
     {
+        [TestCase(0f, 0.02f)]
+        [TestCase(0.001f, 0.01f)]
+        [TestCase(0.5f, 0.5f)]
+        [TestCase(1f, 1f)]
+        public void ElectricalIdleFloor_IsAppliedOnceToTheGroup(float throttle, float expectedPower)
+        {
+            var first = Thruster("First", new Vector3I(1, 0, 0), Vector3I.Left, 10000, powerDemand: 1);
+            var second = Thruster("Second", new Vector3I(-1, 0, 0), Vector3I.Right, 10000, powerDemand: 1);
+            first.ThrusterIdlePowerDemand = second.ThrusterIdlePowerDemand = 0.01f;
+            var battery = new TemplateBlock("Battery", Vector3I.Zero, 400, 2.5f,
+                kind: BlockKind.Battery, maxOutput: 2, maxStoredPower: 100);
+            var ship = Fc.Spawn(new ShipTemplate("idle-floor", 2.5f, new[] { battery, first, second }),
+                SpawnState.At(Vector3D.Zero));
+            ((IMyThrust)ship.TerminalSystem.GetBlockWithName("First")).ThrustOverridePercentage = throttle;
+            Fc.Step();
+            Assert.That(((IMyBatteryBlock)ship.TerminalSystem.GetBlockWithName("Battery")).CurrentOutput,
+                Is.EqualTo(expectedPower).Within(1e-6));
+        }
+
+        [Test]
+        public void ElectricalDemand_ScalesWithOverrideInsteadOfIdleMaximum()
+        {
+            var ship = Fc.Spawn(HullPlusThrusters("demand", hullMass: 2000f,
+                Thruster("T", new Vector3I(0, 0, 2), Vector3I.Forward, maxThrust: 60000f, powerDemand: 0.2f)),
+                SpawnState.At(Vector3D.Zero));
+            var thruster = (SimThrust)ship.TerminalSystem.GetBlockWithName("T");
+            Assert.That(thruster.PowerDemand, Is.Zero, "Synthetic definition has no idle demand.");
+            thruster.ThrustOverridePercentage = 0.2f;
+            Assert.That(thruster.PowerDemand, Is.EqualTo(thruster.Template.ThrusterPowerDemand * 0.2f).Within(1e-6));
+        }
+
         // — linear impulse response: vacuum —
 
         [Test]
@@ -234,14 +265,14 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             Fc.RunFor(1.0);
 
-            Assert.That(engine.DeliveredRatio, Is.EqualTo(0.5f).Within(1e-6),
-                "The phase-4 bus allocation must give the 10 MW engine a 0.5 ratio from the 5 MW battery.");
+            Assert.That(engine.DeliveredRatio, Is.EqualTo(0.625f).Within(1e-6),
+                "The engine requests 8 MW at 80% override; the 5 MW battery supplies a 0.625 ratio.");
             Assert.That(fullEngine.DeliveredRatio, Is.EqualTo(1f).Within(1e-6));
-            Assert.That(engine.CurrentThrust, Is.EqualTo(20000f).Within(1e-2),
-                "Delivered thrust must scale by the bus's delivered ratio (40000 x 0.5).");
+            Assert.That(engine.CurrentThrust, Is.EqualTo(25000f).Within(1e-2),
+                "Delivered thrust must scale by the bus's delivered ratio (40000 x 0.625).");
             Assert.That(fullEngine.CurrentThrust, Is.EqualTo(40000f).Within(1e-2));
 
-            float expectedV = 20000f / m;
+            float expectedV = 25000f / m;
             Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(expectedV).Within(expectedV * 0.02),
                 "The response must reflect the power-scaled delivered thrust, not the override.");
         }
@@ -249,9 +280,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         [Test]
         public void SharedPowerShortfall_ScalesEachThruster_ByTierRatio()
         {
-            // Two equal-priority 4 MW engines share a 6 MW battery: the
-            // tier receives ratio 0.75, and each delivered force is scaled
-            // by it — shared shortfall through the power profile.
+            // Each engine requests its 4 MW maximum scaled by 5/6 throttle.
             var template = new ShipTemplate("shared", 2.5f, new[]
             {
                 new TemplateBlock("Battery", new Vector3I(0, 0, 0), 400f, 2.5f,
@@ -273,29 +302,23 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             Fc.RunFor(1.0);
 
-            Assert.That(e1.DeliveredRatio, Is.EqualTo(0.75f).Within(1e-6),
-                "Equal-priority engines must share the shortfall fairly (6/8).");
-            Assert.That(e2.DeliveredRatio, Is.EqualTo(0.75f).Within(1e-6));
-            Assert.That(e1.CurrentThrust, Is.EqualTo(37500f).Within(1e-2));
-            Assert.That(e2.CurrentThrust, Is.EqualTo(37500f).Within(1e-2));
+            Assert.That(e1.DeliveredRatio, Is.EqualTo(0.9f).Within(1e-6),
+                "Equal-priority engines request 2 x 4 x (50000/60000) MW and share the 6 MW supply.");
+            Assert.That(e2.DeliveredRatio, Is.EqualTo(0.9f).Within(1e-6));
+            Assert.That(e1.CurrentThrust, Is.EqualTo(45000f).Within(1e-2));
+            Assert.That(e2.CurrentThrust, Is.EqualTo(45000f).Within(1e-2));
 
-            float expectedV = (2f * 37500f) / m;
+            float expectedV = (2f * 45000f) / m;
             Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(expectedV).Within(expectedV * 0.02),
                 "Both scaled delivered forces must feed the single resultant.");
         }
 
-        // — torque from an off-center fixed thruster —
-        // Each thruster's force acts at ITS OWN block position (the game
-        // applies each thruster's force at its block), so an off-COM mount
-        // produces a point impulse whose torque rotates the grid about the
-        // COM (I⁻¹ (r × impulse)) exactly like the real game.
+        // The game applies combined thrust at the COM, even with an off-centre mount.
 
         [Test]
-        public void OffCenterThruster_ProducesTorque_AboutCom()
+        public void OffCenterThruster_AppliesResultantAtCom_WithoutTorque()
         {
-            // A single +X thruster mounted far off the hull's center line:
-            // its +X force has a lever arm about the CoM, so the grid must
-            // yaw about the CoM while still translating along +X.
+            // Offset mount tests the distinction between grid thrust and point impulses.
             SimShip ship = Fc.Spawn(
                 HullPlusThrusters("lopsided", hullMass: 4000f,
                     Thruster("T", new Vector3I(8, 6, 4), Vector3I.Left, maxThrust: 80000f)),
@@ -305,16 +328,11 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             Fc.RunFor(1.0);
 
-            // The off-center +X thruster also yaws the grid, so the world +X
-            // speed is NOT the full 80000/m impulse — its line of thrust
-            // rotates away as the grid pitches. The key contract is that it
-            // still translates along +X AND the block offset produces rotation.
             Assert.That(ship.Body.LinearVelocity.X, Is.GreaterThan(1.0),
                 "The off-center thruster must still translate the grid along +X.");
-            // r (off the CoM) × F (+X) is non-zero, so the grid must have
-            // picked up a large angular velocity about the cross (Y) axis.
-            Assert.That(ship.Body.AngularVelocity.Length(), Is.GreaterThan(0.5),
-                "An off-center fixed thruster must torque the grid about the CoM (force applied at its own block, not the grid CoM).");
+            Assert.That(ship.Body.AngularVelocity.Length(), Is.LessThan(1e-5),
+                "MyThrusterBlockThrustComponent applies the resultant at the group COM, regardless of block placement.");
+            Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(80000f / ship.Grid.Body.Mass).Within(0.02));
         }
 
         [Test]
@@ -367,6 +385,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimThrust engine2 = (SimThrust)ship.TerminalSystem.GetBlockWithName("Engine2");
             engine.PowerPriority = 2; // served first, takes all 6 MW
             engine2.PowerPriority = 1; // remainder is zero -> unpowered
+            engine.PowerDemand = 6f;
+            engine2.PowerDemand = 20f;
 
             Fc.Step(); // phase 4 allocates power before actuation
 
@@ -534,12 +554,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 effectiveness: effectiveness, powerDemand: powerDemand);
         }
 
-        /// <summary>The asymmetric fixture: thrusters pushing +X (Main 60 kN, Aux 40 kN) and -Y
-        /// (Down 80 kN), no push on -X or Z — expressed as data. Its MASS is mirror-symmetric
-        /// about the origin (each off-axis thruster mirrored by an equal ballast so the CoM sits
-        /// at the origin), so every fired thruster's force passes through the CoM and produces no
-        /// block-offset torque (each thruster's force acts at its own block,
-        /// MyThrusterBlockThrustComponent / point impulse).</summary>
+        /// <summary>Asymmetric directional capacity fixture with a symmetric mass distribution.</summary>
         private static ShipTemplate AsymmetricCraft()
         {
             return new ShipTemplate("asym", 2.5f, new[]

@@ -17,7 +17,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             var rotation = MatrixD.CreateRotationX(0.6);
             var ship = Fc.Spawn(template, SpawnState.At(new Vector3D(10, 20, 30), rotation));
             var expected = (MatrixD)block.LocalTransform * ship.Grid.WorldMatrix;
-            var actual = ship.TerminalSystem.GetBlockWithName("block").WorldMatrix;
+            var actual = ship.Grid.TerminalSystem.Blocks[0].WorldMatrix;
             Assert.That(Vector3D.Distance(actual.Translation, expected.Translation), Is.LessThan(1e-6));
             Assert.That(Vector3D.Distance(actual.Forward, expected.Forward), Is.LessThan(1e-6));
         }

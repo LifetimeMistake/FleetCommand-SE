@@ -390,6 +390,8 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             remote.SpeedLimit = 42f;
             Assert.That(remote.SpeedLimit, Is.EqualTo(42f));
             Assert.That(remote.IsAutoPilotEnabled, Is.False);
+            remote.AddWaypoint(new Vector3D(100, 0, 0), "target");
+            remote.FlightMode = FlightMode.OneWay;
             remote.SetAutoPilotEnabled(true);
             Assert.That(remote.IsAutoPilotEnabled, Is.True);
         }
@@ -400,7 +402,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShip ship = Fc.Spawn(RemoteTemplate("RC"), SpawnState.At(Vector3D.Zero));
             IMyRemoteControl remote = (IMyRemoteControl)ship.Controller;
 
-            AssertThrowsNamed(() => remote.FlightMode, "IMyRemoteControl.FlightMode");
+            Assert.That(remote.FlightMode, Is.EqualTo(FlightMode.Patrol));
             AssertThrowsNamed(() => remote.Direction, "IMyRemoteControl.Direction");
             AssertThrowsNamed(() => remote.WaitForFreeWay, "IMyRemoteControl.WaitForFreeWay");
             AssertThrowsNamed(() => remote.GetNearestPlayer(out var _), "IMyRemoteControl.GetNearestPlayer()");

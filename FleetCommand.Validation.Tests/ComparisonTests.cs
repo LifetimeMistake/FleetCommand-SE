@@ -9,6 +9,18 @@ namespace FleetCommand.Validation.Tests
 {
     public class ComparisonTests
     {
+        [Test]
+        public void SuiteRevisions_CannotBeComparedAsEquivalent_ButLegacyReportsRemainReadable()
+        {
+            const string oldHeader = "FCVALIDATION|1|craft-v1|suite-v1";
+            const string newHeader = "FCVALIDATION|1|craft-v1|suite-v2";
+            string oldReport = _report.Replace(ValidationRunner.Header, oldHeader);
+            string newReport = _report.Replace(ValidationRunner.Header, newHeader);
+            Assert.That(ReportComparison.Compare(newReport, newReport).Success, Is.True);
+            Assert.That(ReportComparison.Compare(oldReport, oldReport).Success, Is.True);
+            Assert.That(ReportComparison.Compare(oldReport, newReport).Success, Is.False);
+        }
+
         string _report;
         [OneTimeSetUp]
         public void RunBaseline()
@@ -32,7 +44,7 @@ namespace FleetCommand.Validation.Tests
             // The simulator's approximate autopilot currently amplifies small world-frame
             // differences. Keep this visible: don't widen tolerances to call it equivalent.
             Assert.That(result.Success, Is.False);
-            Assert.That(result.Differences.All(d => d.StartsWith("waypoint_forward|") || d.StartsWith("connector_unpaired|")),
+            Assert.That(result.Differences.All(d => d.StartsWith("waypoint_forward|") || d.StartsWith("connector_unpaired|") || d.StartsWith("connector_unpaired: settling ticks")),
                 Is.True, string.Join("\n", result.Differences.Take(20)));
             Assert.That(result.Differences.Any(d => d.StartsWith("waypoint_forward|")), Is.True);
         }

@@ -48,7 +48,7 @@ namespace FleetCommand.Test.SpaceEngineers
                     return TimeSpan.Zero;
                 }
                 long elapsedTicks = _world.Clock.Tick - _lastRunTick;
-                return TimeSpan.FromSeconds(TickClock.FixedStep * elapsedTicks);
+                return new TimeSpan(166666L * elapsedTicks);
             }
         }
 
