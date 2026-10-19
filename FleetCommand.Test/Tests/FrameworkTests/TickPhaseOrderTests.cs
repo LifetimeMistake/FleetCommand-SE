@@ -5,13 +5,13 @@ using NUnit.Framework;
 
 namespace FleetCommand.Test.Tests.FrameworkTests
 {
-    /// <summary>Verifies the nine-phase tick pipeline runs in the exact non-negotiable order, with
+    /// <summary>Verifies the physics pipeline and post-physics programmable block stage, with
     /// real observable structure.</summary>
     [TestFixture]
     public class TickPhaseOrderTests
     {
         [Test]
-        public void Step_ExecutesAllNinePhases_InSpecOrder()
+        public void Step_ExecutesPhysicsPhasesThenProgrammableBlocks()
         {
             string[] expected =
             {
@@ -24,13 +24,14 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 "AdvancePhysics",
                 "SynchronizeState",
                 "SampleAndEvaluate",
+                "ProgrammableBlocks",
             };
 
             using (var world = new SimWorld())
             {
                 world.Step();
                 Assert.That(world.LastStepPhases, Is.EqualTo(new List<string>(expected)),
-                    "The nine tick phases must run in the exact spec order.");
+                    "Programmable blocks run after the completed physics interval, as in MyIngameScriptComponent.");
             }
         }
 

@@ -30,7 +30,14 @@ namespace FleetCommand.Test.Templates
                 throw new ArgumentException(
                     $"Blueprint '{file.Name}' has {file.Grids.Count} grids; a ShipTemplate models exactly one rigid grid.");
             }
-            SbcGrid grid = file.Grids[0];
+            return Convert(file.Grids[0], name);
+        }
+
+        /// <summary>Converts one grid of an assembly, preserving its static flag.
+        /// World placement and inter-grid links are the assembly caller's responsibility.</summary>
+        public static ShipTemplate Convert(SbcGrid grid, string name)
+        {
+            if (grid == null) throw new ArgumentNullException(nameof(grid));
             float gridSize = grid.GridSize == SbcGridSize.Small ? 0.5f : 2.5f;
 
             var blocks = new List<TemplateBlock>();
@@ -52,7 +59,8 @@ namespace FleetCommand.Test.Templates
                     designated = block.Name;
                 }
             }
-            return new ShipTemplate(name, gridSize, blocks, designatedControllerName: designated);
+            return new ShipTemplate(name, gridSize, blocks, isStatic: grid.IsStatic,
+                designatedControllerName: designated);
         }
     }
 }

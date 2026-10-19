@@ -60,6 +60,11 @@ namespace FleetCommand.Test.SpaceEngineers
             _isAutoPilotEnabled = enabled;
             IsUnderControl = enabled;
             Grid.GyroRateSystem.AutopilotEnabled = enabled;
+            // MyAutopilotComponent.SetAutopilot marks the thrust component dirty;
+            // its next UpdateBeforeSimulation wakes the grid before applying force.
+            Grid.Body.Activate();
+            // OnSetAutoPilotEnabled -> ResetShipControls enables shared dampeners.
+            if (enabled && ControlThrusters) DampenersOverride = true;
         }
 
         /// <inheritdoc />
@@ -104,6 +109,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>True while a target waypoint is set (for the
         /// <see cref="AutopilotSystem"/>).</summary>
         internal bool HasTarget => _waypointIndex < _waypoints.Count;
+        internal bool IsLastWaypoint => _waypointIndex == _waypoints.Count - 1;
 
         /// <summary>Advances to the next waypoint (or stays on the last), called by the
         /// <see cref="AutopilotSystem"/> when the current target is reached.</summary>
@@ -112,6 +118,14 @@ namespace FleetCommand.Test.SpaceEngineers
             if (_waypointIndex < _waypoints.Count - 1)
             {
                 _waypointIndex++;
+            }
+            else if (FlightMode == FlightMode.OneWay)
+            {
+                // MyAutopilotComponent.AdvanceWaypoint retains remote waypoints,
+                // resets their index, clears controls, and disables autopilot.
+                _waypointIndex = 0;
+                Grid.GyroRateSystem.ControlTorque = Vector3.Zero;
+                SetAutoPilotEnabled(false);
             }
         }
 

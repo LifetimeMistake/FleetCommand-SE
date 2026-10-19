@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using VRageMath;
 using System.Xml.Linq;
 
@@ -66,13 +67,59 @@ namespace FleetCommand.Test.Sbc
     /// list).</summary>
     public sealed class SbcGrid
     {
+        /// <summary>Serialized grid state, defensively copied on construction. Unknown
+        /// metadata is retained by the writer without interpreting its semantics.</summary>
+        public XElement Data { get; }
+
+        public bool IsStatic => (bool?)Data.Element("IsStatic") ?? false;
+
+        public long? SerializedEntityId
+        {
+            get
+            {
+                long id;
+                return long.TryParse((string)Data.Element("EntityId"), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out id) && id != 0 ? (long?)id : null;
+            }
+        }
+
+        /// <summary>The serialized world placement; absent fields use the identity frame.</summary>
+        public MatrixD WorldMatrix
+        {
+            get
+            {
+                XElement pose = Data.Element("PositionAndOrientation");
+                if (pose == null) return MatrixD.Identity;
+                return MatrixD.CreateWorld(ReadVector(pose.Element("Position"), Vector3D.Zero),
+                    ReadVector(pose.Element("Forward"), Vector3D.Forward),
+                    ReadVector(pose.Element("Up"), Vector3D.Up));
+            }
+        }
+
+        private static Vector3D ReadVector(XElement element, Vector3D fallback)
+        {
+            if (element == null) return fallback;
+            return new Vector3D(ReadComponent(element, "x", fallback.X),
+                ReadComponent(element, "y", fallback.Y), ReadComponent(element, "z", fallback.Z));
+        }
+
+        private static double ReadComponent(XElement element, string name, double fallback)
+        {
+            string value = (string)element.Attribute(name);
+            if (value == null) return fallback;
+            double result = double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture);
+            if (double.IsNaN(result) || double.IsInfinity(result))
+                throw new FormatException("Grid placement coordinates must be finite.");
+            return result;
+        }
+
         /// <summary>The grid's cell size.</summary>
         public SbcGridSize GridSize { get; }
 
         /// <summary>The grid's blocks, in file order.</summary>
         public IReadOnlyList<SbcBlock> Blocks { get; }
 
-        public SbcGrid(SbcGridSize gridSize, IEnumerable<SbcBlock> blocks)
+        public SbcGrid(SbcGridSize gridSize, IEnumerable<SbcBlock> blocks, XElement data = null)
         {
             if (blocks == null)
             {
@@ -80,6 +127,7 @@ namespace FleetCommand.Test.Sbc
             }
             GridSize = gridSize;
             Blocks = new List<SbcBlock>(blocks);
+            Data = data == null ? new XElement("CubeGrid") : new XElement(data);
         }
     }
 

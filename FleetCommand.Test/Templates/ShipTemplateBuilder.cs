@@ -505,6 +505,8 @@ namespace FleetCommand.Test.Templates
             public float MaxThrust, Effectiveness, PowerDemand;
             public float GyroForce, GyroPowerDemand;
             public Quaternion? ConnectorOrientation;
+            public Matrix? ConnectorDetectorDummy;
+            public bool? ConnectorIsSmall;
             public float ConnectorReach, ConnectorStrength, SlowdownFactor;
             public Vector3? ConnectDirection;
 
@@ -548,6 +550,8 @@ namespace FleetCommand.Test.Templates
                 GyroForce = b.GyroForce;
                 GyroPowerDemand = b.GyroPowerDemand;
                 ConnectorOrientation = b.ConnectorOrientation;
+                ConnectorDetectorDummy = b.ConnectorDetectorDummy;
+                ConnectorIsSmall = b.ConnectorIsSmall;
                 ConnectorReach = b.ConnectorReach;
                 ConnectorStrength = b.ConnectorStrength;
                 SlowdownFactor = b.SlowdownFactor;
@@ -567,6 +571,8 @@ namespace FleetCommand.Test.Templates
                     ConnectDirection)
                 {
                     RequiredPowerInput = RequiredPowerInput,
+                    ConnectorDetectorDummy = ConnectorDetectorDummy,
+                    ConnectorIsSmall = ConnectorIsSmall,
                     ThrusterIdlePowerDemand = ThrusterIdlePowerDemand,
                     BatteryRechargeMultiplier = BatteryRechargeMultiplier,
                     BatteryUpdateIntervalTicks = BatteryUpdateIntervalTicks,

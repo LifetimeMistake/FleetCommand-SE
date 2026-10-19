@@ -7,9 +7,9 @@ namespace FleetCommand.Test.SpaceEngineers
 {
     /// <summary>The connector docking lifecycle: a faithful port of the game's algorithm from
     /// <c>MyShipConnector.UpdateBeforeSimulation10</c> (auto-detect + TryAttach) plus the
-    /// per-tick approach-keep and the weld — the real game uses Havok's malleable hinge for the
+    /// approach-keep — the real game uses Havok's malleable hinge for the
     /// approach and a fixed constraint for the weld, both authored here and driven by the world's
-    /// Havok solver; there is no hand-written spring. Driven each tick by <see cref="SimWorld"/>
+    /// Havok solver; there is no hand-written spring. Called each tick by <see cref="SimWorld"/>
     /// in phase 5 (after power recompute, so <see cref="SimFunctionalBlock.IsWorking"/> is
     /// fresh); <see cref="SimShipConnector"/> stores the paired/connected result.</summary>
     internal static class ConnectorSystem
@@ -32,21 +32,9 @@ namespace FleetCommand.Test.SpaceEngineers
             return profile.ConnectorKeepSeparationSquared;
         }
 
-        /// <summary>
-        /// The weld-on-contact threshold (m^2) below which an approaching pair is considered to
-        /// have made contact and is welded. <b>Approximation:</b> the game welds when the two
-        /// grids physically collide (the connector faces seat together under the hinge); the sim has
-        /// no separate grid-collision contact signal, so it welds when the hinge has drawn the two
-        /// connection faces to within this small separation. It is an order of magnitude tighter
-        /// than the attach gate (0.35 sq, 0.59 m) and the keep range (0.5 sq, 0.7 m) so it
-        /// only fires once the faces have genuinely met. This is the one place a value had to be
-        /// chosen for the approach-to-weld transition (see report).
-        /// </summary>
-        internal const float ContactSeparationSquared = 0.01f; // 10 cm face-to-face
-
-        /// <summary>Runs the per-tick connector lifecycle over the deterministic registry —
+        /// <summary>Runs the connector lifecycle every ten physics ticks over the deterministic registry —
         /// the game's <c>UpdateBeforeSimulation10</c> (:1537-1580): detach a now-unworking or
-        /// drifted pair, maintain the approach's malleable strength, weld on contact, and
+        /// drifted pair, maintain the approach's malleable strength, and
         /// auto-attach unpaired working connectors whose faces are within range.</summary>
         public static void Tick(IReadOnlyList<SimShipConnector> connectors, SePhysicsProfile profile)
         {
@@ -61,6 +49,10 @@ namespace FleetCommand.Test.SpaceEngineers
                 {
                     continue;
                 }
+                if ((c.Grid.World.Clock.Tick + 1) % 10 != 0)
+                {
+                    continue;
+                }
                 if (!c.IsWorking)
                 {
                     // Game :1548-1558: a not-working connector detaches whenever it is in a
@@ -72,14 +64,15 @@ namespace FleetCommand.Test.SpaceEngineers
                     }
                     continue;
                 }
+                bool shouldTryAttach = c.AdvanceWorkingUpdate10();
                 if (c.InConstraint)
                 {
                     if (!c.ConnectedInternal)
                     {
                         // Approach-keep (:1559-1578): the master live-updates the malleable
                         // strength to the pair's effective value; if the faces drift beyond the
-                        // keep range the pair came apart and is detached; otherwise, when the
-                        // faces have met, weld.
+                        // keep range the pair came apart and is detached. Contact never welds;
+                        // only explicit Connect/TryConnect or replicated state calls Weld.
                         if (c.IsMaster)
                         {
                             c.UpdateApproachStrength();
@@ -90,17 +83,13 @@ namespace FleetCommand.Test.SpaceEngineers
                         {
                             c.DetachLink();
                         }
-                        else if (sepSq < ContactSeparationSquared)
-                        {
-                            c.WeldPair();
-                        }
                     }
                     continue;
                 }
                 // Not in a constraint and working: try to attach, exactly as the game's
                 // UpdateBeforeSimulation10 drove TryAttach for working, Enabled,
                 // connector-mode connectors (:1543-1546).
-                if (c.Enabled)
+                if (c.Enabled && shouldTryAttach)
                 {
                     TryAttach(c, connectors, profile);
                 }
@@ -166,17 +155,17 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>The attach gates (MyShipConnector.cs:1486-1497): the partner is a
         /// (connector-mode) working connector whose connection face is within the attach
-        /// separation, whose grid is the same size (<c>IsSmallConnector == IsSmallConnector</c>),
+        /// separation, whose port has the same size (<c>IsSmallConnector == IsSmallConnector</c>),
         /// and whose connect directions are opposed within 45° (<c>Angle(a,b) &gt; 3π/4</c>).
-        /// Both connectors must also have live physics (dynamic bodies).</summary>
+        /// Both connectors must also have live physics.</summary>
         private static bool AttachPasses(SimShipConnector a, SimShipConnector b, SePhysicsProfile profile)
         {
             if (a.Grid.Body == null || b.Grid.Body == null || a.Grid.Body.IsDisposed || b.Grid.Body.IsDisposed)
             {
                 return false;
             }
-            // Same-grid-size gate (the game's IsSmallConnector == IsSmallConnector, :1486).
-            if (a.Grid.GridSize != b.Grid.GridSize)
+            // Port size comes from the detector dummy name, independently of grid size (:1284).
+            if (a.IsSmallConnector != b.IsSmallConnector)
             {
                 return false;
             }
@@ -187,8 +176,8 @@ namespace FleetCommand.Test.SpaceEngineers
                 return false;
             }
             // Opposing-angle gate (:1488-1492): the connect directions must be opposed within 45°.
-            Vector3D aAxis = Vector3D.Normalize(a.ConnectAxisWorld);
-            Vector3D bAxis = Vector3D.Normalize(b.ConnectAxisWorld);
+            Vector3D aAxis = Vector3D.Normalize(a.AttachDirectionWorld);
+            Vector3D bAxis = Vector3D.Normalize(b.AttachDirectionWorld);
             double angle = Vector3D.Angle(aAxis, bAxis);
             double minOpposed = Math.PI * 3.0 / 4.0;
             if (angle < minOpposed)

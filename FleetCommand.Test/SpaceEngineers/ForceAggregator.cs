@@ -26,6 +26,8 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>The rigid grid (ship) this aggregator serves.</summary>
         public SimCubeGrid Grid => _grid;
 
+        internal bool HasThrusters => _thrusters.Count > 0;
+
         /// <summary>The normalized group (control) demand, body-frame, components in [-1, 1]: a
         /// positive component fires the thrusters pushing along that axis at the given throttle; a
         /// negative component fires the opposite axis. Scenario-set.</summary>
@@ -89,8 +91,8 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>Tick phase 5: gate each thruster, convert its override or group demand into
-        /// delivered thrust (scaled by the bus's delivered ratio), sum by grid-body direction, and
+        /// <summary>Before power distribution: gate each thruster, convert its override or group demand into
+        /// delivered thrust (scaled by the existing supplied ratio), sum by grid-body direction, and
         /// return the one resultant body-space force. Also stashes each thruster's delivered force
         /// for the phase-8 CurrentThrust write.</summary>
         public Vector3 Aggregate()
@@ -183,8 +185,8 @@ namespace FleetCommand.Test.SpaceEngineers
             }
 
             // Delivered force = demand x effectiveness x the bus's
-            // delivered power ratio (this block's phase-4 value — the
-            // single source of truth).
+            // supplied power ratio from the preceding distribution. The source
+            // thrust callback runs at priority 6, before distribution at 14.
             return demand * effectiveness * thruster.DeliveredRatio;
         }
 

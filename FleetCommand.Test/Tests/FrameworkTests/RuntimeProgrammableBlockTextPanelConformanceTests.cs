@@ -17,6 +17,103 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class RuntimeProgrammableBlockTextPanelConformanceTests : FleetTestFixture
     {
+        [TestCase("disabled")]
+        [TestCase("broken")]
+        [TestCase("unpowered")]
+        public void HostRun_RefusesUnavailableProgrammableBlock(string state)
+        {
+            var pb = SpawnPb();
+            int runs = 0;
+            pb.RunHandler = _ => runs++;
+            if (state == "disabled") pb.Enabled = false;
+            if (state == "broken") pb.IsFunctional = false;
+            if (state == "unpowered") { pb.PowerDemand = 1; Fc.Step(); }
+            Assert.That(pb.IsWorking, Is.False);
+            Assert.That(pb.Run("start", UpdateType.Terminal), Is.False);
+            Assert.That(runs, Is.Zero);
+        }
+
+        [Test]
+        public void ScheduledCadence_CombinesSourcesAndUsesEmptyArgument()
+        {
+            var pb = SpawnPb();
+            pb.TerminalRunArgument = "terminal-only";
+            int runs = 0;
+            pb.RunHandler = argument => {
+                runs++;
+                Assert.That(argument, Is.Empty);
+                var expected = UpdateType.Update1;
+                if (Fc.Tick % 10 == 0) expected |= UpdateType.Update10;
+                if (Fc.Tick % 100 == 0) expected |= UpdateType.Update100;
+                Assert.That(pb.CurrentUpdateSource, Is.EqualTo(expected));
+                if (runs > 1) Assert.That(pb.Runtime.TimeSinceLastRun.Ticks, Is.EqualTo(166666));
+                if (runs == 100) pb.Runtime.UpdateFrequency = UpdateFrequency.None;
+            };
+            pb.Runtime.UpdateFrequency = UpdateFrequency.Update1 | UpdateFrequency.Update10 | UpdateFrequency.Update100;
+            Fc.Step(105);
+            Assert.That(runs, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void ScheduledProgram_DoesNotExecuteWhileDisabled()
+        {
+            var pb = SpawnPb();
+            int runs = 0;
+            pb.RunHandler = _ => runs++;
+            pb.Runtime.UpdateFrequency = UpdateFrequency.Update1;
+            pb.Enabled = false;
+            Fc.Step(3);
+            Assert.That(runs, Is.Zero);
+            pb.Enabled = true;
+            Fc.Step();
+            Assert.That(runs, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ScheduledUpdate1_SeesCompletedPhysicsAndWritesForFollowingInterval()
+        {
+            var ship = Fc.Spawn(new ShipTemplate("pb-phase", 2.5f, new[] {
+                new TemplateBlock("PB", Vector3I.Zero, 100, 2.5f, kind: BlockKind.ProgrammableBlock),
+                new TemplateBlock("Engine", new Vector3I(2, 0, 0), 100, 2.5f,
+                    kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left, maxThrust: 12000),
+            }), SpawnState.At(Vector3D.Zero).WithVelocity(Vector3D.UnitX));
+            var pb = (SimProgrammableBlock)ship.TerminalSystem.GetBlockWithName("PB");
+            var engine = (SimThrust)ship.TerminalSystem.GetBlockWithName("Engine");
+            int runs = 0;
+            double observedPosition = 0;
+            pb.RunHandler = _ => {
+                runs++;
+                observedPosition = ship.Body.PositionWorld.X;
+                engine.ThrustOverridePercentage = 1;
+            };
+            pb.Runtime.UpdateFrequency = UpdateFrequency.Update1;
+
+            Fc.Step();
+            Assert.That(runs, Is.EqualTo(1));
+            Assert.That(observedPosition, Is.EqualTo(1.0 / 60).Within(1e-6),
+                "MyIngameScriptComponent runs Main after this interval's physics.");
+            Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(1).Within(1e-6),
+                "Commands written after physics cannot affect the completed interval.");
+            Fc.Step();
+            Assert.That(runs, Is.EqualTo(2));
+            Assert.That(ship.Body.LinearVelocity.X, Is.EqualTo(2).Within(1e-6));
+        }
+
+        [Test]
+        public void ScheduledOnce_IsConsumedAndCanRescheduleItself()
+        {
+            var pb = SpawnPb();
+            int runs = 0;
+            pb.RunHandler = _ => {
+                runs++;
+                Assert.That(pb.Runtime.UpdateFrequency, Is.EqualTo(UpdateFrequency.None));
+                if (runs == 1) pb.Runtime.UpdateFrequency = UpdateFrequency.Once;
+            };
+            pb.Runtime.UpdateFrequency = UpdateFrequency.Once;
+            Fc.Step(3);
+            Assert.That(runs, Is.EqualTo(2));
+        }
+
         [Test]
         public void Runtime_OneFrame_UsesGameTimespanTicksWithoutMillisecondRounding()
         {
@@ -255,41 +352,63 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
+        public void TextPanel_PublicationClipsBothBuffersAt65000()
+        {
+            SimTextPanel panel = SpawnPanel();
+            panel.WriteText(new string('a', 90000));
+            Assert.That(panel.GetText(), Is.Empty, "Writes remain pending until publication.");
+            Fc.Step(10);
+            Assert.That(panel.GetText(), Is.EqualTo(new string('a', 65000)));
+            var read = new StringBuilder();
+            panel.ReadText(read);
+            Assert.That(read.Length, Is.EqualTo(65000));
+
+            // Publication must truncate the helper too: appending after publication
+            // cannot resurrect the previously discarded suffix.
+            panel.WriteText("suffix", append: true);
+            Fc.Step(10);
+            Assert.That(panel.GetText(), Is.EqualTo(new string('a', 65000)));
+            panel.WriteText(new StringBuilder(new string('b', 110000)));
+            Fc.Step(10);
+            Assert.That(panel.GetText(), Is.EqualTo(new string('b', 65000)));
+            panel.WriteText("replacement");
+            Fc.Step(10);
+            Assert.That(panel.GetText(), Is.EqualTo("replacement"));
+        }
+
+        [Test]
         public void TextPanel_WriteText_CappedAtMaxLength()
         {
             SimTextPanel panel = SpawnPanel();
             panel.WriteText(new string('a', SimTextPanel.MaxTextLength + 5000));
             Fc.Step(10);
             Assert.That(panel.GetText().Length, Is.EqualTo(SimTextPanel.MaxTextLength),
-                "Public text must be capped at the documented 100000-symbol limit.");
+                "Published text must be capped at the game's 65000-character description limit.");
         }
 
         [Test]
         public void TextPanel_WriteText_StringBuilder_CappedAndTruncatesHead()
         {
-            // Both IMyTextSurface.WriteText overloads are documented "capped with 100000 symbols"
-            // (IMyTextSurface.cs:110, :126). The game's string overload truncates the incoming
-            // value so the total is 100000 (MyTextPanel.cs:1310-1312); the sim reproduces the
-            // same head-preserving cap on both overloads. This pins the StringBuilder overload
-            // (the common logger path) and the append-at-cap behavior.
+            // Both overloads ultimately publish through PublicDescription, which clips
+            // to 65000. The separate 100000-character string-input cap is not the
+            // observable publication limit (MyTextPanel.cs:209-211, :1310-1312).
             SimTextPanel panel = SpawnPanel();
 
-            // String builder overload caps at the same limit.
+            // StringBuilder has no pending-input cap, but publication still clips.
             panel.WriteText(new StringBuilder(new string('b', SimTextPanel.MaxTextLength + 5000)));
             Fc.Step(10);
             Assert.That(panel.GetText().Length, Is.EqualTo(SimTextPanel.MaxTextLength),
-                "The StringBuilder overload must be capped at the same 100000-symbol limit.");
+                "The StringBuilder overload must publish at most 65000 characters.");
 
-            // Appending beyond the cap keeps the FIRST 100000 characters (head preserved) —
-            // the game's value.Remove(100000 - current.Length) keeps the head of the writing
-            // value (MyTextPanel.cs:1310-1312).
+            // Publication preserves the FIRST 65000 characters, including the head
+            // of the appended value when the existing text is near capacity.
             SimTextPanel panel2 = SpawnPanel();
             panel2.WriteText(new string('x', SimTextPanel.MaxTextLength - 10));
             panel2.WriteText(new string('y', 100), append: true); // 90 over the cap
             Fc.Step(10);
             string text = panel2.GetText();
             Assert.That(text.Length, Is.EqualTo(SimTextPanel.MaxTextLength),
-                "append to a near-full panel must be capped at 100000 total.");
+                "append to a near-full panel must publish at most 65000 total.");
             Assert.That(text.Substring(0, 10), Is.EqualTo(new string('x', 10)),
                 "The head of the existing text must be preserved.");
             string tail = text.Substring(text.Length - 10);
@@ -345,6 +464,22 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             AssertThrowsNamed(() => { var fonts = new System.Collections.Generic.List<string>(); surface.GetFonts(fonts); return null; }, "IMyTextSurface.GetFonts()");
             AssertThrowsNamed(() => surface.MeasureStringInPixels(new StringBuilder("x"), "Debug", 1f), "IMyTextSurface.MeasureStringInPixels()");
             AssertThrowsNamed(() => { using (surface.DrawFrame()) { } return null; }, "IMyTextSurface.DrawFrame()");
+        }
+
+        [Test]
+        public void TextPanel_OpenEditorRejectsBothWriteOverloadsWithoutChangingText()
+        {
+            var panel = SpawnPanel();
+            panel.WriteText("before"); Fc.Step(10);
+            var editor = typeof(SimTextPanel).GetProperty("IsTextPanelOpen");
+            Assert.That(editor, Is.Not.Null, "MyTextPanel rejects writes while its text editor is open.");
+            editor.SetValue(panel, true, null);
+            Assert.That(panel.WriteText("replacement"), Is.False);
+            Assert.That(panel.WriteText(new System.Text.StringBuilder("append"), true), Is.False);
+            Fc.Step(10); Assert.That(panel.GetText(), Is.EqualTo("before"));
+            editor.SetValue(panel, false, null);
+            Assert.That(panel.WriteText("after"), Is.True);
+            Fc.Step(10); Assert.That(panel.GetText(), Is.EqualTo("after"));
         }
 
         // — helpers —

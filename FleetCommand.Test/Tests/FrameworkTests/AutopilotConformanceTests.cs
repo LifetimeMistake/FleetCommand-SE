@@ -4,6 +4,7 @@ using FleetCommand.Test.Framework;
 using FleetCommand.Test.Physics;
 using FleetCommand.Test.SpaceEngineers;
 using FleetCommand.Test.Templates;
+using Havok;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using VRageMath;
@@ -15,6 +16,154 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class AutopilotConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void Autopilot_Turn_UsesStoppingPredictionRatherThanSubtractingRate()
+        {
+            // At 0.35 rad the source rate is 0.78125. With a small closing spin
+            // its stopping test still permits that complete rate; it does not
+            // subtract a fitted multiple of the current angular velocity.
+            var command = TurnOneStepWithSpin(0.35, 0.01);
+            Assert.That(command.Length(), Is.EqualTo(0.78125).Within(0.00001));
+        }
+
+        [Test]
+        public void Autopilot_Turn_OppositeHeadingStillCommandsRotation()
+        {
+            var ship = Fc.Spawn(AutopilotCraft("opposite"), SpawnState.At(Vector3D.Zero));
+            var rc = Remote(ship);
+            rc.AddWaypoint(rc.GetPosition() - rc.WorldMatrix.Forward * 1000, "behind");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SpeedLimit = 3;
+            rc.SetAutoPilotEnabled(true);
+            Fc.Step();
+            Assert.That(ship.Grid.Autopilot.LastControlTorque.Length(), Is.EqualTo(2).Within(0.00001),
+                "Quaternion aim error must handle a 180-degree turn where the forward cross product vanishes.");
+        }
+
+        [Test]
+        public void Autopilot_Turn_RespectsMountedRemoteForward()
+        {
+            var mount = Quaternion.CreateFromAxisAngle(Vector3.Up, (float)Math.PI / 2);
+            var ship = Fc.Spawn(new ShipTemplate("mounted-remote", 2.5f, new[] {
+                new TemplateBlock("RC", Vector3I.Zero, 1000, 2.5f, kind: BlockKind.RemoteControl, orientation: mount),
+                new TemplateBlock("Gyro", Vector3I.One, 100, 2.5f, kind: BlockKind.Gyro, gyroForce: 10000),
+            }), SpawnState.At(Vector3D.Zero));
+            var rc = Remote(ship);
+            rc.AddWaypoint(rc.GetPosition() + rc.WorldMatrix.Forward * 1000, "ahead");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SpeedLimit = 3;
+            rc.SetAutoPilotEnabled(true);
+            Fc.Step();
+            Assert.That(ship.Grid.Autopilot.LastControlTorque, Is.EqualTo(Vector3.Zero),
+                "Default Forward follows the mounted remote's orientation, not the grid's forward axis.");
+        }
+
+        [TestCase(0.5, false)]
+        [TestCase(1.0, true)]
+        public void OneWayFinalWaypoint_UsesDestinationRadiusAndStopsAutopilot(double distance, bool flying)
+        {
+            var ship = Fc.Spawn(AutopilotCraft("arrival"), SpawnState.At(Vector3D.Zero));
+            var rc = Remote(ship);
+            rc.AddWaypoint(rc.GetPosition() + Vector3D.UnitZ * distance, "destination");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SpeedLimit = 3;
+            rc.SetAutoPilotEnabled(true);
+            Fc.Step();
+            Assert.That(ship.Grid.Autopilot.FlightActive, Is.EqualTo(flying),
+                "A large-grid final OneWay waypoint uses gridSize*0.25 (0.625 m), not gridSize*3.");
+            Assert.That(rc.IsAutoPilotEnabled, Is.EqualTo(flying));
+        }
+
+        [Test]
+        public void Autopilot_SpeedLimitDoesNotInstantlyClampExistingVelocity()
+        {
+            var ship = Fc.Spawn(AutopilotCraft("overspeed"),
+                SpawnState.At(Vector3D.Zero).WithVelocity(new Vector3D(0, 0, 10)));
+            var rc = Remote(ship);
+            rc.AddWaypoint(new Vector3D(0, 0, 5000), "target");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SpeedLimit = 3;
+            rc.SetAutoPilotEnabled(true);
+            Fc.Step();
+            // ComputeAiThrust uses -velocity/0.5; available thrust exceeds this
+            // demand, so one 1/60-second physics interval removes exactly 10/30 m/s.
+            Assert.That(ship.Body.LinearVelocity.Z, Is.EqualTo(10.0 * (1 - 2.0 / 60)).Within(0.00001),
+                "Remote speed limits gate throttle, not the body's physical velocity.");
+        }
+
+        [Test]
+        public void Autopilot_ZeroDriveCommandStillAppliesBraking()
+        {
+            var ship = Fc.Spawn(AutopilotCraft("braking"),
+                SpawnState.At(Vector3D.Zero).WithVelocity(new Vector3D(0, 0, 25)));
+            var rc = Remote(ship);
+            rc.AddWaypoint(new Vector3D(0, 0, 5000), "target");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SpeedLimit = 25;
+            rc.SetAutoPilotEnabled(true);
+            Fc.Step();
+            Assert.That(ship.Grid.Autopilot.LastAutoPilotThrust.Z, Is.LessThan(0),
+                "At the speed gate, a zero drive command still runs ComputeAiThrust's velocity dampening.");
+            Assert.That(ship.Body.LinearVelocity.Z, Is.LessThan(25));
+        }
+
+        [Test]
+        public void Autopilot_UsesRemotePositionForTargetDelta()
+        {
+            var blocks = new List<TemplateBlock> {
+                new TemplateBlock("RC", new Vector3I(10, 0, 0), 1000, 2.5f, kind: BlockKind.RemoteControl),
+                new TemplateBlock("Balance", new Vector3I(-10, 0, 0), 1000, 2.5f),
+            };
+            blocks.AddRange(AllAxisThrusters(10000, 3));
+            var ship = Fc.Spawn(new ShipTemplate("offset-reference", 2.5f, blocks), SpawnState.At(Vector3D.Zero));
+            var rc = Remote(ship);
+            rc.AddWaypoint(rc.GetPosition() + new Vector3D(0, 0, 100), "straight");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SpeedLimit = 3;
+            rc.SetAutoPilotEnabled(true);
+            Fc.Step();
+            Assert.That(ship.Grid.Autopilot.LastAutoPilotThrust.X, Is.Zero,
+                "A waypoint directly ahead of an offset remote must not introduce lateral thrust toward the COM.");
+            Assert.That(ship.Grid.Autopilot.LastAutoPilotThrust.Z, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void Autopilot_EnablingRestoresSharedDampeners()
+        {
+            var ship = Fc.Spawn(AutopilotCraft("dampeners"), SpawnState.At(Vector3D.Zero));
+            var rc = Remote(ship);
+            rc.DampenersOverride = false;
+            rc.AddWaypoint(new Vector3D(0, 0, 500), "target");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SetAutoPilotEnabled(true);
+            Assert.That(rc.DampenersOverride, Is.True,
+                "OnSetAutoPilotEnabled calls ResetShipControls, enabling grid dampeners.");
+            rc.SetAutoPilotEnabled(false);
+            Assert.That(rc.DampenersOverride, Is.True, "Disabling autopilot does not restore the previous dampener setting.");
+        }
+
+        [Test]
+        public void Autopilot_CommandWakesSleepingSmallGrid()
+        {
+            var ship = Fc.Spawn(new ShipTemplate("sleeping-autopilot", 0.5f, new[] {
+                new TemplateBlock("RC", Vector3I.Zero, 1000, 0.5f, kind: BlockKind.RemoteControl),
+                new TemplateBlock("Engine", new Vector3I(2, 0, 0), 1000, 0.5f,
+                    kind: BlockKind.FixedThruster, thrustDirection: Vector3I.Left, maxThrust: 10000),
+            }), SpawnState.At(Vector3D.Zero));
+            var rc = Remote(ship);
+            rc.DampenersOverride = false;
+            Fc.Step(600);
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+                Assert.That(ship.Grid.Body.Body.IsActive, Is.False, "The regression must start from a sleeping body.");
+            rc.AddWaypoint(new Vector3D(100, 0, 0), "target");
+            rc.FlightMode = FlightMode.OneWay;
+            rc.SpeedLimit = 3;
+            rc.SetAutoPilotEnabled(true);
+            Fc.RunFor(1);
+            Assert.That(ship.Body.PositionWorld.X, Is.GreaterThan(1), "Autopilot must move a previously sleeping small grid.");
+            Assert.That(ship.Body.LinearVelocity.X, Is.GreaterThan(1));
+        }
+
         [Test]
         public void SingleWaypoint_RequiresOneWayFlightMode()
         {
@@ -72,13 +221,13 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void Autopilot_SpeedLimit_CapsTopSpeed()
+        public void Autopilot_SpeedLimit_GatesAccelerationWithinOneFrameOvershoot()
         {
             SimShip ship = Fc.Spawn(
                 AutopilotCraft("cap"),
                 SpawnState.At(Vector3D.Zero));
             SimRemoteControl rc = Remote(ship);
-            rc.AddWaypoint(new Vector3D(0, 0, 20000), "far");
+            rc.AddWaypoint(rc.GetPosition() + rc.WorldMatrix.Forward * 20000, "far");
             rc.SpeedLimit = 25f;
             rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
@@ -96,8 +245,9 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             Assert.That(peak, Is.GreaterThan(20f),
                 "The autopilot must accelerate the ship up near the speed limit.");
-            Assert.That(peak, Is.LessThanOrEqualTo(25f * 1.02f + 0.01),
-                "SpeedLimit must cap the top speed (the |v|² < maxSpeed² gate + MovementBlockMaxSpeed velocity clamp).");
+            double frameAcceleration = 1.2e6 / ship.Grid.Body.Mass / 60;
+            Assert.That(peak, Is.LessThanOrEqualTo(25 + frameAcceleration + 0.001),
+                "Throttle is gated at SpeedLimit; one powered interval can overshoot by force*dt/mass.");
         }
 
         [Test]
@@ -166,7 +316,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShip ship = Fc.Spawn(AutopilotCraft("ar"), SpawnState.At(Vector3D.Zero)); // large grid, 2.5 m
             SimRemoteControl rc = Remote(ship);
             // First waypoint just inside the 7.5 m large-grid default radius; second far.
-            Vector3D near = new Vector3D(0, 0, 7.0);
+            Vector3D near = rc.GetPosition() + new Vector3D(0, 0, 7.0);
             Vector3D far = new Vector3D(0, 0, 5000);
             rc.AddWaypoint(near, "near");
             rc.AddWaypoint(far, "far");
@@ -185,10 +335,11 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         {
             SimShip ship = Fc.Spawn(AutopilotCraft("ar2"), SpawnState.At(Vector3D.Zero)); // large grid
             SimRemoteControl rc = Remote(ship);
-            // A single waypoint just beyond the 7.5 m default radius (8.0 m) is not reached;
+            // An intermediate waypoint just beyond the 7.5 m default radius is not reached;
             // the autopilot keeps flying toward it.
-            Vector3D wp = new Vector3D(0, 0, 8.0);
+            Vector3D wp = rc.GetPosition() + new Vector3D(0, 0, 8.0);
             rc.AddWaypoint(wp, "target");
+            rc.AddWaypoint(new Vector3D(0, 0, 5000), "destination");
             rc.SpeedLimit = 40f;
             rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);
@@ -231,14 +382,15 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void Autopilot_Turn_AtOrAboveMaxThreshold_SaturatesGyroSphere()
+        public void Autopilot_Turn_AtOrAboveMaxThreshold_PreservesSourceRateBeforeTorqueClamp()
         {
             // At/above MaxRotationSpeedTresholdRadians (1.0) the game commands MaxRotationSpeed
-            // (2.0), which saturates the gyro's ±1 unit control sphere to full torque
+            // (2.0). UpdateGyro preserves this command; UpdateGyros later clamps each
+            // torque component to ±1, rather than clamping this rate to a unit sphere
             // (MyAutopilotComponent.cs:2459-2462, EntityComponents.sbc MaxRotationSpeed).
             Vector3 cmd = TurnOneStep(1.5);
-            Assert.That(cmd.Length(), Is.EqualTo(1.0).Within(1e-3),
-                "At a large residual the turn must saturate the gyro's unit control sphere.");
+            Assert.That(cmd.Length(), Is.EqualTo(2.0).Within(1e-3),
+                "At a large residual UpdateGyro must preserve the source's 2 rad/s command.");
         }
 
         [Test]
@@ -253,16 +405,14 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void Autopilot_Turn_AngularAuthority_CoastsWhenRotationSuffices()
+        public void Autopilot_Turn_PureAxisStoppingRatioRetainsSourceNaNBranch()
         {
-            // Angular-authority feedback (MyAutopilotComponent.cs:2479-2482): with the grid
-            // already rotating fast enough to close the small remaining angle, the adaptively
-            // commanded rate (0.5 here) is fully absorbed by the grid's own on-axis rotation
-            // (0.5 - RotationDamping·2 ≤ 0) and the turn commands no torque — it coasts and the
-            // gyro damps the rotation rather than overshooting.
+            // The source divides velocity by the predicted velocity change per axis.
+            // For this pure-axis case, unused components contain 0/0 and Max() is NaN;
+            // UpdateGyro explicitly permits the full command on that branch.
             Vector3 cmd = TurnOneStepWithSpin(0.10, 2.0);
-            Assert.That(cmd.Length(), Is.LessThan(1e-6),
-                "A grid already rotating fast enough to close the angle must coast (no turn torque).");
+            Assert.That(cmd.Length(), Is.EqualTo(0.5).Within(0.00001),
+                "Preserve the game's NaN stopping-ratio branch rather than inventing a scalar damping rule.");
         }
 
         // — helpers —
@@ -315,7 +465,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Vector3D fwd = ship.Grid.WorldMatrix.Forward;
             Vector3D perp = Vector3D.CalculatePerpendicularVector(fwd);
             Vector3D targetDir = Vector3D.Normalize(fwd * Math.Cos(offsetRad) + perp * Math.Sin(offsetRad));
-            rc.AddWaypoint(ship.Body.PositionWorld + targetDir * 1000.0, "target");
+            rc.AddWaypoint(rc.GetPosition() + targetDir * 1000.0, "target");
             rc.SpeedLimit = 40f;
             rc.FlightMode = FlightMode.OneWay;
             rc.SetAutoPilotEnabled(true);

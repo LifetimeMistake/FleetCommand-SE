@@ -75,16 +75,25 @@ namespace FleetCommand.Test.Physics
         /// applies MyPerGameSettings.DefaultAngularDamping (MyGridPhysics.cs:436).</summary>
         public float AngularDamping => _angularDamping;
 
-        /// <summary>Inverse inertia diagonal (1/Ixx, 1/Iyy, 1/Izz) in the grid-local frame,
-        /// matching the game's read (MyGridGyroSystem.cs:293).</summary>
-        public Vector3 InverseInertiaDiagonal => _inverseInertiaDiagonal;
+        /// <summary>Actual native inverse-inertia diagonal in the grid-local frame,
+        /// matching MyGridGyroSystem's read. Havok may diagonalize the supplied tensor,
+        /// so the analytical full-matrix inverse is not an interchangeable value.</summary>
+        public Vector3 InverseInertiaDiagonal
+        {
+            get
+            {
+                if (_rigidBody == null || _disposed) return Vector3.Zero;
+                Matrix inverse = _rigidBody.InverseInertiaTensor;
+                return new Vector3(inverse.M11, inverse.M22, inverse.M33);
+            }
+        }
 
         /// <summary>World transform of the grid origin, derived from the body pose.</summary>
         public MatrixD WorldMatrix
         {
             get
             {
-                MatrixD matrix = MatrixD.CreateFromQuaternion(Orientation);
+                MatrixD matrix = _bodyMatrix;
                 matrix.Translation = PositionWorld;
                 return matrix;
             }
@@ -107,13 +116,13 @@ namespace FleetCommand.Test.Physics
         // Cached state, refreshed from Havok during phase 8 (SynchronizeState).
         private Vector3 _localPosition;
         private Quaternion _orientation;
+        private MatrixD _bodyMatrix;
         private Vector3 _linearVelocity;
         private Vector3 _angularVelocity;
 
         private float _maxAngularVelocity;
         private float _maxLinearVelocity;
         private float _angularDamping;
-        private Vector3 _inverseInertiaDiagonal;
 
         private bool _disposed;
 
@@ -193,18 +202,15 @@ namespace FleetCommand.Test.Physics
 
                 body._localPosition = (Vector3)(initialState.PositionWorld - scenarioOrigin);
                 body._orientation = ToQuaternion(initialState.Orientation);
+                body._bodyMatrix = body._rigidBody.GetRigidBodyMatrix();
                 body._linearVelocity = (Vector3)initialState.LinearVelocity;
                 body._angularVelocity = initialState.AngularVelocity;
 
-                // Retain the configured velocity caps, the angular damping, and the grid-local
-                // inverse inertia diagonal for the gyro override loop.
+                // Retain the configured velocity caps and angular damping. Gyros read
+                // the native inverse inertia tensor directly.
                 body._maxAngularVelocity = maxAngular;
                 body._maxLinearVelocity = maxLinear;
                 body._angularDamping = profile.AngularDamping;
-                body._inverseInertiaDiagonal = new Vector3(
-                    mass.InverseInertiaTensor.M11,
-                    mass.InverseInertiaTensor.M22,
-                    mass.InverseInertiaTensor.M33);
             }
 
             return body;
@@ -253,13 +259,19 @@ namespace FleetCommand.Test.Physics
                 {
                     _rigidBody.IsActive = true;
                 }
+                _bodyMatrix = _rigidBody.GetRigidBodyMatrix();
             }
 
             _localPosition = local;
             _orientation = orientation;
             _linearVelocity = (Vector3)state.LinearVelocity;
             _angularVelocity = state.AngularVelocity;
+            StateChanged?.Invoke();
         }
+
+        /// <summary>Scenario pose/velocity replacement; attached auxiliary bodies follow
+        /// teleports without being overwritten during ordinary physics integration.</summary>
+        internal event Action StateChanged;
 
         /// <summary>Reads the body's current world-visible state.</summary>
         public SimRigidBodyState GetState()
@@ -296,10 +308,6 @@ namespace FleetCommand.Test.Physics
                 mp.Volume = 1f;
                 _rigidBody.SetMassProperties(ref mp);
             }
-            _inverseInertiaDiagonal = new Vector3(
-                mass.InverseInertiaTensor.M11,
-                mass.InverseInertiaTensor.M22,
-                mass.InverseInertiaTensor.M33);
         }
 
         /// <summary>
@@ -356,6 +364,23 @@ namespace FleetCommand.Test.Physics
                 _rigidBody.Activate();
         }
 
+        internal void SetAutomaticDeactivation(bool enabled)
+        {
+            if (_disposed || !IsDynamic) return;
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+                _rigidBody.EnableDeactivation = enabled;
+        }
+
+        internal bool IsActive
+        {
+            get
+            {
+                if (_disposed) return false;
+                using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+                    return _rigidBody.IsActive;
+            }
+        }
+
         /// <summary>Applies a world-frame angular impulse (N·m·s) about the body's center of
         /// mass.</summary>
         public void ApplyAngularImpulse(Vector3 impulse)
@@ -408,6 +433,10 @@ namespace FleetCommand.Test.Physics
         /// step.</summary>
         internal void SynchronizeFromHavok()
         {
+            // MyPhysicsBody.GetWorldMatrix reads this matrix directly. Going
+            // through the native quaternion getter and rebuilding a matrix adds
+            // a lossy conversion to every controller/thruster world transform.
+            _bodyMatrix = _rigidBody.GetRigidBodyMatrix();
             _localPosition = _rigidBody.Position;
             _orientation = _rigidBody.Rotation;
             _linearVelocity = _rigidBody.LinearVelocity;

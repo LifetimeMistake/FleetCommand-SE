@@ -122,7 +122,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>Closes this block (scenario / teardown). Idempotent; closed blocks are skipped
         /// by terminal-system enumeration and the world's tick rather than dereferenced (NRE
         /// guard).</summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             IsDisposed = true;
         }

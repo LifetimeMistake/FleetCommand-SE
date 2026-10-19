@@ -16,13 +16,17 @@ namespace FleetCommand.Test.SpaceEngineers
     /// <see cref="NotSupportedException"/>.</summary>
     public sealed class SimTextPanel : SimFunctionalBlock, IMyTextPanel
     {
-        /// <summary>Cap on public text length (per the interface docs: 100000 symbols).</summary>
-        public const int MaxTextLength = 100000;
+        /// <summary>Published description cap (MyTextPanel.PublicDescription).</summary>
+        public const int MaxTextLength = 65000;
+        /// <summary>The string WriteText overload separately caps pending input.</summary>
+        public const int MaxWriteLength = 100000;
 
         private readonly StringBuilder _text = new StringBuilder();
         private string _publishedText = string.Empty;
         private bool _textDirty;
         private string _title = string.Empty;
+        /// <summary>Scenario-controlled editor lock; MyTextPanel refuses PB writes while open.</summary>
+        public bool IsTextPanelOpen { get; set; }
 
         public SimTextPanel(long entityId, string name, SimCubeGrid grid, TemplateBlock template)
             : base(entityId, name, grid, template)
@@ -34,13 +38,18 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <inheritdoc />
         public bool WriteText(string value, bool append = false)
         {
-            ApplyText(value, append);
-            return true; // no popup viewer is open
+            if (IsTextPanelOpen) return false;
+            string content = value ?? string.Empty;
+            int available = MaxWriteLength - (append ? _text.Length : 0);
+            if (content.Length > available) content = content.Remove(available);
+            ApplyText(content, append);
+            return true;
         }
 
         /// <inheritdoc />
         public bool WriteText(StringBuilder value, bool append = false)
         {
+            if (IsTextPanelOpen) return false;
             ApplyText(value == null ? string.Empty : value.ToString(), append);
             return true;
         }
@@ -56,6 +65,9 @@ namespace FleetCommand.Test.SpaceEngineers
         internal void PublishPendingText()
         {
             if (!_textDirty) return;
+            // Publication also updates the helper buffer, discarding the suffix
+            // before subsequent appends, as the game's PublicDescription setter does.
+            if (_text.Length > MaxTextLength) _text.Length = MaxTextLength;
             _publishedText = _text.ToString();
             _textDirty = false;
         }
@@ -100,10 +112,6 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 _text.Clear();
                 _text.Append(content);
-            }
-            if (_text.Length > MaxTextLength)
-            {
-                _text.Length = MaxTextLength;
             }
         }
 

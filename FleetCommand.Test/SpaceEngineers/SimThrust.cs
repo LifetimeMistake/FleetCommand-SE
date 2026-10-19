@@ -73,6 +73,19 @@ namespace FleetCommand.Test.SpaceEngineers
 
         // — IMyThrust —
 
+        public override bool IsFunctional
+        {
+            get { return base.IsFunctional; }
+            set
+            {
+                if (base.IsFunctional == value) return;
+                base.IsFunctional = value;
+                // ComponentStack_IsFunctionalChanged wakes physics even when
+                // the thruster is disabled and its working state stays false.
+                Grid.Body.Activate();
+            }
+        }
+
         /// <inheritdoc />
         public float ThrustOverride
         {

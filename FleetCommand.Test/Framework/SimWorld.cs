@@ -72,14 +72,15 @@ namespace FleetCommand.Test.Framework
         private long _nextEntityId = 1;
         private bool _disposed;
 
-        // Names of the phases executed by the most recent Step(), in order,
-        // so the nine-phase ordering is observable to conformance tests.
+        // Names of the phases executed by the most recent Step(), including
+        // the post-physics PB stage, observable to conformance tests.
         private readonly List<string> _phaseTrace = new List<string>();
 
         // Scheduler: scheduled scenario mutations (phase 2) and per-Update1
         // callbacks (phase 3).
         private readonly Dictionary<long, List<Action>> _scheduled = new Dictionary<long, List<Action>>();
         private readonly List<UpdateCallback> _updateCallbacks = new List<UpdateCallback>();
+        private readonly List<SimProgrammableBlock> _scheduledPrograms = new List<SimProgrammableBlock>();
         private bool _suppressNextUpdate1;
 
         private static readonly string[] PhaseNames =
@@ -93,6 +94,7 @@ namespace FleetCommand.Test.Framework
             "AdvancePhysics",
             "SynchronizeState",
             "SampleAndEvaluate",
+            "ProgrammableBlocks",
         };
 
         public SimWorld()
@@ -111,14 +113,28 @@ namespace FleetCommand.Test.Framework
             AtmosphereEffectiveness = 1f;
             Targets = new SimTargetStore();
 
-            // Mirror the game's single-threaded world creation (CreateWorldCInfo)
-            // for a no-global-gravity, deterministic host.
-            _hkWorld = new HkWorld(
-                enableGlobalGravity: false,
-                broadphaseCubeSideLength: 100000f,
-                contactRestingVelocity: float.MaxValue,
-                enableMultithreading: false,
-                solverIterations: 8);
+            // MyPhysics.CreateWorldCInfo/CreateHkWorld. Keep the single-threaded
+            // continuous solver for this host, with the game's explicit settings;
+            // the native convenience constructor has an opaque configuration.
+            var info = HkWorld.CInfo.Create();
+            info.Gravity = Vector3.Zero;
+            info.BroadPhaseWorldAabb = new BoundingBox(new Vector3(-50000), new Vector3(50000));
+            info.ContactPointGeneration = HkWorld.ContactPointGeneration.CONTACT_POINT_REJECT_DUBIOUS;
+            info.SolverTau = 0.6f;
+            info.SolverDamp = 1f;
+            info.SolverIterations = 8;
+            info.SimulationType = HkWorld.SimulationType.SIMULATION_TYPE_CONTINUOUS;
+            info.BroadPhaseNumMarkers = 0;
+            info.BroadPhaseBorderBehaviour = HkWorld.BroadPhaseBorderBehaviour.BROADPHASE_BORDER_REMOVE_ENTITY;
+            info.CollisionTolerance = 0.1f;
+            info.FireCollisionCallbacks = true;
+            info.ContactRestingVelocity = 3.40282E+38f;
+            info.ExpectedMinPsiDeltaTime = 1f / 60f;
+            info.SolverMicrosteps = 2;
+            info.MinDesiredIslandSize = 2;
+            _hkWorld = new HkWorld(ref info);
+            _hkWorld.DeactivationRotationSqrdA /= 3;
+            _hkWorld.DeactivationRotationSqrdB /= 3;
         }
 
         /// <summary>The names of the phases executed by the last <see cref="Step"/>.</summary>
@@ -207,6 +223,7 @@ namespace FleetCommand.Test.Framework
                 throw new ArgumentNullException(nameof(connector));
             }
             _connectors.Add(connector);
+            connector.InitializeDetectorPhysics();
         }
 
         /// <summary>Removes a functional block from the phase-4 recompute list (scenario block
@@ -239,6 +256,17 @@ namespace FleetCommand.Test.Framework
             }
         }
 
+        internal void AddAuxiliaryBody(HkRigidBody body)
+        {
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive)) _hkWorld.AddRigidBody(body);
+        }
+
+        internal void RemoveAuxiliaryBody(HkRigidBody body)
+        {
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+                if (body.InWorld) _hkWorld.RemoveRigidBody(body);
+        }
+
         /// <summary>Removes a rigid constraint from the world.</summary>
         internal void RemoveConstraint(HkConstraint constraint)
         {
@@ -251,7 +279,7 @@ namespace FleetCommand.Test.Framework
             }
         }
 
-        /// <summary>Runs one fixed 1/60 s interval through the nine-phase pipeline.</summary>
+        /// <summary>Runs one fixed 1/60 s physics interval, then scheduled PB code.</summary>
         public void Step()
         {
             if (_disposed)
@@ -272,6 +300,10 @@ namespace FleetCommand.Test.Framework
             Phase9_SampleAndEvaluate();
 
             Clock.Advance();
+            // MyIngameScriptComponent.UpdateAfterSimulation executes Main only
+            // after this interval. Its runtime clock now includes that interval.
+            _phaseTrace.Add(PhaseNames[9]);
+            foreach (var program in _scheduledPrograms) program.RunScheduled();
         }
 
         /// <summary>Runs <paramref name="ticks"/> fixed intervals.</summary>
@@ -386,6 +418,7 @@ namespace FleetCommand.Test.Framework
         private void Phase3_ComponentCallbacks()
         {
             _phaseTrace.Add(PhaseNames[2]);
+            _scheduledPrograms.Clear();
             bool invoke = Clock.IsUpdateDue(UpdateFrequency.Update1, Clock.Tick) && !_suppressNextUpdate1;
             _suppressNextUpdate1 = false;
             if (!invoke)
@@ -409,12 +442,18 @@ namespace FleetCommand.Test.Framework
                 }
                 UpdateCadence.Add(invocation);
             }
+            foreach (var block in _functionalBlocks)
+            {
+                var program = block as SimProgrammableBlock;
+                if (program == null || program.Closed) continue;
+                program.Runtime.PrepareScheduledRun(Clock.Tick + 1);
+                _scheduledPrograms.Add(program);
+            }
         }
 
         private void Phase4_RecomputePower()
         {
             _phaseTrace.Add(PhaseNames[3]);
-            // Demand must reflect this callback interval before allocating electrical input.
             PrepareControlDemand();
             // Recompute power availability and block IsWorking before actuation: each grid's
             // power bus delivers per-block power ratio (priority-ordered demand against ideal
@@ -585,16 +624,6 @@ namespace FleetCommand.Test.Framework
                         _bodies[i].SynchronizeFromHavok();
                     }
                 }
-                // Clamp each grid's post-physics velocity to its enabled autopilot's
-                // SpeedLimit (MovementBlockMaxSpeed).
-                for (int i = 0; i < _grids.Count; i++)
-                {
-                    SimCubeGrid grid = _grids[i];
-                    if (!grid.IsDisposed)
-                    {
-                        grid.Autopilot.ApplySpeedLimitAfterPhysics();
-                    }
-                }
                 // Per-frame grid linear-velocity clamp (MyGridPhysics / MyCubeGrid),
                 // applied to every dynamic body after physics so the configured linear
                 // cap holds on the observed post-step velocity.
@@ -665,6 +694,7 @@ namespace FleetCommand.Test.Framework
                 {
                     connector.Disconnect();
                 }
+                connector.DisposeDetectorPhysics();
             }
             for (int i = _bodies.Count - 1; i >= 0; i--)
             {
@@ -683,6 +713,7 @@ namespace FleetCommand.Test.Framework
             _samplers.Clear();
             _scheduled.Clear();
             _updateCallbacks.Clear();
+            _scheduledPrograms.Clear();
             _hkWorld.Dispose();
             _disposed = true;
         }

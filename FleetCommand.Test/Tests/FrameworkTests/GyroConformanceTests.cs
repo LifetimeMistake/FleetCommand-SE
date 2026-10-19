@@ -16,6 +16,42 @@ namespace FleetCommand.Test.Tests.FrameworkTests
     [TestFixture]
     public class GyroConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void GridWorldOrientation_PreservesTheNativeRigidBodyMatrix()
+        {
+            var ship = Fc.Spawn(HullPlusGyro("native-pose", hullMass: 3000f, gyroForce: 1e6f),
+                SpawnState.At(Vector3D.Zero, MatrixD.CreateFromYawPitchRoll(0.7, -0.3, 1.2)));
+            Fc.Step();
+            MatrixD native = ship.Grid.Body.Body.GetRigidBodyMatrix();
+            Assert.That(Vector3D.Distance(ship.Grid.WorldMatrix.Right, native.Right), Is.LessThan(1e-10));
+            Assert.That(Vector3D.Distance(ship.Grid.WorldMatrix.Up, native.Up), Is.LessThan(1e-10));
+            Assert.That(Vector3D.Distance(ship.Grid.WorldMatrix.Backward, native.Backward), Is.LessThan(1e-10));
+        }
+
+        [Test]
+        public void GyroInverseInertia_ReadsNativeTensorForAsymmetricMassDistribution()
+        {
+            var template = new ShipTemplate("asymmetric-inertia", 0.5f, new[] {
+                new TemplateBlock("Hull", Vector3I.Zero, 3000, 0.5f),
+                new TemplateBlock("Offset", new Vector3I(3, 2, 1), 1000, 0.5f)
+            });
+            var ship = Fc.Spawn(template, SpawnState.At(Vector3D.Zero));
+            var native = ship.Grid.Body.Body.InverseInertiaTensor;
+            AssertVector3(ship.Grid.Body.InverseInertiaDiagonal,
+                new Vector3(native.M11, native.M22, native.M33), 1e-10,
+                "MyGridGyroSystem reads Havok's tensor, which can differ from the analytical full-matrix inverse.");
+        }
+
+        [Test]
+        public void ManualGyros_DoNotActuateBelowSourceSchedulingThreshold()
+        {
+            var ship = Fc.Spawn(HullPlusGyro("tiny-manual", hullMass: 3000f, gyroForce: 1e6f),
+                SpawnState.At(Vector3D.Zero).WithAngularVelocity(new Vector3(0, 0.00001f, 0)));
+            Fc.Step();
+            Assert.That(ship.Grid.Body.AngularVelocity.Y, Is.GreaterThan(0.0000099f),
+                "UpdateGyros returns before applying torque when angular velocity and control are componentwise below 0.001.");
+        }
+
         // — gyro channel signs (all-three-negated, MyGyro.cs:141-190) —
 
         [Test]

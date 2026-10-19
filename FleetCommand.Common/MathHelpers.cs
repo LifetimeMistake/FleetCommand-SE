@@ -13,16 +13,17 @@ namespace FleetCommand.Common
     {
         /// <summary>
         /// The game's ratio-with-invalid-guard: n/d, or 1 when the
-        /// denominator is zero or the quotient is NaN (the game's
+        /// quotient is NaN or infinite (the game's
         /// !IsValid() -> 1).
         /// </summary>
         public static float SafeRatio(float numerator, float denominator)
         {
-            if (denominator == 0f || float.IsNaN(numerator / denominator))
+            float ratio = numerator / denominator;
+            if (float.IsNaN(ratio) || float.IsInfinity(ratio))
             {
                 return 1f; // the game's !IsValid() -> 1
             }
-            return numerator / denominator;
+            return ratio;
         }
 
         /// <summary>Component-wise <see cref="SafeRatio(float,float)"/>.</summary>

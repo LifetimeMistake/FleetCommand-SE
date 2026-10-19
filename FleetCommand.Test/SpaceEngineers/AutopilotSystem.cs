@@ -25,8 +25,8 @@ namespace FleetCommand.Test.SpaceEngineers
         // to MaxRotationSpeed (at/above MaxRotationSpeedThreshold) (:2451-2471), cap the demanded
         // rate by the grid's angular authority (drive only while the time to finish the turn at the
         // current rate still exceeds the time to stop it, :2479-2482), and stop below the rotation
-        // deadzone (:2474-2478). Commanded rate is written to ControlTorque and clamped to the
-        // gyro's ±1 unit control sphere by ApplyManualTorque, so rates ≥ 1 saturate to full torque.
+        // deadzone (:2474-2478). The rate is written to ControlTorque unmodified;
+        // UpdateGyros later clamps its components, not its magnitude, to ±1.
 
         /// <summary>Minimum adaptive rotation speed cap (rad/s): at remaining angles at or below
         /// <see cref="MinRotationSpeedThreshold"/> the commanded turn rate is this value
@@ -35,7 +35,7 @@ namespace FleetCommand.Test.SpaceEngineers
 
         /// <summary>Maximum adaptive rotation speed cap (rad/s): at remaining angles at or above
         /// <see cref="MaxRotationSpeedThreshold"/> the commanded turn rate is this value — since it
-        /// is ≥ 1 it saturates the gyro's unit control sphere to full torque
+        /// is ≥ 1 its driven components can saturate the gyro's applied torque
         /// (EntityComponents.sbc <c>MaxRotationSpeed</c>, MyAutopilotComponent.cs:2461).</summary>
         private const double MaxRotationSpeed = 2.0;
 
@@ -53,17 +53,6 @@ namespace FleetCommand.Test.SpaceEngineers
         /// aligned and no torque is commanded (EntityComponents.sbc <c>RotationDeadzone</c>,
         /// MyAutopilotComponent.cs:2474).</summary>
         private const double RotationDeadzone = 0.03;
-
-        /// <summary>Angular-authority feedback gain: the commanded turn rate is reduced by this
-        /// factor times the grid's current rotation about the error axis, so the turn
-        /// decelerates as it approaches the target instead of overshooting. This is the
-        /// rotational counterpart of the game's braking gate (num3/num4 vs
-        /// GetAngularVelocity, MyAutopilotComponent.cs:2479-2482): the game stops commanding
-        /// torque once the grid can stop within the remaining angle; the sim's per-axis inertia
-        /// scale in the gyro manual path (ApplyManualTorque) prevents reproducing that
-        /// torque-authority prediction exactly, so the same braking is realized from the
-        /// measured on-axis rotation.</summary>
-        private const double RotationDamping = 0.5;
 
         /// <summary>The waypoint's stopping-time multiplier (game: <c>StoppingTimeMultiplier</c>,
         /// default 1).</summary>
@@ -161,14 +150,16 @@ namespace FleetCommand.Test.SpaceEngineers
                 return;
             }
 
-            Vector3D refPos = body.PositionWorld;
+            // CalculateDeltaPos uses ReferencePosition, i.e. the remote block,
+            // rather than the grid origin or physical center of mass.
+            Vector3D refPos = remote.GetPosition();
             Vector3D targetPos = remote.CurrentWaypoint.Coords;
             Vector3D delta = targetPos - refPos;
             double dist = delta.Length();
             // The waypoint-advance radius: the profile's override when set, else the game's
-            // default, gridSize · 3 (MyAutopilotComponent.GetWaypointAdvanceDistance,
-            // MyAutopilotComponent.cs:1915) — 7.5 m for a large grid, 1.5 m for a small one.
-            float arrival = ArrivalDistance();
+            // default, gridSize * 3 for intermediate waypoints. Final OneWay
+            // destinations use the smaller grid-size-specific trigger radius.
+            float arrival = ArrivalDistance(remote);
             if (dist < arrival)
             {
                 remote.AdvanceWaypoint();
@@ -182,14 +173,16 @@ namespace FleetCommand.Test.SpaceEngineers
             _grid.ForceAggregator.RecalculateCapacities();
 
             // ---- the turn: UpdateGyro -> gyroSystem.ControlTorque (:2472-2497) ----
-            _grid.GyroRateSystem.ControlTorque = ComputeTurnTorque(body, delta);
+            _grid.GyroRateSystem.ControlTorque = ComputeTurnTorque(body, remote, delta);
 
             // ---- the translate: UpdateThrust -> ComputeAiThrust (:2878/:1657) ----
             Vector3 controlThrust = ComputeAutoPilotControlThrust(body, delta, remote.SpeedLimit);
-            if (controlThrust == Vector3.Zero)
-            {
-                return; // coasting this tick (at speed cap / braking)
-            }
+            // AutoPilotControlThrust's setter marks the game's thrust component
+            // dirty even for a zero command (via its dampener setter). The dirty
+            // update activates physics before the activeOnly force application.
+            body.Activate();
+            // A zero drive command still needs ComputeAiThrust: it brakes the
+            // complete velocity when the speed/stopping-distance gate closes.
             Vector3 aiForce = ComputeAiThrust(controlThrust, body, remote);
             _lastAutoPilotThrust = aiForce;
             Vector3 maxPos = _grid.ForceAggregator.MaxPositiveThrust;
@@ -197,70 +190,42 @@ namespace FleetCommand.Test.SpaceEngineers
             _grid.ForceAggregator.SetGroupDemand(MathHelpers.Normalize(aiForce, maxPos, maxNeg));
         }
 
-        /// <summary>Tick phase 8 (after the physics interval): clamp the grid's velocity to the
-        /// enabled remote's <see cref="SimRemoteControl.SpeedLimit"/> — the game's
-        /// <c>MovementBlockMaxSpeed = SpeedLimit</c> (MyAutopilotComponent.cs:1322) plus the
-        /// per-frame grid velocity clamp (enforced by Havok via <c>RigidBody.MaxLinearVelocity</c>,
-        /// MyGridPhysics.SetDefaultRigidBodyMaxVelocities :538-555). Applied after physics so the
-        /// cap is tight on the observed post-step velocity (the per-tick thrust alone can overshoot
-        /// by one frame's impulse). With no enabled remote (autopilot off) it is a no-op.</summary>
-        public void ApplySpeedLimitAfterPhysics()
-        {
-            SimRemoteControl remote = EnabledRemote();
-            if (remote == null)
-            {
-                return;
-            }
-            float limit = remote.SpeedLimit;
-            if (limit <= 0f)
-            {
-                return;
-            }
-            SimRigidBody body = _grid.Body;
-            if (body == null || body.IsDisposed || !body.IsDynamic)
-            {
-                return;
-            }
-            body.ClampLinearSpeed(limit);
-        }
-
         /// <summary>The turn: an angular command about the rotation-from-current-forward-to-target
         /// axis, magnitude the game's adaptive rotation speed (<see cref="AdaptiveRotationSpeed"/>)
         /// capped by the grid's angular authority, stopped below the rotation deadzone, written
-        /// into the gyro's ControlTorque channel. This reproduces the game's end state —
-        /// "drive ControlTorque to turn toward the target"
-        /// (MyAutopilotComponent.UpdateGyro :2439-2500).</summary>
-        private Vector3 ComputeTurnTorque(SimRigidBody body, Vector3D delta)
+        /// into the gyro's ControlTorque channel. Implements the ordinary vacuum,
+        /// Forward-facing path of MyAutopilotComponent.UpdateGyro, including its
+        /// quaternion error and GetAngularVelocity stopping prediction.</summary>
+        private Vector3 ComputeTurnTorque(SimRigidBody body, SimRemoteControl remote, Vector3D delta)
         {
-            Vector3D fwd = (Vector3D)_grid.WorldMatrix.Forward;
+            MatrixD orientation = remote.WorldMatrix.GetOrientation();
             Vector3D toTarget = Vector3D.Normalize(delta);
-            Vector3D axisW = Vector3D.Cross(fwd, toTarget);
-            double sinA = axisW.Length();
-            double cosA = Vector3D.Dot(fwd, toTarget);
-            double angle = Math.Atan2(sinA, cosA);
-            if (angle < RotationDeadzone || sinA <= 1e-12)
-            {
-                return Vector3.Zero; // aligned within the game's RotationDeadzone (:2474-2478)
-            }
-            Matrix worldToGrid = _grid.WorldToLocal;
-            Vector3 axisGrid = Vector3.TransformNormal((Vector3)(axisW / sinA), worldToGrid);
-            Vector3 wGrid = Vector3.Transform(body.AngularVelocity, worldToGrid);
-            double wAlong = Vector3.Dot(wGrid, axisGrid);
+            double angle = Math.Acos(MathHelper.Clamp(Vector3D.Dot(toTarget, orientation.Forward), -1.0, 1.0));
+            if (angle < RotationDeadzone) return Vector3.Zero;
 
-            // Angular-authority feedback: command the game's adaptive rotation speed reduced by
-            // the grid's own on-axis rotation, so the turn decelerates as it approaches and
-            // settles without overshoot (MyAutopilotComponent.cs:2479-2482's braking gate).
-            // Once the grid is already rotating fast enough to close the angle, command zero
-            // and let the gyro's dampening finish it.
-            double rotationSpeed = AdaptiveRotationSpeed(angle);
-            double rate = rotationSpeed - RotationDamping * Math.Abs(wAlong);
-            if (rate <= 0.0)
-            {
-                return Vector3.Zero; // rotational braking: coast and let the gyro settle
-            }
-            Vector3 cmd = Vector3.ClampToSphere(axisGrid * (float)rate, 1f);
-            _lastControlTorque = cmd;
-            return cmd;
+            // Ordinary vacuum UpdateGyro/GetAngleVelocity: use quaternion error
+            // so opposite headings and rotated remote mounts remain well defined.
+            QuaternionD current = QuaternionD.CreateFromRotationMatrix(orientation);
+            QuaternionD target = QuaternionD.CreateFromForwardUp(toTarget, orientation.Up);
+            current.Conjugate();
+            QuaternionD error = target * current;
+            double errorAngle = 2 * Math.Acos(MathHelper.Clamp(error.W, -1.0, 1.0));
+            if (errorAngle > Math.PI) errorAngle -= 2 * Math.PI;
+            Vector3D axis = new Vector3D(error.X, error.Y, error.Z);
+            Vector3D angularCommandWorld = errorAngle * axis / axis.Length();
+            Vector3D velocity = body.AngularVelocity;
+            Vector3D closingVelocity = angularCommandWorld * Vector3D.Dot(velocity, angularCommandWorld);
+            Matrix worldToGrid = WorldToGrid();
+            Vector3D command = Vector3D.Transform(angularCommandWorld, worldToGrid);
+            command = Vector3D.ClampToSphere(command, (float)AdaptiveRotationSpeed(angle), true);
+            Vector3D predicted = _grid.GyroRateSystem.PredictAngularVelocity(-command);
+            double stopping = (velocity / (velocity - predicted)).Max();
+            double closing = angle / closingVelocity.Length() * angle;
+            if (double.IsNaN(stopping) || double.IsInfinity(closing) || closing > stopping)
+                _lastControlTorque = command;
+            // The game's command is not clamped here to a unit sphere. Its gyro
+            // application path clamps each torque component later.
+            return _lastControlTorque;
         }
 
         /// <summary>The game's adaptive rotation speed (rad/s): <see cref="MinRotationSpeed"/>
@@ -291,7 +256,7 @@ namespace FleetCommand.Test.SpaceEngineers
             {
                 return Vector3.Zero;
             }
-            Matrix worldToGrid = _grid.WorldToLocal;
+            Matrix worldToGrid = WorldToGrid();
             Vector3D v = delta;
             v.Normalize();
             Vector3D vel = body.LinearVelocity;
@@ -326,9 +291,9 @@ namespace FleetCommand.Test.SpaceEngineers
                 // Transform(delta) - Transform(velPerp), normalized: the
                 // grid-frame thrust direction toward the target minus the
                 // cross-track drift (rotation-invariant difference).
-                Vector3 gridDelta = Vector3.Transform((Vector3)delta, worldToGrid);
-                Vector3 gridPerp = Vector3.Transform((Vector3)velPerp, worldToGrid);
-                Vector3 dir = gridDelta - gridPerp;
+                // UpdateThrust keeps delta and cross-track velocity in double
+                // precision through both transforms, casting only their difference.
+                Vector3 dir = Vector3D.Transform(delta, worldToGrid) - Vector3D.Transform(velPerp, worldToGrid);
                 if (dir.LengthSquared() <= 1e-12f)
                 {
                     return Vector3.Zero;
@@ -347,7 +312,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// ±Max·SlowdownFactor.</summary>
         private Vector3 ComputeAiThrust(Vector3 direction, SimRigidBody body, SimRemoteControl remote)
         {
-            Matrix worldToGrid = _grid.WorldToLocal;
+            Matrix worldToGrid = WorldToGrid();
             Vector3 vector = Vector3.Clamp(direction, Vector3.Zero, Vector3.One);
             Vector3 vector2 = Vector3.Clamp(direction, -Vector3.One, Vector3.Zero);
             Vector3 maxPos = _grid.ForceAggregator.MaxPositiveThrust;
@@ -380,11 +345,12 @@ namespace FleetCommand.Test.SpaceEngineers
             // direction, with the game's /0.5 time constant.
             Vector3 vector12 = Vector3.Transform((Vector3)body.LinearVelocity + gravity * 0.5f, worldToGrid);
             Vector3D reject;
-            Vector3D dirNorm;
             if (!Vector3.IsZero(direction))
             {
-                dirNorm = Vector3D.Normalize(new Vector3D(direction));
-                reject = Vector3D.Reject(new Vector3D(vector12), dirNorm);
+                // ComputeAiThrust normalizes/rejects as Vector3, then widens
+                // the result for the mass/time calculation.
+                Vector3 dirNorm = Vector3.Normalize(direction);
+                reject = Vector3.Reject(vector12, dirNorm);
             }
             else
             {
@@ -433,18 +399,28 @@ namespace FleetCommand.Test.SpaceEngineers
         }
 
         /// <summary>The waypoint-advance radius (m): the profile's override when positive,
-        /// else the game's default <c>gridSize · 3</c> (<c>GetWaypointAdvanceDistance</c>,
-        /// MyAutopilotComponent.cs:1915; the fallback used when no waypoint threshold is set and
-        /// the waypoint is not a docking/last one-way target).</summary>
-        private float ArrivalDistance()
+        /// else GetWaypointAdvanceDistance's intermediate gridSize*3 radius or
+        /// its smaller final OneWay destination trigger.</summary>
+        private float ArrivalDistance(SimRemoteControl remote)
         {
             float overrideDistance = _grid.World.Profile.AutopilotArrivalDistance;
-            return overrideDistance > 0f ? overrideDistance : _grid.GridSize * 3f;
+            if (overrideDistance > 0f) return overrideDistance;
+            if (remote.FlightMode == Sandbox.ModAPI.Ingame.FlightMode.OneWay && remote.IsLastWaypoint)
+                return _grid.GridSize * (_grid.GridSizeEnum == VRage.Game.MyCubeSize.Large ? 0.25f : 1f);
+            return _grid.GridSize * 3f;
         }
 
         private static float MaxComponent(Vector3 v)
         {
             return Math.Max(Math.Max(v.X, v.Y), v.Z);
+        }
+
+        Matrix WorldToGrid()
+        {
+            // WorldMatrixNormalizedInv in the game inverts the double world
+            // matrix before narrowing its rotation to Matrix. Transposing an
+            // already narrowed matrix is not equivalent for a Havok float pose.
+            return (Matrix)MatrixD.Invert(_grid.WorldMatrix.GetOrientation());
         }
     }
 }

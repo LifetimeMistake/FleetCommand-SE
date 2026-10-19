@@ -35,24 +35,35 @@ namespace FleetCommand.Test.SpaceEngineers
         /// synchronously by <see cref="TryRun"/>.</summary>
         public Action<string> RunHandler { get; set; }
 
+        /// <summary>The source flags for the currently executing program entry.</summary>
+        public UpdateType CurrentUpdateSource { get; private set; }
+
         /// <summary>Runs the program synchronously with <paramref name="argument"/> (no live game
         /// loop); forwards <see cref="TerminalRunArgument"/> when the argument is null/empty (the
         /// game's <c>OnRunDefaultApplied</c>, MyProgrammableBlock.cs:552-555) and refuses to re-run
         /// while already running. Records the run on <see cref="Runtime"/>.</summary>
         public bool TryRun(string argument)
         {
-            if (_isRunning)
+            string effective = string.IsNullOrEmpty(argument) ? TerminalRunArgument : argument;
+            return Run(effective, UpdateType.Script);
+        }
+
+        /// <summary>Host entry for terminal, trigger, or scheduled execution.
+        /// Scheduled execution passes an empty argument rather than the terminal default.</summary>
+        public bool Run(string argument, UpdateType source)
+        {
+            if (_isRunning || Closed || !IsWorking || !IsFunctional || Grid.Body == null || Grid.Body.IsDisposed)
             {
                 return false;
             }
             _isRunning = true;
+            CurrentUpdateSource = source;
             try
             {
                 Action<string> handler = RunHandler;
                 if (handler != null)
                 {
-                    string effective = string.IsNullOrEmpty(argument) ? TerminalRunArgument : argument;
-                    handler(effective ?? string.Empty);
+                    handler(argument ?? string.Empty);
                 }
             }
             finally
@@ -61,6 +72,13 @@ namespace FleetCommand.Test.SpaceEngineers
                 Runtime.MarkRun();
             }
             return true;
+        }
+
+        internal void RunScheduled()
+        {
+            var source = Runtime.ConsumeScheduledRun();
+            if (source != UpdateType.None && !Closed && IsWorking && IsFunctional)
+                Run(string.Empty, source);
         }
 
         // — IMyTextSurfaceProvider (no modeled screen) —

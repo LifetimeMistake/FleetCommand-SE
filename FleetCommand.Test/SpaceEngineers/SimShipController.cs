@@ -70,9 +70,12 @@ namespace FleetCommand.Test.SpaceEngineers
             set
             {
                 SimRigidBody body = Grid.Body;
-                if (body != null && !body.IsDisposed)
+                if (body != null && !body.IsDisposed && body.DampenersEnabled != value)
                 {
                     body.DampenersEnabled = value;
+                    // MyCubeGrid.EnableDampingInternal wakes sleeping physics
+                    // only on a change; repeated identical PB writes return early.
+                    if (Grid.ForceAggregator.HasThrusters) body.Activate();
                 }
             }
         }

@@ -22,6 +22,8 @@ namespace FleetCommand.Test.SpaceEngineers
         private readonly long _startTick;
         private long _lastRunTick;
         private bool _hasRun;
+        private UpdateFrequency _updateFrequency;
+        internal UpdateType PendingUpdateType { get; private set; }
 
         internal SimRuntimeInfo(SimWorld world)
         {
@@ -30,7 +32,39 @@ namespace FleetCommand.Test.SpaceEngineers
         }
 
         /// <summary>Gets or sets how frequently the program will run itself.</summary>
-        public UpdateFrequency UpdateFrequency { get; set; }
+        public UpdateFrequency UpdateFrequency
+        {
+            get { return _updateFrequency; }
+            set
+            {
+                if ((value & ~(UpdateFrequency.Update1 | UpdateFrequency.Update10 | UpdateFrequency.Update100 | UpdateFrequency.Once)) != 0)
+                    throw new ArgumentException("Unsupported flags in UpdateFrequency");
+                _updateFrequency = value;
+                PendingUpdateType = UpdateType.None;
+            }
+        }
+
+        internal void PrepareScheduledRun(long completedTick)
+        {
+            // MyIngameScriptComponent latches sources before simulation and
+            // consumes Once before Main runs, allowing Main to schedule it again.
+            PendingUpdateType = UpdateType.None;
+            if ((_updateFrequency & UpdateFrequency.Once) != 0)
+            {
+                PendingUpdateType |= UpdateType.Once;
+                _updateFrequency &= ~UpdateFrequency.Once;
+            }
+            if ((_updateFrequency & UpdateFrequency.Update1) != 0) PendingUpdateType |= UpdateType.Update1;
+            if ((_updateFrequency & UpdateFrequency.Update10) != 0 && completedTick % 10 == 0) PendingUpdateType |= UpdateType.Update10;
+            if ((_updateFrequency & UpdateFrequency.Update100) != 0 && completedTick % 100 == 0) PendingUpdateType |= UpdateType.Update100;
+        }
+
+        internal UpdateType ConsumeScheduledRun()
+        {
+            var source = PendingUpdateType;
+            PendingUpdateType = UpdateType.None;
+            return source;
+        }
 
         /// <summary>The number of fixed simulation ticks since construction (the deterministic
         /// stand-in for the game's "ticks running, reset on recompile").</summary>

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using VRageMath;
@@ -28,10 +30,19 @@ namespace FleetCommand.Test.Sbc
                 SbcValidator.Validate(grid);
             }
 
+            // Reserve identities before assigning any synthetic IDs, including references
+            // whose targets are outside this file. Existing links must retain their meaning.
+            var reservedIds = new HashSet<long>();
+            foreach (SbcGrid grid in file.Grids)
+            {
+                ReserveIds(grid.Data, reservedIds);
+                foreach (SbcBlock block in grid.Blocks) ReserveIds(block.Data, reservedIds);
+            }
+            long nextEntityId = 9000000000001;
             var gridNodes = new List<XElement>();
             foreach (SbcGrid grid in file.Grids)
             {
-                gridNodes.Add(WriteGrid(grid));
+                gridNodes.Add(WriteGrid(grid, reservedIds, ref nextEntityId));
             }
 
             var ship = new XElement("ShipBlueprint",
@@ -50,18 +61,52 @@ namespace FleetCommand.Test.Sbc
             return doc.Declaration + Environment.NewLine + doc;
         }
 
-        private XElement WriteGrid(SbcGrid grid)
+        private XElement WriteGrid(SbcGrid grid, HashSet<long> reservedIds, ref long nextEntityId)
         {
             var blocks = new List<XElement>();
-            long entityId = 9000000000001;
             foreach (SbcBlock block in grid.Blocks)
             {
-                blocks.Add(WriteBlock(block, entityId++));
+                long entityId;
+                if (!TryReadId(block.Data.Element("EntityId"), out entityId))
+                {
+                    while (reservedIds.Contains(nextEntityId)) nextEntityId++;
+                    entityId = nextEntityId++;
+                    reservedIds.Add(entityId);
+                }
+                blocks.Add(WriteBlock(block, entityId));
             }
 
-            return new XElement("CubeGrid",
-                new XElement("GridSizeEnum", grid.GridSize == SbcGridSize.Small ? "Small" : "Large"),
-                new XElement("CubeBlocks", blocks));
+            var result = new XElement(grid.Data) { Name = "CubeGrid" };
+            ReplaceElement(result, "GridSizeEnum", new XElement("GridSizeEnum", grid.GridSize == SbcGridSize.Small ? "Small" : "Large"));
+            ReplaceElement(result, "CubeBlocks", new XElement("CubeBlocks", blocks));
+            return result;
+        }
+
+        private static void ReplaceElement(XElement parent, string name, XElement replacement)
+        {
+            XElement[] existing = parent.Elements(name).ToArray();
+            if (existing.Length == 0) parent.Add(replacement);
+            else
+            {
+                existing[0].ReplaceWith(replacement);
+                foreach (XElement duplicate in existing.Skip(1)) duplicate.Remove();
+            }
+        }
+
+        private static bool TryReadId(XElement element, out long id)
+        {
+            return long.TryParse((string)element, NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out id) && id != 0;
+        }
+
+        private static void ReserveIds(XElement data, HashSet<long> reservedIds)
+        {
+            foreach (XElement element in data.Descendants())
+            {
+                if (!element.Name.LocalName.EndsWith("EntityId", StringComparison.Ordinal)) continue;
+                long id;
+                if (TryReadId(element, out id)) reservedIds.Add(id);
+            }
         }
 
         private XElement WriteBlock(SbcBlock block, long entityId)

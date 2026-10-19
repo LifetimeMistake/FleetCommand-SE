@@ -51,9 +51,25 @@ namespace FleetCommand.Test.SpaceEngineers
             // matching template.LocalTransform's rotation part and the
             // game's base.Orientation (MyGyro.cs:139).
             _orientationMatrix = Matrix.CreateFromQuaternion(template.Orientation);
+            EnabledChanged += _ => Grid.GyroRateSystem.MarkDirty();
+            // This host caches power-filtered pools. Refresh them when supply
+            // changes so a prediction before phase-5 aggregation sees restoration.
+            WorkingChanged += _ => Grid.GyroRateSystem.MarkDirty();
         }
 
         // — IMyGyro —
+
+        public override bool IsFunctional
+        {
+            get { return base.IsFunctional; }
+            set
+            {
+                if (base.IsFunctional == value) return;
+                base.IsFunctional = value;
+                // MyGridGyroSystem.ComponentStack_IsFunctionalChanged.
+                if (Grid != null) Grid.GyroRateSystem.MarkDirty();
+            }
+        }
 
         /// <inheritdoc />
         public float GyroPower
@@ -62,7 +78,11 @@ namespace FleetCommand.Test.SpaceEngineers
             set
             {
                 value = value < 0f ? 0f : value > 1f ? 1f : value;
+                if (_gyroPower == value) return;
                 _gyroPower = value;
+                // MyGyro.GyroPowerChanged -> RaisePropertiesChanged ->
+                // MyGridGyroSystem.gyro_PropertiesChanged invalidates authority.
+                Grid.GyroRateSystem.MarkDirty();
             }
         }
 
@@ -72,6 +92,7 @@ namespace FleetCommand.Test.SpaceEngineers
             get { return _gyroOverride; }
             set
             {
+                if (_gyroOverride == value) return;
                 _gyroOverride = value;
                 // The game's SetGyroOverride marks the gyro system dirty
                 // (MyGyro.cs), which re-arms the override ramp.

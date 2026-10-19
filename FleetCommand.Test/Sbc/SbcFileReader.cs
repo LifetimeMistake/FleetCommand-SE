@@ -93,7 +93,7 @@ namespace FleetCommand.Test.Sbc
             {
                 blocks.Add(ParseBlock(blockEl));
             }
-            return new SbcGrid(size, blocks);
+            return new SbcGrid(size, blocks, gridEl);
         }
 
         private SbcBlock ParseBlock(XElement blockEl)

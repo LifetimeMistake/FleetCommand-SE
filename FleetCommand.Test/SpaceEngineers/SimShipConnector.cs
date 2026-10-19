@@ -18,19 +18,20 @@ namespace FleetCommand.Test.SpaceEngineers
     public class SimShipConnector : SimFunctionalBlock, IMyShipConnector
     {
         /// <summary>
-        /// The connect (attach) direction in the block's OWN frame, from the block's
+        /// The attach angle eligibility direction in the block's OWN frame, from the block's
         /// definition <c>ConnectDirection</c> — the game's mapping
         /// (MyShipConnector.cs:1489-1490): a = ConnectDirection.X·Left + .Y·Up + .Z·Forward,
         /// with Left = (-1,0,0), Up = (0,1,0), Forward = (0,0,-1) in VRageMath. The default
         /// ConnectDirection is Vector3.Forward (0,0,-1) (MyObjectBuilder_ShipConnectorDefinition.cs:
-        /// 1659), giving a = (0,0,1) — the vanilla connector connects along +Z. This is a
-        /// cardinal unit axis.
+        /// 1659), giving a = (0,0,1) for that angular gate. The physical mating point and
+        /// hinge axis instead come from the model dummy translation (1944-1957).
         /// </summary>
         private readonly Vector3 _connectAxisBlock;
 
         private readonly Matrix _blockRotation;
         private readonly Matrix _connectorRotation;
-        private readonly float _faceDepth;
+        private readonly Vector3 _connectionOffsetGrid;
+        private readonly float _detectorRadius;
 
         /// <summary>The connector's magnetic throw-out flag (default false), stored as a plain
         /// value exactly as the game stores it (MyShipConnector.cs:533-543). The magnetic
@@ -59,6 +60,34 @@ namespace FleetCommand.Test.SpaceEngineers
         private bool _isMaster;
         private SimShipConnector _partner;
         private HkConstraint _constraint;  // valid on the master; malleable while approaching, fixed when connected
+        private ConnectorDetectorBodies _detectorPhysics;
+        private int _update10Counter;
+
+        internal bool AdvanceWorkingUpdate10()
+        {
+            // MyShipConnector.UpdateBeforeSimulation10 increments only while working,
+            // including while connected, and attempts automatic attachment every fourth call.
+            return ++_update10Counter % 4 == 0;
+        }
+
+        internal void InitializeDetectorPhysics()
+        {
+            if (_detectorPhysics == null) _detectorPhysics = new ConnectorDetectorBodies(Grid, Template);
+        }
+
+        internal void DisposeDetectorPhysics()
+        {
+            _detectorPhysics?.Dispose();
+            _detectorPhysics = null;
+        }
+
+        public override void Dispose()
+        {
+            if (Closed) return;
+            if (_inConstraint) DetachLink();
+            DisposeDetectorPhysics();
+            base.Dispose();
+        }
 
         public SimShipConnector(long entityId, string name, SimCubeGrid grid, TemplateBlock template)
             : base(entityId, name, grid, template)
@@ -67,17 +96,26 @@ namespace FleetCommand.Test.SpaceEngineers
             _connectorRotation = Matrix.CreateFromQuaternion(template.ConnectorOrientation);
             Vector3 cd = template.ConnectDirection;
             _connectAxisBlock = new Vector3(-cd.X, cd.Y, -cd.Z);
-            // The connect contact point sits on the block's own mating face, not the centre —
-            // the game's ConstraintPositionInGridSpace = block centre +
-            // DominantAxisProjection(model-connector offset) (MyShipConnector.cs:1944-1952). Every
-            // block definition's ModelOffset is (0,0,0), so the ring sits on the block's own
-            // face: the face depth is the block's half-extent along the connect axis (the
-            // dominant-axis projection of the face at the block half-length). This is also the
-            // game's detector radius — m_detectorRadius = halfExtents.AbsMax() (guarded by the
-            // connect axis, MyShipConnector.cs:1280).
-            int axis = DominantAxis(_connectAxisBlock);
-            _faceDepth = axis == 0 ? template.HalfExtents.X
-                : axis == 1 ? template.HalfExtents.Y : template.HalfExtents.Z;
+            Matrix localRotation = _connectorRotation * _blockRotation;
+            if (template.ConnectorDetectorDummy.HasValue)
+            {
+                // LoadDummies stores the raw model translation (1275-1280). ConnectionPosition
+                // transforms it by the block local matrix (519), then the constraint projects
+                // the offset onto its dominant grid axis (1944-1957).
+                Matrix dummy = template.ConnectorDetectorDummy.Value;
+                _connectionOffsetGrid = Vector3.DominantAxisProjection(
+                    Vector3.TransformNormal(dummy.Translation, localRotation));
+                _detectorRadius = (dummy.Scale / 2f).AbsMax();
+            }
+            else
+            {
+                // Synthetic templates have no installed model: retain their explicit face convention.
+                int axis = DominantAxis(_connectAxisBlock);
+                float depth = axis == 0 ? template.HalfExtents.X
+                    : axis == 1 ? template.HalfExtents.Y : template.HalfExtents.Z;
+                _connectionOffsetGrid = Vector3.TransformNormal(_connectAxisBlock * depth, localRotation);
+                _detectorRadius = depth;
+            }
             _throwOut = false;
             _collectAll = false;
             _strength = template.ConnectorStrength;
@@ -93,8 +131,7 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             get
             {
-                Vector3D center = base.WorldMatrix.Translation;
-                return center + ConnectAxisWorld * _faceDepth;
+                return Vector3D.Transform(Template.CenterLocal + _connectionOffsetGrid, Grid.WorldMatrix);
             }
         }
 
@@ -106,7 +143,7 @@ namespace FleetCommand.Test.SpaceEngineers
             get
             {
                 Matrix gridRot = ((Matrix)Grid.WorldMatrix).GetOrientation();
-                return (MatrixD)(gridRot * _blockRotation * _connectorRotation);
+                return (MatrixD)(_connectorRotation * _blockRotation * gridRot);
             }
         }
 
@@ -117,19 +154,18 @@ namespace FleetCommand.Test.SpaceEngineers
         {
             get
             {
-                Vector3 axis = Vector3.TransformNormal(_connectAxisBlock, (Matrix)WorldOrientation);
-                return new Vector3D(axis);
+                return Vector3D.TransformNormal(ConnectAxisGrid, Grid.WorldMatrix);
             }
         }
 
-        /// <summary>The connect axis in grid-body coordinates (the block's local forward
-        /// transformed by the layout and connector rotations) — the game's
+        /// <summary>The connect axis in grid-body coordinates (the normalized projected
+        /// model dummy offset, or synthetic fallback face) — the game's
         /// <c>ConstraintAxisGridSpace</c> (MyShipConnector.cs:1954).</summary>
         public Vector3 ConnectAxisGrid
         {
             get
             {
-                return Vector3.TransformNormal(Vector3.TransformNormal(_connectAxisBlock, _blockRotation), _connectorRotation);
+                return Vector3.Normalize(_connectionOffsetGrid);
             }
         }
 
@@ -149,10 +185,15 @@ namespace FleetCommand.Test.SpaceEngineers
             }
         }
 
-        /// <summary>This connector's auto-detect sphere radius: its own block half-extent max
+        /// <summary>This connector's auto-detect sphere radius: the model dummy's scale half-extent max
         /// (the game's <c>m_detectorRadius = halfExtents.AbsMax()</c>, MyShipConnector.cs:1280).
         /// The broadphase that FindOtherConnector searches within.</summary>
-        public float DetectorRadius => _faceDepth;
+        public float DetectorRadius => _detectorRadius;
+
+        // The angle eligibility gate uses the definition's ConnectDirection, separately from
+        // the model dummy axis used to author Havok's hinge (MyShipConnector.cs:1489-1492).
+        internal Vector3D AttachDirectionWorld => Vector3D.TransformNormal(_connectAxisBlock, WorldOrientation);
+        internal bool IsSmallConnector => Template.ConnectorIsSmall ?? Grid.GridSize < 1f;
 
         /// <summary>The grid-local (origin-relative) position of the connection point — the
         /// game's <c>ConstraintPositionInGridSpace</c> relative frame (MyShipConnector.cs:1944),
@@ -321,6 +362,23 @@ namespace FleetCommand.Test.SpaceEngineers
         }
 
         // — game lifecycle (driven by ConnectorSystem each tick) —
+
+        /// <summary>Restores a saved welded connection after both scenario grids have spawned.
+        /// Invoke on the connector serialized as IsMaster. This is simulator loading support,
+        /// mirroring MyShipConnector.Init/UpdateConnectionState (1046-1064, 1705-1721), rather
+        /// than an ingame Connect action: saved links bypass proximity auto-detection.</summary>
+        public void RestoreSerializedConnection(SimShipConnector other)
+        {
+            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (ReferenceEquals(this, other) || ReferenceEquals(Grid, other.Grid))
+                throw new ArgumentException("Saved connections require connectors on distinct grids.", nameof(other));
+            if (!ReferenceEquals(Grid.World, other.Grid.World))
+                throw new ArgumentException("Saved connections require grids in the same world.", nameof(other));
+            if (Closed || other.Closed || InConstraint || other.InConstraint)
+                throw new InvalidOperationException("Saved connections require two live, unpaired connectors.");
+            AttachAsMaster(other);
+            WeldPair();
+        }
 
         /// <summary>Detaches this connector's link (if any), routing to the master — the game's
         /// <c>Detach</c> (:2158-2222), which the master performs. Used when the pair stops

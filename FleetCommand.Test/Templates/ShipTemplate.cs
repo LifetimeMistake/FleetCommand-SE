@@ -55,6 +55,11 @@ namespace FleetCommand.Test.Templates
     /// </summary>
     public sealed class TemplateBlock
     {
+        /// <summary>Unnormalized model detector dummy. Imported connectors use installed
+        /// asset metadata; synthetic connectors default to a detector at the block centre.</summary>
+        public Matrix? ConnectorDetectorDummy { get; internal set; }
+        /// <summary>Model dummy small_connector classification, independent of grid size.</summary>
+        public bool? ConnectorIsSmall { get; internal set; }
         public bool InitialEnabled { get; internal set; } = true;
         public Sandbox.ModAPI.Ingame.ChargeMode InitialChargeMode { get; internal set; }
         public bool InitialDampeners { get; internal set; } = true;
@@ -213,7 +218,7 @@ namespace FleetCommand.Test.Templates
             float connectorStrength = 1f,
             float slowdownFactor = 1f,
             float initialFuel = 1000000f, float fuelConsumptionPerSecond = 1f,
-            Vector3? connectDirection = null)
+            Vector3? connectDirection = null, Matrix? connectorDetectorDummy = null)
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -267,6 +272,7 @@ namespace FleetCommand.Test.Templates
             GyroForce = gyroForce;
             GyroPowerDemand = gyroPowerDemand;
             ConnectorOrientation = connectorOrientation ?? Quaternion.Identity;
+            ConnectorDetectorDummy = connectorDetectorDummy;
             ConnectorReach = connectorReach;
             ConnectDirection = connectDir;
             ConnectorStrength = connectorStrength;

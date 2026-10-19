@@ -75,7 +75,12 @@ namespace FleetCommand.Test.SpaceEngineers
         /// instead of the override pool (the game's <c>AutopilotEnabled</c>). Autopilot tests drive
         /// gyros through the override path (flag false); this models the flag's only effect
         /// here.</summary>
-        public bool AutopilotEnabled;
+        private bool _autopilotEnabled;
+        public bool AutopilotEnabled
+        {
+            get { return _autopilotEnabled; }
+            set { if (_autopilotEnabled != value) { _autopilotEnabled = value; MarkDirty(); } }
+        }
 
         /// <summary>The scenario's non-override stabilization input (the game's
         /// <c>ControlTorque</c>), added as <c>ControlTorque * m_maxGyroForce</c>. Zero by
@@ -153,6 +158,7 @@ namespace FleetCommand.Test.SpaceEngineers
         /// stable.</summary>
         public void Aggregate()
         {
+            bool parametersChanged = _gyrosChanged;
             _maxGyroForce = 0f;
             _maxOverrideForce = 0f;
             _overrideTargetVelocity = Vector3.Zero;
@@ -199,6 +205,53 @@ namespace FleetCommand.Test.SpaceEngineers
                 _overrideTargetVelocity /= _maxOverrideForce;
             }
             _lastOverrideTarget = _overrideTargetVelocity;
+            // MyGridGyroSystem.RecomputeGyroParameters ends by controlling native
+            // automatic deactivation. A powered nonzero override must not sleep.
+            if (parametersChanged)
+                _grid.Body.SetAutomaticDeactivation(Vector3.IsZero(_overrideTargetVelocity) || GyroPowerRatio() == 0);
+        }
+
+        /// <summary>MyGridGyroSystem.GetAngularVelocity's one-step prediction.
+        /// This estimates braking authority; it does not apply an impulse.</summary>
+        internal Vector3 PredictAngularVelocity(Vector3 control, bool smoothRotation = true)
+        {
+            var body = _grid.Body;
+            if (body == null || body.IsDisposed) return Vector3.Zero;
+            // Keep the parameter cache current at the query boundary. The native
+            // game updates this cache through its scheduled gyro component.
+            if (_gyrosChanged) Aggregate();
+            float power = GyroPowerRatio();
+            if (power > 0 && body.IsDynamic)
+            {
+                Matrix worldToGrid = (Matrix)MatrixD.Invert(_grid.WorldMatrix.GetOrientation());
+                Matrix gridToWorld = (Matrix)_grid.WorldMatrix.GetOrientation();
+                Vector3 velocity = Vector3.Transform(body.AngularVelocity, worldToGrid);
+                Vector3 inverseInertia = body.InverseInertiaDiagonal;
+                float minimumInverseInertia = Math.Min(inverseInertia.X, Math.Min(inverseInertia.Y, inverseInertia.Z));
+                float divisor = Math.Max(1, minimumInverseInertia * InvTensorMaxLimit);
+                Vector3 correction = Vector3.Zero;
+                Vector3 acceleration = (_overrideTargetVelocity - velocity) * 60;
+                float available = _maxOverrideForce + _maxGyroForce * (1 - control.Length());
+                acceleration *= Vector3.Normalize(inverseInertia);
+                Vector3 desiredTorque = acceleration / inverseInertia;
+                float ratio = desiredTorque.Length() / available;
+                if (ratio < 0.5f && _overrideTargetVelocity.LengthSquared() < 2.5E-05f)
+                    return _overrideTargetVelocity;
+                if (!Vector3.IsZero(acceleration, 0.0001f) && smoothRotation)
+                {
+                    float blend = 1 - 0.8f / (float)Math.Exp(0.5f * ratio);
+                    correction = Vector3.ClampToSphere(desiredTorque, available) * 0.95f * blend
+                        + desiredTorque * 0.05f * (1 - blend);
+                    if (_grid.GridSizeEnum == VRage.Game.MyCubeSize.Large) correction *= 2;
+                }
+                Vector3 torque = (control * _maxGyroForce + correction) / divisor * power;
+                if (torque.LengthSquared() > TorqueSqLenThreshold)
+                    return Vector3.Transform(velocity + torque * minimumInverseInertia * (1f / 60f), gridToWorld);
+                if (control == Vector3.Zero && _overrideTargetVelocity == Vector3.Zero
+                    && body.AngularVelocity != Vector3.Zero && body.AngularVelocity.LengthSquared() < 9.000001E-08f && body.IsActive)
+                    return Vector3.Zero;
+            }
+            return body.AngularVelocity;
         }
 
         /// <summary>Tick phase 6: reproduce the game's override loop
@@ -303,6 +356,15 @@ namespace FleetCommand.Test.SpaceEngineers
         /// (:231-250).</summary>
         private void ApplyManualTorque(SimRigidBody body, float dtSeconds)
         {
+            // MyGridGyroSystem.UpdateGyros deschedules before applying torque at
+            // these componentwise thresholds. Tiny numerical rotation must not
+            // keep waking an otherwise sleeping constrained grid.
+            if (Vector3.IsZero(body.AngularVelocity, 0.001f) && Vector3.IsZero(_controlTorque, 0.001f))
+            {
+                _lastGridTorque = Vector3.Zero;
+                _lastSaturated = false;
+                return;
+            }
             float num = GyroPowerRatio();
             if (!(num > 0f))
             {

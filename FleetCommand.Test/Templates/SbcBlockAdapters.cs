@@ -96,6 +96,10 @@ namespace FleetCommand.Test.Templates
             result.UseDefinitionPowerGroups = true;
             switch (spec.Kind)
             {
+                case BlockKind.Connector:
+                    result.ConnectorDetectorDummy = ConnectorDetectorGeometry.ForSubtype(block.SubtypeId);
+                    result.ConnectorIsSmall = block.SubtypeId == "ConnectorSmall" || block.SubtypeId == "SmallBlockInsetConnector";
+                    break;
                 case BlockKind.Battery:
                     result.BatteryRechargeMultiplier = 0.8f;
                     result.BatteryUpdateIntervalTicks = 100;

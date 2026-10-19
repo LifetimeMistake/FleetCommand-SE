@@ -14,10 +14,121 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 {
     /// <summary>Conformance of the connector block and the real game connector lifecycle (a
     /// port of MyShipConnector): auto-detect + attach through the malleable hinge, the
-    /// approach-keep, and the weld (fixed constraint) on contact.</summary>
+    /// approach-keep, and explicit welding via Connect (fixed constraint).</summary>
     [TestFixture]
     public class ConnectorConformanceTests : FleetTestFixture
     {
+        [Test]
+        public void SerializedConnection_RestoresWeldBeforeAutomaticDetection()
+        {
+            SimShip a = Fc.Spawn(ConnectorCraft("load-a", 1000f,
+                RotateForwardTo(Vector3.Right)), SpawnState.At(Vector3D.Zero));
+            SimShip b = Fc.Spawn(ConnectorCraft("load-b", 1000f,
+                RotateForwardTo(Vector3.Left)), SpawnState.At(new Vector3D(2.5, 0, 0)));
+            SimShipConnector master = Connector(a);
+            SimShipConnector slave = Connector(b);
+            master.RestoreSerializedConnection(slave);
+            Assert.That(master.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
+            Assert.That(slave.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
+            Assert.That(master.IsMaster, Is.True);
+            Assert.That(master.OtherConnector, Is.SameAs(slave));
+            Assert.Throws<ArgumentException>((Action)(() => master.RestoreSerializedConnection(master)));
+            Assert.Throws<InvalidOperationException>((Action)(() => master.RestoreSerializedConnection(slave)));
+            master.Disconnect();
+            Assert.That(master.OtherConnector, Is.Null);
+            Assert.That(slave.OtherConnector, Is.Null);
+        }
+
+        [Test]
+        public void AutoAttach_RunsOnFourthWorkingUpdate10()
+        {
+            SimShip a = Fc.Spawn(ConnectorCraft("cadence-a", 1000f,
+                RotateForwardTo(Vector3.Right)), SpawnState.At(Vector3D.Zero));
+            Fc.Spawn(ConnectorCraft("cadence-b", 1000f,
+                RotateForwardTo(Vector3.Left)), SpawnState.At(new Vector3D(2.68, 0, 0)));
+            SimShipConnector connector = Connector(a);
+            Fc.Step(39);
+            Assert.That(connector.Status, Is.EqualTo(MyShipConnectorStatus.Unconnected),
+                "TryAttach is gated by ++m_update10Counter % 4 == 0 in UpdateBeforeSimulation10.");
+            Fc.Step();
+            Assert.That(connector.Status, Is.EqualTo(MyShipConnectorStatus.Connectable));
+            connector.Enabled = false;
+            Fc.Step(9);
+            Assert.That(connector.InConstraint, Is.True,
+                "The not-working detach also runs on UpdateBeforeSimulation10.");
+            Fc.Step();
+            Assert.That(connector.InConstraint, Is.False);
+        }
+
+        [Test]
+        public void AutoAttach_AtContact_RemainsConnectableUntilExplicitConnect()
+        {
+            SimShip a = Fc.Spawn(ConnectorCraft("contact-a", 1000f,
+                RotateForwardTo(Vector3.Right)), SpawnState.At(Vector3D.Zero));
+            SimShip b = Fc.Spawn(ConnectorCraft("contact-b", 1000f,
+                RotateForwardTo(Vector3.Left)), SpawnState.At(new Vector3D(2.55, 0, 0)));
+            SimShipConnector connector = Connector(a);
+            Fc.Step(120);
+            Assert.That(connector.Status, Is.EqualTo(MyShipConnectorStatus.Connectable),
+                "MyShipConnector.UpdateBeforeSimulation10 never calls Weld; contact only holds an approach constraint.");
+            connector.Connect();
+            Assert.That(connector.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
+        }
+
+        [TestCase("ConnectorSmall", -0.335196674f, 0.1383981705f)]
+        [TestCase("Connector", -1.31683457f, 0.6155442f)]
+        [TestCase("ConnectorMedium", -0.5154143f, 0.636063575f)]
+        public void ImportedConnector_UsesModelDummyMatingPoint(string subtype, float depth, float radius)
+        {
+            var block = new TemplateBlock("C", Vector3I.Zero, 100f, 0.5f,
+                kind: BlockKind.Connector, connectorDetectorDummy: ConnectorDetectorGeometry.ForSubtype(subtype));
+            var template = new ShipTemplate(subtype, 0.5f, new[] { block });
+            SimShip ship = Fc.Spawn(template, SpawnState.At(Vector3D.Zero));
+            SimShipConnector connector = Connector(ship);
+            AssertDot(connector.WorldPosition, new Vector3D(0, 0, depth), 1e-6,
+                "ConstraintPositionInGridSpace uses the dominant-axis projection of model dummy translation.");
+            AssertDot(connector.ConnectAxisGrid, Vector3D.Forward, 1e-6,
+                "ConstraintAxisGridSpace points from block centre to the projected dummy translation.");
+            Assert.That(connector.DetectorRadius, Is.EqualTo(radius).Within(1e-6));
+        }
+
+        [Test]
+        public void ConnectorFrame_ComposesLocalRotationsBeforeGridRotation()
+        {
+            Quaternion blockRotation = Quaternion.CreateFromAxisAngle(Vector3.Right, MathHelper.PiOver2);
+            Quaternion connectorRotation = Quaternion.CreateFromAxisAngle(Vector3.Up, MathHelper.PiOver2);
+            var block = new TemplateBlock("C", Vector3I.Zero, 100f, 0.5f,
+                orientation: blockRotation, kind: BlockKind.Connector, connectorOrientation: connectorRotation);
+            var template = new ShipTemplate("rotated", 0.5f, new[] { block });
+            MatrixD gridRotation = MatrixD.CreateRotationZ(MathHelper.PiOver2);
+            SimShip ship = Fc.Spawn(template, SpawnState.At(Vector3D.Zero, gridRotation));
+            Matrix expected = Matrix.CreateFromQuaternion(connectorRotation) * Matrix.CreateFromQuaternion(blockRotation);
+            AssertDot(Connector(ship).ConnectAxisGrid, Vector3.TransformNormal(Vector3.Backward, expected), 1e-6,
+                "VRage uses row vectors: connector-local rotation precedes block-local rotation.");
+            AssertDot(Connector(ship).ConnectAxisWorld,
+                Vector3D.TransformNormal(Vector3.TransformNormal(Vector3.Backward, expected), gridRotation), 1e-6,
+                "Grid rotation must follow the local connector and block rotations.");
+        }
+
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        public void ConnectorPairing_UsesPortSizeRatherThanGridSize(bool smallPort, bool expectedPairing)
+        {
+            var smallBlock = new TemplateBlock("C", Vector3I.Zero, 100f, 0.5f,
+                kind: BlockKind.Connector, connectorDetectorDummy: ConnectorDetectorGeometry.ForSubtype("ConnectorMedium"));
+            smallBlock.ConnectorIsSmall = smallPort;
+            var largeBlock = new TemplateBlock("C", Vector3I.Zero, 100f, 2.5f,
+                orientation: Quaternion.CreateFromAxisAngle(Vector3.Up, MathHelper.Pi),
+                kind: BlockKind.Connector, connectorDetectorDummy: ConnectorDetectorGeometry.ForSubtype("Connector"));
+            largeBlock.ConnectorIsSmall = false;
+            SimShip small = Fc.Spawn(new ShipTemplate("small", 0.5f, new[] { smallBlock }),
+                SpawnState.At(new Vector3D(0, 0, 1.88224887)));
+            Fc.Spawn(new ShipTemplate("large", 2.5f, new[] { largeBlock }), SpawnState.At(Vector3D.Zero));
+            Fc.Step(40);
+            Assert.That(Connector(small).Status == MyShipConnectorStatus.Connectable, Is.EqualTo(expectedPairing),
+                "MyShipConnector.TryAttach compares IsSmallConnector from dummy names, independent of grid size.");
+        }
+
         // — connector point kinematics (world pose + point velocity from the body) —
 
         [Test]
@@ -144,7 +255,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShipConnector ca = Connector(a);
             SimShipConnector cb = Connector(b);
 
-            Fc.Step();
+            Fc.Step(40);
 
             Assert.That((ca.WorldPosition - cb.WorldPosition).Length(), Is.GreaterThan(ca.DetectorRadius),
                 "Sanity: the faces must sit beyond this connector's detector radius.");
@@ -170,10 +281,9 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 SimShipConnector ca = Connector(a);
                 SimShipConnector cb = Connector(b);
 
-                ctx.Step();
-
                 Assert.That((ca.WorldPosition - cb.WorldPosition).Length(), Is.LessThanOrEqualTo(ca.DetectorRadius),
                     "Sanity: the faces must be within the detector radius so only the angle gate rejects.");
+                ctx.Step(40);
                 Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Unconnected),
                     "Parallel (non-opposed) connect directions must be rejected by the opposing-angle gate.");
             }
@@ -182,12 +292,10 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         // — the full auto lifecycle: detect -> approach -> weld —
 
         [Test]
-        public void AutoDock_Detects_Approaches_AndWeldsOnContact()
+        public void AutoAttach_DetectsAndApproaches_ExplicitConnectWelds()
         {
-            // A pair left near each other (faces within ~0.59 m and opposed) auto-detects each
-            // tick, enters the approach via the malleable hinge (game TryAttach -> CreateConstraint),
-            // and welds on contact (game Weld -> RecreateConstraintInternal) — with NO manual
-            // Connect() at all.
+            // Nearby opposed connectors auto-attach through a malleable hinge.
+            // Explicit Connect replaces that approach with the welded fixed constraint.
             SimShip a = Fc.Spawn(ConnectorCraft("aa", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(1, 0, 0))), SpawnState.At(new Vector3D(0, 0, 0)));
             SimShip b = Fc.Spawn(
                 ConnectorCraft("ab", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(-1, 0, 0))),
@@ -200,7 +308,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(ca.IsConnected, Is.False);
 
             // One step: auto-detect pairs them via the malleable hinge (approach).
-            Fc.Step();
+            Fc.Step(40);
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connectable),
                 "On detection the pair must be paired (approaching) and Connectable.");
             Assert.That(cb.Status, Is.EqualTo(MyShipConnectorStatus.Connectable));
@@ -208,9 +316,9 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(ca.ApproachingInternal, Is.True, "The pair must be in the approach stage.");
             Assert.That(ca.OtherConnector, Is.SameAs(cb), "Each connector must see the other as OtherConnector.");
 
-            // The hinge draws them together and, on contact, welds.
-            AutoWeld(ca);
-            Assert.That(ca.IsConnected, Is.True, "On contact the pair must weld (fixed constraint).");
+            // Explicitly weld the approaching pair.
+            ConnectPair(ca);
+            Assert.That(ca.IsConnected, Is.True, "Explicit Connect must weld (fixed constraint).");
             Assert.That(cb.IsConnected, Is.True);
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
             Assert.That(cb.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
@@ -218,16 +326,16 @@ namespace FleetCommand.Test.Tests.FrameworkTests
         }
 
         [Test]
-        public void AutoDock_Connected_PairMovesAsOne()
+        public void ExplicitConnect_PairMovesAsOne()
         {
-            // After the auto-weld the two grids are rigidly tied: an impulse to one moves both
+            // After explicit Connect the two grids are rigidly tied: an impulse to one moves both
             // together (the fixed constraint transfers the impulse).
             SimShip a = Fc.Spawn(ConnectorCraft("ma", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(1, 0, 0))), SpawnState.At(new Vector3D(0, 0, 0)));
             SimShip b = Fc.Spawn(
                 ConnectorCraft("mb", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(-1, 0, 0))),
                 SpawnState.At(new Vector3D(2.68, 0, 0)));
             SimShipConnector ca = Connector(a);
-            AutoWeld(ca);
+            ConnectPair(ca);
             Assert.That(ca.IsConnected, Is.True);
 
             Vector3 impulse = new Vector3(4000f, 0, 0);
@@ -259,7 +367,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShipConnector ca = Connector(a);
             SimShipConnector cb = Connector(b);
 
-            Fc.Step(); // auto-pair -> approaching, not yet welded
+            Fc.Step(40); // auto-pair -> approaching, not yet welded
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connectable));
             Assert.That(ca.IsConnected, Is.False);
 
@@ -282,7 +390,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShipConnector ca = Connector(a);
             SimShipConnector cb = Connector(b);
 
-            Fc.Step();
+            Fc.Step(40);
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Unconnected));
 
             ca.Connect(); // must do nothing (not in a constraint)
@@ -309,7 +417,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShipConnector ca = Connector(a);
             SimShipConnector cb = Connector(b);
 
-            AutoWeld(ca);
+            ConnectPair(ca);
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
 
             ca.Disconnect();
@@ -323,7 +431,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
 
             // The grids are independent again — no constraint ties them.
             b.SetState(SpawnState.At(new Vector3D(20, 0, 0)).ToBodyState(b.Grid.Body.Id));
-            Fc.Step();
+            Fc.Step(40);
             a.Grid.Body.ApplyLinearImpulse(new Vector3(4000f, 0, 0));
             Fc.Step(5);
             Assert.That(a.Grid.Body.LinearVelocity.Length(), Is.GreaterThan(0.5));
@@ -342,10 +450,11 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 SpawnState.At(new Vector3D(2.68, 0, 0)));
             SimShipConnector ca = Connector(a);
 
-            Fc.Step();
+            Fc.Step(40);
             Assert.That(ca.ApproachingInternal, Is.True, "Sanity: the pair must be approaching.");
 
             // Wrench B away beyond the keep range; the approach must break at the next tick.
+            Fc.Step(9);
             b.SetState(SpawnState.At(new Vector3D(6.0, 0, 0)).ToBodyState(b.Grid.Body.Id));
             Fc.Step();
 
@@ -364,17 +473,18 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 SpawnState.At(new Vector3D(2.68, 0, 0)));
             SimShipConnector ca = Connector(a);
 
-            Fc.Step();
+            Fc.Step(40);
             ca.Connect(); // weld the approaching pair
             Assert.That(ca.IsConnected, Is.True);
             ca.Disconnect();
 
-            // After disconnect the pair stays at face contact, so on the next step auto-detect
-            // re-attaches and, still at contact, re-welds cleanly (no residue from the prior
-            // weld or disconnect).
-            Fc.Step();
+            // Auto-detection restores the approach; explicit Connect redocks the pair.
+            Fc.Step(40);
+            Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connectable));
+            Assert.That(ca.IsConnected, Is.False);
+            ca.Connect();
             Assert.That(ca.IsConnected, Is.True,
-                "After disconnect the pair must re-attach and re-weld cleanly (faces still at contact).");
+                "Explicit Connect must redock the pair.");
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
         }
 
@@ -389,7 +499,7 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 SpawnState.At(new Vector3D(2.68, 0, 0)));
             SimShipConnector ca = Connector(a);
 
-            Fc.Step(); // approaching
+            Fc.Step(40); // approaching
             ca.ToggleConnect(); // game TrySwitch: approaching -> Connect (weld)
             Assert.That(ca.IsConnected, Is.True);
 
@@ -397,12 +507,12 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             Assert.That(ca.IsConnected, Is.False);
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Unconnected));
 
-            // Net effect after toggling apart then auto-reattaching: the pair stays at face
-            // contact, so the next tick re-attaches and, still at contact, re-welds — the
-            // game's every-tick auto-reattach (UpdateBeforeSimulation10 -> TryAttach).
-            Fc.Step();
-            Assert.That(ca.IsConnected, Is.True,
-                "After toggling off, an in-contact pair must auto-reattach and re-weld.");
+            // Auto-reattachment leaves the pair Connectable until explicitly toggled.
+            Fc.Step(40);
+            Assert.That(ca.IsConnected, Is.False);
+            Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connectable));
+            ca.ToggleConnect();
+            Assert.That(ca.IsConnected, Is.True);
         }
 
         // — status and working-state gating —
@@ -419,13 +529,13 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             SimShipConnector ca = Connector(a);
 
             ca.Enabled = false; // in range but not working: no auto-detect
-            Fc.Step();
+            Fc.Step(40);
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Unconnected),
                 "A connector that is not working must not auto-pair even when in range.");
             Assert.That(ca.ApproachingInternal, Is.False);
 
             ca.Enabled = true;
-            Fc.Step();
+            Fc.Step(40);
             Assert.That(ca.ApproachingInternal, Is.True,
                 "Re-enabling the connector must allow auto-detect in range.");
             Assert.That(ca.Status, Is.EqualTo(MyShipConnectorStatus.Connectable));
@@ -451,13 +561,14 @@ namespace FleetCommand.Test.Tests.FrameworkTests
                 ConnectorCraft("db", hullMass: 1000f, connOrient: RotateForwardTo(new Vector3(-1, 0, 0))),
                 SpawnState.At(new Vector3D(2.68, 0, 0)));
             SimShipConnector ca = Connector(a);
-            ctx.Step();
+            ctx.Step(40);
+            ca.Connect();
             // Weld the approaching pair, then capture the outcome before disposing the world
             // (which disconnects the pair).
             int maxSteps = (int)Math.Ceiling(10.0 / TickClock.FixedStep);
             for (int i = 0; i < maxSteps && !ca.IsConnected; i++)
             {
-                ctx.Step();
+                ctx.Step(40);
             }
             Vector3D pos = b.Grid.Body.PositionWorld;
             bool connected = ca.IsConnected;
@@ -471,18 +582,18 @@ namespace FleetCommand.Test.Tests.FrameworkTests
             return (SimShipConnector)ship.TerminalSystem.GetBlockWithName("C");
         }
 
-        /// <summary>Steps the world until the connector and its partner weld (Connected) — the
-        /// auto-flow, no manual Connect.</summary>
-        private static void AutoWeld(SimShipConnector connector)
+        /// <summary>Waits for approach and explicitly connects the pair.</summary>
+        private static void ConnectPair(SimShipConnector connector)
         {
             SimWorld world = connector.Grid.World;
             int maxSteps = (int)Math.Ceiling(8.0 / TickClock.FixedStep);
-            for (int i = 0; i < maxSteps && !connector.IsConnected; i++)
+            for (int i = 0; i < maxSteps && connector.Status != MyShipConnectorStatus.Connectable; i++)
             {
-                world.Step();
+                world.Step(40);
             }
-            Assert.That(connector.IsConnected,
-                "The approach must converge and weld on contact within the deterministic timeout.");
+            Assert.That(connector.Status, Is.EqualTo(MyShipConnectorStatus.Connectable));
+            connector.Connect();
+            Assert.That(connector.IsConnected, "Explicit Connect must weld the pair.");
         }
 
         /// <summary>A small-grid craft with a heavy hull and one connector on the face it faces;
