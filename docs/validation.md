@@ -1,8 +1,20 @@
 # Game / simulator validation
 
+For the expanded power, waypoint and docking experiment, use the
+[single-paste station mission](station-validation.md): paste
+`FleetCommand_Validation_Station_v1`, load the script and run `dockprobe`.
+Its complete reports are on **FC Dock Report** and **FC Report**.
+
+Current source audit and remaining game-conformance questions:
+[rotation and native physics audit](validation-source-audit-2026-10-19.md).
+
+For the reproducible low-thrust stall near rest, use the separate
+[`restprobe` diagnostic](validation-low-speed-diagnostic.md). Ordinary `start`
+still runs the canonical suite-v5 experiment.
+
 `FleetCommand.Validation` is the single source of test code. Its MDK `Program`
-only forwards ingame services to `ValidationRunner`. The console launcher runs
-that same compiled runner against FleetCommand.Test, then exports **the text read
+only forwards ingame services to `ValidationHost`, which selects the experiment.
+The console launcher runs that same compiled host against FleetCommand.Test, then exports **the text read
 from the simulated LCD**. It does not construct a second telemetry report.
 
 ## Build, run, compare
@@ -12,16 +24,30 @@ gitignored `MDK.paths.props` are required. The script pins Roslyn 4.12 because t
 installed MDK analyzer needs that compiler version; the script still uses C# 6.
 
 ```powershell
-dotnet build FleetCommand.Validation.Launcher/FleetCommand.Validation.Launcher.csproj
+dotnet build FleetCommand.Validation.Launcher/FleetCommand.Validation.Launcher.csproj -p:Platform=x64
 ./tools/Test-PackedValidation.ps1
-./FleetCommand.Validation.Launcher/bin/Debug/net48/FleetCommand.Validation.Launcher.exe run artifacts/simulator-report.txt
-./FleetCommand.Validation.Launcher/bin/Debug/net48/FleetCommand.Validation.Launcher.exe compare artifacts/simulator-report.txt artifacts/game-report.txt
+./FleetCommand.Validation.Launcher/bin/x64/Debug/net48/FleetCommand.Validation.Launcher.exe run artifacts/simulator-report.txt
+./FleetCommand.Validation.Launcher/bin/x64/Debug/net48/FleetCommand.Validation.Launcher.exe compare artifacts/simulator-report.txt artifacts/game-report.txt
 dotnet test FleetCommand.sln -p:MdkBuildConfiguration=PackExplicitly
 ```
 
 `run [report-path] [blueprint-path]` accepts an explicit fixture path. The default
 fixture is copied from the repository to the launcher output at build time.
 The default spawn deliberately has a nonzero position and rotated attitude.
+For a measured game report, append `--frame-from TestResults/result.log` to
+`run` or `restprobe`. This reproduces the reference controller's recorded world
+attitude, accounting for its mounting orientation in the blueprint. Version 5
+requires four initial world-quaternion metadata fields. All motion remains in
+the fixed relative frame; no exact world placement is required. Havok's native
+constrained low-speed stabilization depends on world axes, so the comparator
+rejects different initial world attitudes rather than attributing those physical
+differences to coordinate normalization. Historical v1-v4 reports remain readable
+with their historical schemas, but cannot be mixed with the new revision.
+The quaternion is written with round-trip precision. This replays attitude,
+not a full native physics checkpoint. The current approximate waypoint
+controller remains sensitive to small initial-state differences, and the strict
+comparison still reports those waypoint differences. Frame replay does not
+override a failed comparison or establish full game equivalence.
 Exit codes: 0 = completed run / comparison within provisional limits;
 1 = incomplete run / incompatible reports / measured differences;
 2 = usage or host error. A COMPLETE run means data collection finished, not
@@ -35,7 +61,7 @@ MDK packaging across the solution; test code never reads game AppData. Deploymen
 ./tools/Deploy-Validation.ps1
 ```
 
-This copies the two named blueprints and the packed script into the standard
+This copies the three named blueprints and the packed script into the standard
 SpaceEngineers AppData directories. It verifies hashes, backs up changed files
 as `.previous`, and removes only the named generated blueprint's binary cache.
 It does not change your other craft. SE can refresh blueprints without restarting.
@@ -70,14 +96,17 @@ It does not change your other craft. SE can refresh blueprints without restartin
 6. Run the comparison command. Send both text files and the world settings for
    investigation. Failed/aborted/truncated runs cannot pass comparison.
 
-The LCD contains the complete report (about 40,000 characters), not a summary.
+The LCD contains the complete report (about 62,300 characters in suite v5), not a summary.
+Reports are bounded at 64,000 characters because the game clips published LCD
+text to 65,000, despite accepting up to 100,000 pending string-write characters.
 PB Storage is backup. Saving/reloading never resumes a physical maneuver:
 completed reports remain available; a saved partial run is marked INTERRUPTED.
 Ingame instruction accounting and the actual game script engine still require
 the first live game execution even though MDK analysis and packaging pass.
 The packed-output check compiles the exact pasted script with programmable-block
 wrapper imports, catching missing names that source-project using directives can
-hide. Numeric formatting uses fixed-point strings with normalized decimal commas
+hide. Numeric formatting uses fixed-point strings with trailing zeroes omitted
+for measurement rows and normalized decimal commas
 without depending on `CultureInfo` in ingame code.
 
 ## Measurements and cases
@@ -153,10 +182,12 @@ floating-point equality claim. Quaternion sign is handled by angular distance.
   preserves serialized fields and applies the startup state used by this suite.
   Reactor uranium consumption is mapped using MaxPowerOutput / 3600 / 1 kg,
   following MyReactorDefinition.FuelInfo and the default fuel multiplier.
-- Whole-suite translation and rotation invariance pass for the tested fixture
-  poses after correcting the force application path. The simulator's approximate
-  autopilot still differs from game measurements; simulator invariance is not
-  described as a passing game-equivalence check.
+- Whole-suite translation invariance passes. Rotation invariance is not a valid
+  expectation for the source connector's constrained native low-speed solver:
+  different world attitudes can change actual motion. Suite v5 records and
+  replays that attitude; the comparator retains its numerical tolerances.
+  The simulator's approximate autopilot still requires game comparison at a
+  known matching initial world attitude.
 - Structural armor remains part of grid geometry and mass, but terminal queries
   now exclude it. The validation fixture exposes 17 terminal blocks, as in game.
 - LCD writes now publish on the simulator's ten-tick update, following
@@ -171,7 +202,7 @@ is covered; identically malformed hand-edited reports can evade those two checks
 
 ## Survival measurement repairs (suite v2)
 
-The current script is suite v3: see `docs/validation-diagnostics.md` for the
+The current script is suite v5: see `docs/validation-diagnostics.md` for the
 motion-aware settling gate and detailed single-LCD transition trace. Reload
 the local library script before running it; the craft blueprint is unchanged.
 
@@ -186,10 +217,10 @@ the actual game. The same checked-in craft blueprint is used. Reload the local
 `FleetCommand.Validation` script in the programmable block and run `start` on a
 fresh fixture in Survival, vacuum, and zero gravity. Leave the cockpit empty
 and allow the test to finish before approaching the grid. The first LCD line
-must end in `suite-v3`; save the complete LCD export to a new result file.
+must end in `suite-v5`; save the complete LCD export to a new result file.
 
-The comparator accepts archived suite v1/v2 reports, but rejects comparisons
-between suite revisions because commands or settling procedures differ. Earlier game
+The comparator accepts archived suite v1/v2/v3/v4 reports, but rejects comparisons
+between suite revisions because commands, settling procedures or required initial-condition metadata differ. Earlier game
 data remains useful for diagnosing the unchanged probes. Battery stored-energy
 updates are quantized to 100 frames; the game scheduler's initial phase is not
 controlled by placing the craft, so point samples may remain offset even when

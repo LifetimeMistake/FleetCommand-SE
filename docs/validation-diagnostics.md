@@ -1,7 +1,7 @@
-# Suite v3 settling and transition diagnostics
+# Settling, transition and waypoint diagnostics
 
 Run `start` with the newly loaded `FleetCommand.Validation` local library
-script. The LCD header must be `FCVALIDATION|1|craft-v1|suite-v3`. The blueprint
+script. The LCD header must be `FCVALIDATION|1|craft-v1|suite-v4`. The blueprint
 is unchanged. The programmable block's output continuously identifies
 `BRAKING`, `PASSIVE REST`, or `MEASURING` and the case name, including
 `thrust_py` for +Y. Copy the entire LCD text after completion or an error.
@@ -62,21 +62,54 @@ completed physics interval. `command` observations follow writes; `CurrentThrust
 may still describe the preceding interval. Command and delivered telemetry are
 kept distinct deliberately. `passive_failed` records a failed coast observation.
 
-Trace text has a 48,000-character budget within the 94,000-character report
-limit. `TRACE` records actual rows, characters and dropped rows. If retries
+Trace text has a 32,000-character budget within the 64,000-character report
+limit, below the game's 65,000-character LCD publication cap. The separate
+100,000-character string-write input limit does not protect published text.
+Measurement numbers omit trailing decimal zeroes while preserving the same
+six decimal places of precision (three for selected trace actuator fields).
+`TRACE` records actual rows, characters and dropped rows. If retries
 exhaust the trace budget, canonical samples continue and truncation is explicit;
 the strict comparator rejects a truncated diagnostic run. A normal native run
-uses about 89 KB total, with 123 trace rows and none dropped.
+uses about 49,000 characters total, with 123 trace rows and none dropped.
 
 The launcher still extracts the complete report through the simulated LCD API.
-`run artifacts/simulator-suite-v3.txt` saves the simulator counterpart. Compare
-it with a game report from suite v3. Archived v1/v2 reports remain readable,
+`run artifacts/simulator-suite-v4.txt` saves the simulator counterpart. Compare
+it with a game report from suite v4. Archived v1/v2/v3 reports remain readable,
 but cross-revision comparisons fail because the settling procedure changed.
 
-Verified locally: all 330 tests passed (293 simulator and 37 validation), MDK
+At the earlier LCD cap correction stage, all 331 tests passed (294 simulator and 37 validation), MDK
 packing and exact packed-source compilation passed without warnings/errors,
 and the native runner completed 19 cases / 133 samples. Its final LCD export
-is 88,674 characters, including 123 trace rows / 45,675 trace characters and
+is 48,871 characters, including 123 trace rows / 24,347 trace characters and
 zero dropped rows. The verified script was copied to the game's local library.
 Review identified the coast-release sampling gap and ordinary gyro damping
 during passive rest; both are corrected and covered by regression assertions.
+
+The original padded v3 report was about 89,000 characters. The simulator
+incorrectly allowed it through, whereas the game truncated it to 65,000.
+The new regression writes oversized text through both overloads and verifies
+the published limit, readback, append behavior and replacement. The full-run
+regression independently requires the complete LCD export to fit below 65,000.
+No measurements or trace rows were removed to make the report fit. A fresh
+game run is needed for a complete comparison; the previously copied fragment
+has no completion footer and cannot pass strict comparison.
+
+## Suite v4 waypoint trace
+
+The canonical 19 cases / 133 samples and settling procedure are unchanged from
+v3. `WPCOLUMNS` describes additional `W` rows: waypoint case tick, distance from
+the remote to the waypoint, velocity in the fixed initial frame, and all six
+current thrust readings. All observations precede that callback's actuator
+writes and describe the completed physics interval, just like `S` rows.
+
+There are 88 rows: tick zero, every frame through tick 60, then every 20 frames
+through tick 600. This reveals initial thrust/velocity timing and the transition
+into braking. The strict parser rejects missing, duplicated, reordered, nonfinite
+or misplaced waypoint rows. V4 and V3 are not compared as the same schema.
+
+The fresh simulator LCD export is 55,684 characters, with all 88 waypoint rows
+and all 123 original transition rows. The 64,000-character report guard and the
+simulated 65,000-character publication cap remain enforced. The complete v3 game
+log is archived; a v4 game measurement is needed to compare frame-level behavior.
+The strict rotated-run regression still fails on waypoint velocity/thrust data;
+this is not presented as game equivalence or a fully green validation suite.
