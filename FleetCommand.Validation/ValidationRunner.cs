@@ -9,7 +9,9 @@ namespace FleetCommand.Validation
     /// <summary>All test behavior lives here. Both hosts supply only ingame services.</summary>
     public sealed class ValidationRunner
     {
-        public const string Header = "FCVALIDATION|1|craft-v1|suite-v2";
+        public const string Header = "FCVALIDATION|1|craft-v1|suite-v3";
+        public const string GateColumns = "GATECOLUMNS|case|settle_tick|stable_ticks|passive_ticks|reference_speed|cockpit_speed|position_speed|reference_angular_speed|orientation_speed|passive_drift|passive_rotation";
+        public const string GatePolicy = "GATEPOLICY|brake_frames|15|passive_frames|60|speed_mps|0.010000|angular_rps|0.010000|drift_m|0.010000|rotation_rad|0.010000|passive_actuators|zero-thrust-disabled-gyros";
         public const string Columns = "COLUMNS|case|tick|seconds|dt|px|py|pz|vx|vy|vz|wx|wy|wz|qx|qy|qz|qw|thrust_px|thrust_nx|thrust_py|thrust_ny|thrust_pz|thrust_nz|battery_in|battery_out|battery_delta_mwh|reactor_mw|dampeners|autopilot|connector|waypoint_m";
         readonly IMyGridProgramRuntimeInfo _runtime;
         readonly Action<string> _echo;
@@ -25,11 +27,14 @@ namespace FleetCommand.Validation
         readonly IMyGyro[] _gyros = new IMyGyro[2];
         readonly ValidationCase[] _cases = ValidationCase.CreateSuite();
         readonly ValidationReport _report;
+        readonly ValidationTrace _trace;
+        readonly SettlingGate _settleGate = new SettlingGate();
         readonly List<IMyTerminalBlock> _blocks = new List<IMyTerminalBlock>();
         readonly StringBuilder _row = new StringBuilder();
         InitialFrame _frame;
         Vector3D _waypoint;
-        int _caseIndex, _caseTick, _runTicks, _settleTicks, _stableTicks;
+        int _caseIndex, _caseTick, _runTicks, _settleTicks;
+        bool _passiveSettling;
         int _caseSamples;
         int _lcdProbeTicks = -1;
         bool _awaitingFirstInterval;
@@ -61,6 +66,7 @@ namespace FleetCommand.Validation
             _gyros[0] = Find("FC Gyro A") as IMyGyro;
             _gyros[1] = Find("FC Gyro B") as IMyGyro;
             _report = new ValidationReport(_lcd, previousReport);
+            _trace = new ValidationTrace(_report, _reference, _cockpit, me, _thrusters, _gyros);
             Cleanup();
             _runtime.UpdateFrequency = UpdateFrequency.None;
             if (!string.IsNullOrEmpty(previousReport))
@@ -119,6 +125,7 @@ namespace FleetCommand.Validation
                     _lcdProbeTicks = -1;
                     _report.Line("CHECK|lcd_append_read|PASS");
                     _report.Line(Columns);
+                    _report.Line(GateColumns); _report.Line(GatePolicy); _report.Line(ValidationTrace.Columns);
                     _lcdBlocked = !_report.Publish(true);
                     return;
                 }
@@ -128,7 +135,10 @@ namespace FleetCommand.Validation
                 if (_reference.GetNaturalGravity().Length() > 0.001) { Finish("ERROR", "GRAVITY_CHANGED"); return; }
                 if (_cockpit.IsUnderControl || _reference.IsUnderControl && !_reference.IsAutoPilotEnabled)
                 { Finish("ERROR", "PILOT_INPUT"); return; }
-                if (_settling) TickSettle(); else TickCase(dt);
+                if (_settling) TickSettle(dt); else TickCase(dt);
+                if (IsRunning)
+                    _echo((_settling ? (_passiveSettling ? "PASSIVE REST before " : "BRAKING before ") : "MEASURING ")
+                        + _cases[_caseIndex].Name + " | tick " + (_settling ? _settleTicks : _caseTick));
                 if (_report.Overflow) { Cleanup(); IsRunning = false; _runtime.UpdateFrequency = UpdateFrequency.None; }
                 _lcdBlocked = !_report.Publish(false);
             }
@@ -141,6 +151,7 @@ namespace FleetCommand.Validation
         void Start()
         {
             _report.Reset();
+            _trace.Reset(null);
             _report.Line(Header);
             _report.Line("COVERAGE|automated|discovery,lcd,thrust,coast,gyro,rotated-gyro,damping,power,battery,waypoint,unpaired-connector");
             _report.Line("COVERAGE|manual|paired-docking:load-dock-align-then-run-dock,pilot-input,save-reload");
@@ -167,6 +178,7 @@ namespace FleetCommand.Validation
             if (!_reactor.IsWorking || !_reactorB.IsWorking || !_reactorC.IsWorking || !_gyros[0].IsWorking || !_gyros[1].IsWorking)
             { Finish("ERROR", "CHECK_REACTOR_FUEL_AND_GYRO_POWER"); return; }
             _frame = new InitialFrame(_reference.WorldMatrix, _reference.CenterOfMass);
+            _trace.Reset(_frame);
             _report.Line("META|mass_kg|" + ValidationReport.Number(_mass));
             _report.Line("META|battery_start_mwh|" + ValidationReport.Number(_battery.CurrentStoredPower));
             _report.Line("META|grid_size_m|" + ValidationReport.Number(_reference.CubeGrid.GridSize));
@@ -186,7 +198,8 @@ namespace FleetCommand.Validation
             // probe intact and wait in subsequent Main calls before reading it.
             if (!_lcd.WriteText("FC-LCD-PROBE") || !_lcd.WriteText("-APPEND", true))
             { Finish("ERROR", "LCD_ROUNDTRIP"); return; }
-            _caseIndex = 0; _runTicks = 0; _settleTicks = 0; _stableTicks = 0;
+            _caseIndex = 0; _runTicks = 0; _settleTicks = 0; _passiveSettling = false;
+            _settleGate.Reset(); _trace.BeginSettle(_cases[0].Name);
             _settling = true; IsRunning = true; _lcdBlocked = false; _lcdProbeTicks = 0;
             _awaitingFirstInterval = true; _startupZeroCallbacks = 0;
             _runtime.UpdateFrequency = UpdateFrequency.Update1;
@@ -199,29 +212,62 @@ namespace FleetCommand.Validation
             return index < 2 ? new Vector3D(sign, 0, 0) : index < 4 ? new Vector3D(0, sign, 0) : new Vector3D(0, 0, sign);
         }
 
-        void TickSettle()
+        void TickSettle(double dt)
         {
             _settleTicks++;
+            var velocity = _reference.GetShipVelocities();
+            var cockpitVelocity = _cockpit.GetShipVelocities();
+            var decision = _settleGate.Observe(_reference.CenterOfMass, _frame.Attitude(_reference.WorldMatrix),
+                velocity.LinearVelocity, cockpitVelocity.LinearVelocity, velocity.AngularVelocity, dt);
+            if (_settleTicks > 900) { Finish("ERROR", "SETTLE_TIMEOUT_" + _cases[_caseIndex].Name); return; }
+            if (decision == SettleDecision.Brake)
+            {
+                if (_passiveSettling) _trace.Observe("passive_failed", _runTicks, _settleTicks, dt, 0);
+                _passiveSettling = false;
+                _trace.Observe("brake", _runTicks, _settleTicks, dt, _settleGate.StableTicks);
+                Brake(velocity.LinearVelocity);
+                return;
+            }
+            if (decision == SettleDecision.BeginCoast)
+            {
+                _trace.Observe("brake", _runTicks, _settleTicks, dt, _settleGate.StableTicks);
+                _trace.FlushBrakeTail(); ResetCommands(); _passiveSettling = true;
+                // A genuinely unactuated observation window: ordinary gyros also damp
+                // rotation, so disable them until BeginCase restores normal settings.
+                for (int i = 0; i < 2; i++) _gyros[i].Enabled = false;
+                _echo("Checking passive rest before " + _cases[_caseIndex].Name);
+                return;
+            }
+            if (_settleGate.PassiveTicks == 1 || _settleGate.PassiveTicks % 10 == 0)
+                _trace.Observe("passive", _runTicks, _settleTicks, dt, _settleGate.StableTicks);
+            if (decision != SettleDecision.Ready) return;
+            _report.Line("SETTLE|" + _cases[_caseIndex].Name + "|" + _settleTicks);
+            _row.Clear(); _row.Append("GATE|").Append(_cases[_caseIndex].Name);
+            Number(_settleTicks); Number(_settleGate.StableTicks); Number(_settleGate.PassiveTicks);
+            Number(velocity.LinearVelocity.Length()); Number(cockpitVelocity.LinearVelocity.Length());
+            Number(_settleGate.ObservedSpeed); Number(velocity.AngularVelocity.Length());
+            Number(_settleGate.ObservedAngularSpeed); Number(_settleGate.PassiveDrift); Number(_settleGate.PassiveRotation);
+            _report.Line(_row.ToString());
+            BeginCase();
+        }
+
+        void Brake(Vector3D linearVelocity)
+        {
             _reference.SetAutoPilotEnabled(false);
             _reference.DampenersOverride = false;
             _battery.ChargeMode = ChargeMode.Auto; EnableReactors(true);
-            var velocity = _reference.GetShipVelocities();
-            Vector3D local = Vector3D.TransformNormal(velocity.LinearVelocity, MatrixD.Transpose(_reference.WorldMatrix.GetOrientation()));
+            Vector3D local = Vector3D.TransformNormal(linearVelocity, MatrixD.Transpose(_reference.WorldMatrix.GetOrientation()));
             for (int i = 0; i < 6; i++)
             {
                 _thrusters[i].Enabled = true;
                 _thrusters[i].ThrustOverridePercentage = (float)Math.Min(1, Math.Max(0, -Vector3D.Dot(local, Axis(i)) * _mass * 2 / _thrusters[i].MaxEffectiveThrust));
             }
             SetGyros(Vector3D.Zero, -1);
-            if (velocity.LinearVelocity.Length() < 0.01 && velocity.AngularVelocity.Length() < 0.01) _stableTicks++; else _stableTicks = 0;
-            if (_settleTicks > 900) { Finish("ERROR", "SETTLE_TIMEOUT_" + _cases[_caseIndex].Name); return; }
-            if (_stableTicks < 15) return;
-            _report.Line("SETTLE|" + _cases[_caseIndex].Name + "|" + _settleTicks);
-            BeginCase();
         }
 
         void BeginCase()
         {
+            _trace.Observe("case_pre", _runTicks, 0, 0, _settleGate.StableTicks);
             ResetCommands(); _settling = false; _caseTick = 0; _caseSamples = 0;
             var test = _cases[_caseIndex];
             _report.Line("CASE|" + test.Name + "|" + test.Ticks);
@@ -235,22 +281,33 @@ namespace FleetCommand.Validation
                 _reference.SetAutoPilotEnabled(true);
             }
             ApplyCase(test);
+            _trace.Observe("command", _runTicks, 0, 0, _settleGate.StableTicks);
             Sample(0);
+            _echo("Measuring " + test.Name + "; phase trace and full samples are on FC Report.");
         }
 
         void TickCase(double dt)
         {
             var test = _cases[_caseIndex];
             _caseTick++;
+            if (_caseTick <= 12 || _caseTick == 15 || _caseTick % 10 == 0 || _caseTick == test.Ticks
+                || test.Kind == ProbeKind.Coast && _caseTick > 15 && _caseTick <= 27)
+                _trace.Observe("flight", _runTicks, _caseTick, dt, 0);
             if (_caseTick % Math.Max(1, test.Ticks / 6) == 0 || _caseTick == test.Ticks) Sample(dt);
             if (_caseTick >= test.Ticks)
             {
                 _report.Line("ENDCASE|" + test.Name + "|" + _caseSamples);
                 ResetCommands(); _caseIndex++;
                 if (_caseIndex == _cases.Length) { Finish("COMPLETE", _cases.Length.ToString()); return; }
-                _settling = true; _settleTicks = 0; _stableTicks = 0;
+                _settling = true; _settleTicks = 0; _passiveSettling = false;
+                _settleGate.Reset(); _trace.BeginSettle(_cases[_caseIndex].Name);
             }
-            else ApplyCase(test);
+            else
+            {
+                ApplyCase(test);
+                if (test.Kind == ProbeKind.Coast && _caseTick == 15)
+                    _trace.Observe("command", _runTicks, _caseTick, 0, 0);
+            }
         }
 
         void ApplyCase(ValidationCase test)
@@ -345,6 +402,7 @@ namespace FleetCommand.Validation
 
         void Finish(string status, string reason)
         {
+            _trace.Finish();
             Cleanup(); IsRunning = false; _runtime.UpdateFrequency = UpdateFrequency.None;
             _report.Line("END|" + status + "|" + reason + "|" + _report.Samples);
             _report.Publish(true);

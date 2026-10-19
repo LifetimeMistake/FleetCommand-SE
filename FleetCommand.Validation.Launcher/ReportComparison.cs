@@ -90,7 +90,8 @@ namespace FleetCommand.Validation.Launcher
         {
             if (string.IsNullOrEmpty(report) || report.Length >= 100000) throw new FormatException("Empty or oversized report.");
             string[] lines = report.Replace("\r", "").TrimEnd('\n').Split('\n');
-            if (lines[0] != ValidationRunner.Header && lines[0] != "FCVALIDATION|1|craft-v1|suite-v1")
+            if (lines[0] != ValidationRunner.Header && lines[0] != "FCVALIDATION|1|craft-v1|suite-v1"
+                && lines[0] != "FCVALIDATION|1|craft-v1|suite-v2")
                 throw new FormatException("Unknown report revision.");
             var parsed = new Parsed();
             parsed.Contract.Add(lines[0]);
@@ -98,6 +99,11 @@ namespace FleetCommand.Validation.Launcher
             int completed = 0, caseSamples = 0, previousTick = -1;
             bool open = false, ended = false, columns = false, lcdCheck = false;
             bool startupInfo = false;
+            bool detailed = lines[0] == ValidationRunner.Header;
+            bool gateColumns = false, gatePolicy = false, traceColumns = false, traceFooter = false;
+            int traceRows = 0, traceCharacters = 0;
+            var gates = new HashSet<string>();
+            var traceCases = new HashSet<string>();
             double previousTime = -1;
             var coverage = new HashSet<string>();
             foreach (string line in lines.Skip(1))
@@ -130,10 +136,51 @@ namespace FleetCommand.Validation.Launcher
                     case "COLUMNS":
                         if (line != ValidationRunner.Columns || columns) throw new FormatException("Unexpected columns.");
                         columns = true; break;
+                    case "GATECOLUMNS":
+                        if (!detailed || !columns || gateColumns || line != ValidationRunner.GateColumns)
+                            throw new FormatException("Invalid settling columns.");
+                        gateColumns = true; parsed.Contract.Add(line); break;
+                    case "GATEPOLICY":
+                        if (!detailed || !gateColumns || gatePolicy || line != ValidationRunner.GatePolicy)
+                            throw new FormatException("Invalid settling policy.");
+                        gatePolicy = true; parsed.Contract.Add(line); break;
+                    case "DCOLUMNS":
+                        if (!detailed || !gatePolicy || traceColumns || line != ValidationTrace.Columns)
+                            throw new FormatException("Invalid diagnostic columns.");
+                        traceColumns = true; parsed.Contract.Add(line); break;
+                    case "D":
+                        if (!detailed || !traceColumns || traceFooter || completed >= suite.Length || cells[1] != suite[completed].Name
+                            || !new[] { "thrust_px", "coast_px", "thrust_py" }.Contains(cells[1])
+                            || cells.Length != ValidationTrace.Columns.Split('|').Length
+                            || !new[] { "brake", "passive", "passive_failed", "case_pre", "command", "flight" }.Contains(cells[2]))
+                            throw new FormatException("Invalid diagnostic row.");
+                        var diagnostic = cells.Skip(3).Select(Number).ToArray();
+                        if (diagnostic[0] < 0 || diagnostic[1] < 0 || diagnostic[2] < 0 || diagnostic[2] > 0.025)
+                            throw new FormatException("Invalid diagnostic timing.");
+                        traceRows++; traceCharacters += line.Length + 1;
+                        if (cells[2] == "flight") traceCases.Add(cells[1]);
+                        break;
+                    case "GATE":
+                        if (!detailed || !gatePolicy || open || completed >= suite.Length || cells[1] != suite[completed].Name
+                            || cells.Length != ValidationRunner.GateColumns.Split('|').Length || !gates.Add(cells[1]))
+                            throw new FormatException("Invalid settling evidence.");
+                        var evidence = cells.Skip(2).Select(Number).ToArray();
+                        if (!parsed.Settles.ContainsKey(cells[1]) || evidence[0] != parsed.Settles[cells[1]]
+                            || evidence[1] != SettlingGate.BrakeFrames || evidence[2] != SettlingGate.CoastFrames
+                            || evidence.Skip(3).Any(v => v < 0 || v > 0.010001))
+                            throw new FormatException("Settling gate did not satisfy its policy.");
+                        parsed.Contract.Add("GATE|" + cells[1]); break;
+                    case "TRACE":
+                        if (!detailed || traceFooter || cells.Length != 7 || cells[1] != "rows" || cells[3] != "dropped"
+                            || cells[5] != "characters" || Number(cells[2]) != traceRows || Number(cells[4]) != 0
+                            || Number(cells[6]) != traceCharacters || traceCharacters > ValidationTrace.Budget)
+                            throw new FormatException("Missing or truncated diagnostic trace.");
+                        traceFooter = true; break;
                     case "SETTLE":
                         if (cells.Length != 3 || completed >= suite.Length || cells[1] != suite[completed].Name) throw new FormatException("Invalid settling record.");
                         int ticks = int.Parse(cells[2], CultureInfo.InvariantCulture);
-                        if (ticks < 15 || ticks > 900) throw new FormatException("Invalid settling duration.");
+                        if (ticks < (detailed ? SettlingGate.BrakeFrames + SettlingGate.CoastFrames : 15) || ticks > 900)
+                            throw new FormatException("Invalid settling duration.");
                         parsed.Settles.Add(cells[1], ticks); break;
                     case "CASE":
                         if (open || completed >= suite.Length || cells.Length != 3 || cells[1] != suite[completed].Name
@@ -167,6 +214,9 @@ namespace FleetCommand.Validation.Launcher
                 || !parsed.Meta.Keys.OrderBy(x => x).SequenceEqual(new[] { "battery_start_mwh", "grid_size_m", "mass_kg", "terminal_blocks" }))
                 throw new FormatException("Missing completion, metadata, LCD probe or coverage.");
             if (parsed.Contract.Count(l => l.StartsWith("BLOCK|")) != 6) throw new FormatException("Missing thruster capabilities.");
+            if (detailed && (!gateColumns || !gatePolicy || !traceColumns || !traceFooter || gates.Count != suite.Length
+                || !traceCases.SetEquals(new[] { "thrust_px", "coast_px", "thrust_py" })))
+                throw new FormatException("Missing settling or transition diagnostics.");
             if (parsed.Meta["battery_start_mwh"] < 0.02 || parsed.Meta["battery_start_mwh"] > 0.04 || parsed.Meta["mass_kg"] <= 0)
                 throw new FormatException("Invalid preflight conditions.");
             return parsed;

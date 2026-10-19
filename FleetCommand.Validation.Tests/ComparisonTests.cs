@@ -14,11 +14,28 @@ namespace FleetCommand.Validation.Tests
         {
             const string oldHeader = "FCVALIDATION|1|craft-v1|suite-v1";
             const string newHeader = "FCVALIDATION|1|craft-v1|suite-v2";
-            string oldReport = _report.Replace(ValidationRunner.Header, oldHeader);
-            string newReport = _report.Replace(ValidationRunner.Header, newHeader);
+            string legacy = string.Join("\n", _report.Split('\n').Where(l => !l.StartsWith("D|") && !l.StartsWith("DCOLUMNS|")
+                && !l.StartsWith("GATE|") && !l.StartsWith("GATECOLUMNS|") && !l.StartsWith("GATEPOLICY|") && !l.StartsWith("TRACE|")));
+            string oldReport = legacy.Replace(ValidationRunner.Header, oldHeader);
+            string newReport = legacy.Replace(ValidationRunner.Header, newHeader);
             Assert.That(ReportComparison.Compare(newReport, newReport).Success, Is.True);
             Assert.That(ReportComparison.Compare(oldReport, oldReport).Success, Is.True);
             Assert.That(ReportComparison.Compare(oldReport, newReport).Success, Is.False);
+            Assert.That(ReportComparison.Compare(_report, newReport).Success, Is.False);
+        }
+
+        [Test]
+        public void DiagnosticCorruption_OrMissingSettlingEvidenceFails()
+        {
+            var lines = _report.Split('\n');
+            int row = Array.FindIndex(lines, l => l.StartsWith("D|"));
+            var cells = lines[row].Split('|'); cells[6] = "NaN"; lines[row] = string.Join("|", cells);
+            string malformed = string.Join("\n", lines);
+            Assert.That(ReportComparison.Compare(malformed, malformed).Success, Is.False);
+            string missingGate = string.Join("\n", _report.Split('\n').Where(l => !l.StartsWith("GATE|thrust_py|")));
+            Assert.That(ReportComparison.Compare(missingGate, missingGate).Success, Is.False);
+            string truncated = _report.Replace("|dropped|0|", "|dropped|1|");
+            Assert.That(ReportComparison.Compare(truncated, truncated).Success, Is.False);
         }
 
         string _report;

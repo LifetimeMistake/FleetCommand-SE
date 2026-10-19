@@ -22,6 +22,43 @@ namespace FleetCommand.Validation.Tests
     public class ValidationTests
     {
         [Test]
+        public void FullRun_LogsPassiveGateAndFrameTransitionsWithinOneLcd()
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity);
+            var lines = report.Split('\n');
+            Assert.That(report, Does.Contain("END|COMPLETE|19|133"));
+            Assert.That(lines.Count(l => l.StartsWith("GATE|")), Is.EqualTo(19));
+            Assert.That(lines.Where(l => l.StartsWith("SETTLE|")).All(l => int.Parse(l.Split('|')[2]) >= 75), Is.True);
+            Assert.That(report, Does.Contain("DCOLUMNS|case|phase|run_tick|phase_tick|dt|"));
+            foreach (var name in new[] { "thrust_px", "coast_px", "thrust_py" })
+            {
+                Assert.That(report, Does.Contain("D|" + name + "|passive|"));
+                Assert.That(report, Does.Contain("D|" + name + "|command|"));
+                for (int tick = 1; tick <= 12; tick++)
+                    Assert.That(lines.Any(l => l.StartsWith("D|" + name + "|flight|") && l.Split('|')[4] == tick.ToString()), Is.True);
+            }
+            var footer = lines.Single(l => l.StartsWith("TRACE|rows|")).Split('|');
+            Assert.That(footer[4], Is.EqualTo("0"), "Diagnostic rows must not be dropped in the normal suite.");
+            Assert.That(report.Length, Is.LessThan(ValidationReport.Limit));
+            var headers = ValidationTrace.Columns.Split('|');
+            int gyroMask = Array.IndexOf(headers, "gyro_enabled_mask");
+            int gyroOverride = Array.IndexOf(headers, "gyro_override_mask");
+            int thrustOverride = Array.IndexOf(headers, "override_px");
+            foreach (var row in lines.Where(l => l.StartsWith("D|") && l.Split('|')[2] == "passive"))
+            {
+                var fields = row.Split('|');
+                Assert.That(double.Parse(fields[gyroMask], System.Globalization.CultureInfo.InvariantCulture), Is.Zero);
+                Assert.That(double.Parse(fields[gyroOverride], System.Globalization.CultureInfo.InvariantCulture), Is.Zero);
+                for (int i = 0; i < 6; i++)
+                    Assert.That(double.Parse(fields[thrustOverride + i], System.Globalization.CultureInfo.InvariantCulture), Is.Zero);
+            }
+            var release = lines.Single(l => l.StartsWith("D|coast_px|command|") && l.Split('|')[4] == "15").Split('|');
+            Assert.That(double.Parse(release[thrustOverride], System.Globalization.CultureInfo.InvariantCulture), Is.Zero);
+            for (int tick = 16; tick <= 27; tick++)
+                Assert.That(lines.Any(l => l.StartsWith("D|coast_px|flight|") && l.Split('|')[4] == tick.ToString()), Is.True);
+        }
+
+        [Test]
         public void ImportedBattery_ReenableDoesNotChargeForDisabledFrames()
         {
             SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,

@@ -153,12 +153,10 @@ floating-point equality claim. Quaternion sign is handled by angular distance.
   preserves serialized fields and applies the startup state used by this suite.
   Reactor uranium consumption is mapped using MaxPowerOutput / 3600 / 1 kg,
   following MyReactorDefinition.FuelInfo and the default fuel multiplier.
-- Whole-suite translation invariance passes. Rotated runs agree through the
-  pre-waypoint flight probes within the stated limits, but the simulator's
-  approximate autopilot amplifies small differences. The comparator flags those
-  waypoint differences and their subsequent attitude effects; a regression test
-  preserves that finding. This remaining simulator issue is not hidden by
-  looser limits or described as a passing game-equivalence check.
+- Whole-suite translation and rotation invariance pass for the tested fixture
+  poses after correcting the force application path. The simulator's approximate
+  autopilot still differs from game measurements; simulator invariance is not
+  described as a passing game-equivalence check.
 - Structural armor remains part of grid geometry and mass, but terminal queries
   now exclude it. The validation fixture exposes 17 terminal blocks, as in game.
 - LCD writes now publish on the simulator's ten-tick update, following
@@ -173,6 +171,10 @@ is covered; identically malformed hand-edited reports can evade those two checks
 
 ## Survival measurement repairs (suite v2)
 
+The current script is suite v3: see `docs/validation-diagnostics.md` for the
+motion-aware settling gate and detailed single-LCD transition trace. Reload
+the local library script before running it; the craft blueprint is unchanged.
+
 Follow-up comparison and force/sleep repairs from the updated suite-v2 game
 log are recorded in `docs/validation-conformance-2026-10-19.md`.
 
@@ -184,10 +186,10 @@ the actual game. The same checked-in craft blueprint is used. Reload the local
 `FleetCommand.Validation` script in the programmable block and run `start` on a
 fresh fixture in Survival, vacuum, and zero gravity. Leave the cockpit empty
 and allow the test to finish before approaching the grid. The first LCD line
-must end in `suite-v2`; save the complete LCD export to a new result file.
+must end in `suite-v3`; save the complete LCD export to a new result file.
 
-The comparator accepts archived suite v1 reports, but rejects comparisons
-between suite revisions because their waypoint commands differ. Earlier game
+The comparator accepts archived suite v1/v2 reports, but rejects comparisons
+between suite revisions because commands or settling procedures differ. Earlier game
 data remains useful for diagnosing the unchanged probes. Battery stored-energy
 updates are quantized to 100 frames; the game scheduler's initial phase is not
 controlled by placing the craft, so point samples may remain offset even when
