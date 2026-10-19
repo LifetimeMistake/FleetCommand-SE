@@ -172,6 +172,10 @@ namespace FleetCommand.Test.Physics
                 info.MaxLinearVelocity = maxLinear;
                 info.MaxAngularVelocity = maxAngular;
                 info.MotionType = isDynamic ? HkMotionType.Dynamic : HkMotionType.Fixed;
+                // MyPhysicsBody defaults to Low; MyGridPhysics.CreateBody disables
+                // deactivation only for dynamic large grids.
+                info.SolverDeactivation = isDynamic && IsLargeGrid(template.GridSize)
+                    ? HkSolverDeactivation.Off : HkSolverDeactivation.Low;
                 info.QualityType = isDynamic ? HkCollidableQualityType.Moving : HkCollidableQualityType.Fixed;
 
                 HkMassProperties mp = default(HkMassProperties);
@@ -330,6 +334,26 @@ namespace FleetCommand.Test.Physics
             {
                 _rigidBody.ApplyLinearImpulse(impulse);
             }
+        }
+
+        /// <summary>Game thrust supplies a COM position to AddForceTorqueBody, selecting
+        /// Havok ApplyForce rather than its positionless impulse path. activeOnly means
+        /// ongoing thrust cannot wake a body after it has fallen asleep.</summary>
+        internal void ApplyThrustForce(Vector3 worldForce, float dtSeconds)
+        {
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+            {
+                if (!_rigidBody.IsActive) return;
+                Vector3 com = Vector3.Transform(_rigidBody.CenterOfMassLocal, _rigidBody.GetRigidBodyMatrix());
+                _rigidBody.ApplyForce(dtSeconds, worldForce, com);
+            }
+        }
+
+        internal void Activate()
+        {
+            if (_disposed || !IsDynamic) return;
+            using (HkAccessControl.PushState(HkAccessControl.AccessState.Exclusive))
+                _rigidBody.Activate();
         }
 
         /// <summary>Applies a world-frame angular impulse (N·m·s) about the body's center of

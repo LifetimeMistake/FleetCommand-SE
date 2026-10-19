@@ -116,7 +116,11 @@ namespace FleetCommand.Test.SpaceEngineers
                 // input into the grid (body) frame.
                 Matrix blockToGrid = Matrix.CreateFromQuaternion(c.Template.Orientation);
                 if (c.IsUnderControl)
+                {
+                    // MyShipController.MoveAndRotate wakes the grid for pilot input.
+                    if (c.MoveIndicator != Vector3.Zero) _grid.Body.Activate();
                     controlThrust += Vector3.TransformNormal(c.MoveIndicator, blockToGrid);
+                }
             }
 
             if (!anyController || !controlEnabled)

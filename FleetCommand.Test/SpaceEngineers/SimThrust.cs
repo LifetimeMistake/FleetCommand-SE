@@ -68,6 +68,7 @@ namespace FleetCommand.Test.SpaceEngineers
             _overrideFraction = 0f;
             _lastDelivered = 0f;
             _currentThrust = 0f;
+            EnabledChanged += _ => Grid.Body.Activate();
         }
 
         // — IMyThrust —
@@ -82,15 +83,15 @@ namespace FleetCommand.Test.SpaceEngineers
                 // (m_thrustOverride (0..100) * ForceMagnitude * 0.01).
                 if (value <= 0f)
                 {
-                    _overrideFraction = 0f;
+                    SetOverrideFraction(0f);
                 }
                 else if (_maxThrust > 1e-6f)
                 {
-                    _overrideFraction = Math.Min(1f, value / _maxThrust);
+                    SetOverrideFraction(Math.Min(1f, value / _maxThrust));
                 }
                 else
                 {
-                    _overrideFraction = 0f;
+                    SetOverrideFraction(0f);
                 }
             }
         }
@@ -101,12 +102,21 @@ namespace FleetCommand.Test.SpaceEngineers
             get { return _overrideFraction; }
             set
             {
-                _overrideFraction = value < 0f ? 0f : value > 1f ? 1f : value;
+                SetOverrideFraction(value < 0f ? 0f : value > 1f ? 1f : value);
             }
         }
 
         /// <inheritdoc />
         public float MaxThrust => _maxThrust;
+
+        private void SetOverrideFraction(float value)
+        {
+            if (_overrideFraction == value) return;
+            _overrideFraction = value;
+            // MyThrust_ThrustOverrideChanged -> MarkDirty -> RecomputeThrustParameters
+            // wakes the grid once; unchanged per-frame writes do not.
+            Grid.Body.Activate();
+        }
 
         /// <inheritdoc />
         public float MaxEffectiveThrust => _maxThrust * _effectiveness;

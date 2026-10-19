@@ -36,17 +36,12 @@ namespace FleetCommand.Validation.Tests
         }
 
         [Test]
-        public void RotatedRun_NormalizesFlightProbesAndExposesAutopilotSensitivity()
+        public void RotatedRun_NormalizesTheEntireSuite()
         {
             string moved = SimulationRun.Execute(SimulationRun.DefaultBlueprint, new Vector3D(12500, -3600, 8100),
                 MatrixD.CreateFromYawPitchRoll(0.7, -0.3, 1.2));
             var result = ReportComparison.Compare(_report, moved);
-            // The simulator's approximate autopilot currently amplifies small world-frame
-            // differences. Keep this visible: don't widen tolerances to call it equivalent.
-            Assert.That(result.Success, Is.False);
-            Assert.That(result.Differences.All(d => d.StartsWith("waypoint_forward|") || d.StartsWith("connector_unpaired|") || d.StartsWith("connector_unpaired: settling ticks")),
-                Is.True, string.Join("\n", result.Differences.Take(20)));
-            Assert.That(result.Differences.Any(d => d.StartsWith("waypoint_forward|")), Is.True);
+            Assert.That(result.Success, Is.True, string.Join("\n", result.Differences.Take(20)));
         }
 
         [Test]

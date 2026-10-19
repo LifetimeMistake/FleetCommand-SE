@@ -124,11 +124,11 @@ namespace FleetCommand.Test.SpaceEngineers
         /// <summary>Apply the combined body force at the COM, with no thrust torque.</summary>
         public void ApplyThrust(float dtSeconds)
         {
-            if (_grid.IsDisposed || dtSeconds <= 0f) return;
+            if (_grid.IsDisposed || dtSeconds <= 0f || _netBodyForce == Vector3.Zero) return;
             SimRigidBody body = _grid.Body;
             if (body == null || body.IsDisposed || !body.IsDynamic) return;
             Vector3 worldForce = Vector3.TransformNormal(_netBodyForce, (Matrix)_grid.WorldMatrix);
-            body.ApplyLinearImpulse(worldForce * dtSeconds);
+            body.ApplyThrustForce(worldForce, dtSeconds);
         }
         /// <summary>Tick phase 8: after the physics interval, publish each thruster's phase-5
         /// delivered force as its <see cref="SimThrust.CurrentThrust"/>.</summary>

@@ -173,6 +173,9 @@ is covered; identically malformed hand-edited reports can evade those two checks
 
 ## Survival measurement repairs (suite v2)
 
+Follow-up comparison and force/sleep repairs from the updated suite-v2 game
+log are recorded in `docs/validation-conformance-2026-10-19.md`.
+
 The original `TestResults/result.log` completed 19 cases / 133 samples. Its
 source-backed repair findings are recorded in
 `docs/validation-conformance-2026-10-18.md`. Suite v2 explicitly selects
