@@ -1,6 +1,6 @@
 namespace FleetCommand.Validation
 {
-    public enum ProbeKind { Observe, Thrust, Coast, Gyro, GyroDecay, Dampeners, BatteryDischarge, BatteryRecharge, LimitedPower, Autopilot, Connector }
+    public enum ProbeKind { Observe, Thrust, Coast, Gyro, GyroDecay, Dampeners, BatteryDischarge, BatteryRecharge, LimitedPower, Autopilot, Connector, LowSpeed }
 
     /// <summary>Add cases here: all hosts consume this same ordered definition.</summary>
     public sealed class ValidationCase
@@ -37,6 +37,19 @@ namespace FleetCommand.Validation
                 new ValidationCase("limited_power", ProbeKind.LimitedPower, 0, 180),
                 new ValidationCase("waypoint_forward", ProbeKind.Autopilot, 0, 600),
                 new ValidationCase("connector_unpaired", ProbeKind.Connector, 0, 120)
+            };
+        }
+
+        public static ValidationCase[] CreateLowSpeedDiagnostic()
+        {
+            // Axis selects the intervention for this diagnostic kind.
+            return new[] {
+                new ValidationCase("low_hold", ProbeKind.LowSpeed, 0, 300),
+                new ValidationCase("low_wake", ProbeKind.LowSpeed, 1, 300),
+                new ValidationCase("low_refresh", ProbeKind.LowSpeed, 2, 300),
+                new ValidationCase("low_moving", ProbeKind.LowSpeed, 3, 300),
+                new ValidationCase("low_gyro_zero", ProbeKind.LowSpeed, 4, 300),
+                new ValidationCase("low_gyro_spin", ProbeKind.LowSpeed, 5, 300)
             };
         }
     }

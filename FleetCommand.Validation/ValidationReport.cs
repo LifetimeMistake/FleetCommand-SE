@@ -7,7 +7,8 @@ namespace FleetCommand.Validation
     /// <summary>The LCD is the complete canonical artifact, not just a status display.</summary>
     public sealed class ValidationReport
     {
-        public const int Limit = 94000;
+        // Leave headroom below MyTextPanel's 65000-character publication cap.
+        public const int Limit = 64000;
         readonly StringBuilder _data = new StringBuilder();
         readonly IMyTextPanel _lcd;
         int _published;
@@ -54,6 +55,19 @@ namespace FleetCommand.Validation
             // The PB wrapper does not import System.Globalization. Fixed-point
             // formatting has no grouping; normalize the decimal comma explicitly.
             return value.ToString("0.000000").Replace(',', '.');
+        }
+
+        public static string CompactNumber(double value)
+        {
+            // Keep the same six decimal places of precision, omitting padding only.
+            return Number(value).TrimEnd('0').TrimEnd('.');
+        }
+
+        public static string RoundTripNumber(double value)
+        {
+            // Initial world attitude is replay input; six decimals can change
+            // native solver/controller branches even when ordinary samples agree.
+            return value.ToString("R").Replace(',', '.');
         }
     }
 }

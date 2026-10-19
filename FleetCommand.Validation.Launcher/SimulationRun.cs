@@ -14,43 +14,39 @@ namespace FleetCommand.Validation.Launcher
     {
         public static string DefaultBlueprint => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
             "blueprints", "FleetCommand_Validation_v1", "bp.sbc");
+        public static string StationBlueprint => Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+            "blueprints", "FleetCommand_Validation_Station_v1", "bp.sbc");
 
         public static string Execute(string blueprint, Vector3D position, MatrixD orientation,
-            Action<FleetTestContext, SimShip, ValidationRunner> afterStart = null,
-            Action<FleetTestContext, SimShip> beforeStart = null)
+            Action<FleetTestContext, SimShip, IValidationExperiment> afterStart = null,
+            Action<FleetTestContext, SimShip> beforeStart = null, string command = "start",
+            MatrixD? referenceOrientation = null, Action<string, string> additionalArtifact = null)
         {
             PhysicsHost.Initialize();
             var file = new SbcFileReader().ReadFile(blueprint);
-            var template = SbcToShipTemplate.Convert(file, file.Name);
             using (var context = new FleetTestContext(new SimWorld(SePhysicsProfile.Default, position)))
             {
-                var ship = context.Spawn(template, SpawnState.At(position, orientation));
+                var ship = AssemblySpawn.Spawn(context, file, position, orientation, referenceOrientation);
                 context.Step(2); // Publish initial working/power state before preflight.
                 var pb = (SimProgrammableBlock)ship.TerminalSystem.GetBlockWithName("FC Validation");
-                var lcd = (IMyTextPanel)ship.TerminalSystem.GetBlockWithName("FC Report");
-                var runner = new ValidationRunner(ship.TerminalSystem, pb.Runtime, pb, _ => { }, pb.Storage);
+                var lcd = (IMyTextPanel)ship.TerminalSystem.GetBlockWithName(command == "dockprobe" ? "FC Dock Report" : "FC Report");
+                var runner = new ValidationHost(ship.TerminalSystem, pb.Runtime, pb, _ => { }, pb.Storage);
                 beforeStart?.Invoke(context, ship);
-                UpdateType source = UpdateType.Terminal;
                 pb.RunHandler = arg => {
-                    runner.Main(arg, source);
+                    runner.Main(arg, pb.CurrentUpdateSource);
                     if (!runner.IsRunning) pb.Storage = runner.Report;
                 };
-                pb.TryRun("start");
-                // Permit a scheduled callback in the same frame as terminal start,
-                // as the real game does. The shared runner handles the zero interval.
+                pb.Run(command, UpdateType.Terminal);
                 afterStart?.Invoke(context, ship, runner);
-                context.EveryUpdate1(frame => {
-                    if ((pb.Runtime.UpdateFrequency & UpdateFrequency.Update1) == 0) return;
-                    source = frame.UpdateSource;
-                    pb.TryRun("");
-                });
                 int ticks = 0;
-                while (runner.IsRunning && ticks++ < 25000) context.Step();
-                if (runner.IsRunning) { source = UpdateType.Terminal; pb.TryRun("abort"); }
+                while (runner.IsRunning && ticks++ < 40000) context.Step();
+                if (runner.IsRunning) pb.Run("abort", UpdateType.Terminal);
                 context.Step(10); // Let UpdateAfterSimulation10 publish the final LCD buffer.
                 // Read only the external LCD API: no hidden runner telemetry escapes here.
                 string report = lcd.GetText();
                 if (report != runner.Report) throw new InvalidOperationException("LCD does not contain the complete canonical report.");
+                if (command == "dockprobe" && additionalArtifact != null)
+                    additionalArtifact("flight", ((IMyTextPanel)ship.TerminalSystem.GetBlockWithName("FC Report")).GetText());
                 return report;
             }
         }

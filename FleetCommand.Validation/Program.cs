@@ -5,11 +5,11 @@ namespace IngameScript
 {
     public partial class Program : MyGridProgram
     {
-        readonly ValidationRunner _runner;
+        readonly ValidationHost _runner;
 
         public Program()
         {
-            _runner = new ValidationRunner(GridTerminalSystem, Runtime, Me, Echo, Storage);
+            _runner = new ValidationHost(GridTerminalSystem, Runtime, Me, Echo, Storage);
         }
 
         public void Main(string argument, UpdateType updateSource)

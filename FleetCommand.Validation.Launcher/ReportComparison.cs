@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using VRageMath;
 
 namespace FleetCommand.Validation.Launcher
 {
@@ -22,6 +23,7 @@ namespace FleetCommand.Validation.Launcher
             public readonly Dictionary<string, double> Meta = new Dictionary<string, double>();
             public readonly List<string> Contract = new List<string>();
             public readonly Dictionary<string, int> Settles = new Dictionary<string, int>();
+            public MatrixD? InitialOrientation;
         }
 
         public static ComparisonResult Compare(string expected, string observed)
@@ -30,10 +32,17 @@ namespace FleetCommand.Validation.Launcher
             Parsed left, right;
             try { left = Parse(expected); } catch (Exception e) { result.Differences.Add("Invalid first report: " + e.Message); return result; }
             try { right = Parse(observed); } catch (Exception e) { result.Differences.Add("Invalid second report: " + e.Message); return result; }
+            if (left.InitialOrientation.HasValue != right.InitialOrientation.HasValue)
+                result.Differences.Add("Missing initial world orientation in one report; rerun the updated script.");
+            else if (left.InitialOrientation.HasValue
+                && (Vector3D.Distance(left.InitialOrientation.Value.Right, right.InitialOrientation.Value.Right) > 0.000005
+                    || Vector3D.Distance(left.InitialOrientation.Value.Up, right.InitialOrientation.Value.Up) > 0.000005))
+                result.Differences.Add("Incompatible initial world orientation: replay with --frame-from game-report.txt.");
             if (!left.Contract.SequenceEqual(right.Contract)) result.Differences.Add("Schema, cases, block capabilities or coverage differ.");
             foreach (var pair in left.Meta)
             {
                 double actual;
+                if (pair.Key.StartsWith("initial_q")) continue; // compare the complete orientation above
                 if (!right.Meta.TryGetValue(pair.Key, out actual)) { result.Differences.Add("Missing metadata: " + pair.Key); continue; }
                 if (pair.Key == "battery_start_mwh") continue; // compare charge changes; preflight bounds capacity dependence
                 double tolerance = pair.Key == "mass_kg" ? 0.05 : 0;
@@ -91,7 +100,8 @@ namespace FleetCommand.Validation.Launcher
             if (string.IsNullOrEmpty(report) || report.Length >= 100000) throw new FormatException("Empty or oversized report.");
             string[] lines = report.Replace("\r", "").TrimEnd('\n').Split('\n');
             if (lines[0] != ValidationRunner.Header && lines[0] != "FCVALIDATION|1|craft-v1|suite-v1"
-                && lines[0] != "FCVALIDATION|1|craft-v1|suite-v2")
+                && lines[0] != "FCVALIDATION|1|craft-v1|suite-v2" && lines[0] != "FCVALIDATION|1|craft-v1|suite-v3"
+                && lines[0] != "FCVALIDATION|1|craft-v1|suite-v4")
                 throw new FormatException("Unknown report revision.");
             var parsed = new Parsed();
             parsed.Contract.Add(lines[0]);
@@ -99,7 +109,10 @@ namespace FleetCommand.Validation.Launcher
             int completed = 0, caseSamples = 0, previousTick = -1;
             bool open = false, ended = false, columns = false, lcdCheck = false;
             bool startupInfo = false;
-            bool detailed = lines[0] == ValidationRunner.Header;
+            bool waypointDetailed = lines[0] == ValidationRunner.Header || lines[0] == "FCVALIDATION|1|craft-v1|suite-v4";
+            bool detailed = waypointDetailed || lines[0] == "FCVALIDATION|1|craft-v1|suite-v3";
+            bool waypointColumns = false;
+            var waypointTicks = new HashSet<int>();
             bool gateColumns = false, gatePolicy = false, traceColumns = false, traceFooter = false;
             int traceRows = 0, traceCharacters = 0;
             var gates = new HashSet<string>();
@@ -148,6 +161,21 @@ namespace FleetCommand.Validation.Launcher
                         if (!detailed || !gatePolicy || traceColumns || line != ValidationTrace.Columns)
                             throw new FormatException("Invalid diagnostic columns.");
                         traceColumns = true; parsed.Contract.Add(line); break;
+                    case "WPCOLUMNS":
+                        if (!waypointDetailed || !traceColumns || waypointColumns || open || line != ValidationRunner.WaypointColumns)
+                            throw new FormatException("Invalid waypoint columns.");
+                        waypointColumns = true; parsed.Contract.Add(line); break;
+                    case "W":
+                        if (!waypointDetailed || !waypointColumns || !open || completed >= suite.Length
+                            || suite[completed].Kind != ProbeKind.Autopilot || cells.Length != ValidationRunner.WaypointColumns.Split('|').Length
+                            || !int.TryParse(cells[1], out int waypointTick) || waypointTick < 0 || waypointTick > 600
+                            || waypointTick > 60 && waypointTick % 20 != 0 || !waypointTicks.Add(waypointTick)
+                            || waypointTick != (waypointTicks.Count <= 61 ? waypointTicks.Count - 1 : 60 + (waypointTicks.Count - 61) * 20))
+                            throw new FormatException("Invalid waypoint sample.");
+                        var waypointValues = cells.Skip(2).Select(Number).ToArray();
+                        if (waypointValues[0] < 0 || waypointValues.Skip(4).Any(v => v < 0))
+                            throw new FormatException("Invalid waypoint telemetry.");
+                        break;
                     case "D":
                         if (!detailed || !traceColumns || traceFooter || completed >= suite.Length || cells[1] != suite[completed].Name
                             || !new[] { "thrust_px", "coast_px", "thrust_py" }.Contains(cells[1])
@@ -173,7 +201,7 @@ namespace FleetCommand.Validation.Launcher
                     case "TRACE":
                         if (!detailed || traceFooter || cells.Length != 7 || cells[1] != "rows" || cells[3] != "dropped"
                             || cells[5] != "characters" || Number(cells[2]) != traceRows || Number(cells[4]) != 0
-                            || Number(cells[6]) != traceCharacters || traceCharacters > ValidationTrace.Budget)
+                            || Number(cells[6]) != traceCharacters || traceCharacters > (waypointDetailed ? ValidationTrace.Budget : 48000))
                             throw new FormatException("Missing or truncated diagnostic trace.");
                         traceFooter = true; break;
                     case "SETTLE":
@@ -210,13 +238,21 @@ namespace FleetCommand.Validation.Launcher
                     default: throw new FormatException("Unknown record: " + cells[0]);
                 }
             }
+            var metadataNames = new List<string> { "battery_start_mwh", "grid_size_m", "mass_kg", "terminal_blocks" };
+            if (lines[0] == ValidationRunner.Header || parsed.Meta.Keys.Any(k => k.StartsWith("initial_q")))
+            {
+                metadataNames.AddRange(new[] { "initial_qx", "initial_qy", "initial_qz", "initial_qw" });
+                parsed.InitialOrientation = ReportInitialOrientation.Read(report);
+            }
             if (!ended || !lcdCheck || !coverage.IsSupersetOf(new[] { "automated", "manual", "uncovered", "limitations" })
-                || !parsed.Meta.Keys.OrderBy(x => x).SequenceEqual(new[] { "battery_start_mwh", "grid_size_m", "mass_kg", "terminal_blocks" }))
+                || !parsed.Meta.Keys.OrderBy(x => x).SequenceEqual(metadataNames.OrderBy(x => x)))
                 throw new FormatException("Missing completion, metadata, LCD probe or coverage.");
             if (parsed.Contract.Count(l => l.StartsWith("BLOCK|")) != 6) throw new FormatException("Missing thruster capabilities.");
             if (detailed && (!gateColumns || !gatePolicy || !traceColumns || !traceFooter || gates.Count != suite.Length
                 || !traceCases.SetEquals(new[] { "thrust_px", "coast_px", "thrust_py" })))
                 throw new FormatException("Missing settling or transition diagnostics.");
+            if (waypointDetailed && (!waypointColumns || waypointTicks.Count != 88))
+                throw new FormatException("Missing waypoint diagnostics.");
             if (parsed.Meta["battery_start_mwh"] < 0.02 || parsed.Meta["battery_start_mwh"] > 0.04 || parsed.Meta["mass_kg"] <= 0)
                 throw new FormatException("Invalid preflight conditions.");
             return parsed;

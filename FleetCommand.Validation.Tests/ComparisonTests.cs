@@ -10,18 +10,40 @@ namespace FleetCommand.Validation.Tests
     public class ComparisonTests
     {
         [Test]
+        public void CurrentReports_RequireInitialOrientationEvenWhenBothCopiesOmitIt()
+        {
+            string missing = string.Join("\n", _report.Split('\n').Where(l => !l.StartsWith("META|initial_q")));
+            Assert.That(ReportComparison.Compare(missing, missing).Success, Is.False);
+        }
+
+        [Test]
+        public void LegacyV4WithoutOrientation_RemainsReadableButCannotMixWithCurrentReports()
+        {
+            string legacy = string.Join("\n", _report.Split('\n').Where(l => !l.StartsWith("META|initial_q")))
+                .Replace(ValidationRunner.Header, "FCVALIDATION|1|craft-v1|suite-v4");
+            Assert.That(ReportComparison.Compare(legacy, legacy).Success, Is.True);
+            Assert.That(ReportComparison.Compare(legacy, _report).Success, Is.False);
+            Assert.That(ReportComparison.Compare(_report, legacy).Success, Is.False);
+        }
+
+        [Test]
         public void SuiteRevisions_CannotBeComparedAsEquivalent_ButLegacyReportsRemainReadable()
         {
             const string oldHeader = "FCVALIDATION|1|craft-v1|suite-v1";
             const string newHeader = "FCVALIDATION|1|craft-v1|suite-v2";
             string legacy = string.Join("\n", _report.Split('\n').Where(l => !l.StartsWith("D|") && !l.StartsWith("DCOLUMNS|")
-                && !l.StartsWith("GATE|") && !l.StartsWith("GATECOLUMNS|") && !l.StartsWith("GATEPOLICY|") && !l.StartsWith("TRACE|")));
+                && !l.StartsWith("GATE|") && !l.StartsWith("GATECOLUMNS|") && !l.StartsWith("GATEPOLICY|") && !l.StartsWith("TRACE|")
+                && !l.StartsWith("W|") && !l.StartsWith("WPCOLUMNS|")));
             string oldReport = legacy.Replace(ValidationRunner.Header, oldHeader);
             string newReport = legacy.Replace(ValidationRunner.Header, newHeader);
             Assert.That(ReportComparison.Compare(newReport, newReport).Success, Is.True);
             Assert.That(ReportComparison.Compare(oldReport, oldReport).Success, Is.True);
             Assert.That(ReportComparison.Compare(oldReport, newReport).Success, Is.False);
             Assert.That(ReportComparison.Compare(_report, newReport).Success, Is.False);
+            string v3 = string.Join("\n", _report.Split('\n').Where(l => !l.StartsWith("W|") && !l.StartsWith("WPCOLUMNS|")))
+                .Replace(ValidationRunner.Header, "FCVALIDATION|1|craft-v1|suite-v3");
+            Assert.That(ReportComparison.Compare(v3, v3).Success, Is.True);
+            Assert.That(ReportComparison.Compare(_report, v3).Success, Is.False);
         }
 
         [Test]
@@ -36,6 +58,8 @@ namespace FleetCommand.Validation.Tests
             Assert.That(ReportComparison.Compare(missingGate, missingGate).Success, Is.False);
             string truncated = _report.Replace("|dropped|0|", "|dropped|1|");
             Assert.That(ReportComparison.Compare(truncated, truncated).Success, Is.False);
+            string missingWaypoint = string.Join("\n", _report.Split('\n').Where(l => !l.StartsWith("W|20|")));
+            Assert.That(ReportComparison.Compare(missingWaypoint, missingWaypoint).Success, Is.False);
         }
 
         string _report;
@@ -53,12 +77,14 @@ namespace FleetCommand.Validation.Tests
         }
 
         [Test]
-        public void RotatedRun_NormalizesTheEntireSuite()
+        public void RotatedRun_RejectsDifferentWorldOrientationBeforeComparingPhysics()
         {
             string moved = SimulationRun.Execute(SimulationRun.DefaultBlueprint, new Vector3D(12500, -3600, 8100),
                 MatrixD.CreateFromYawPitchRoll(0.7, -0.3, 1.2));
             var result = ReportComparison.Compare(_report, moved);
-            Assert.That(result.Success, Is.True, string.Join("\n", result.Differences.Take(20)));
+            Assert.That(result.Success, Is.False,
+                "Native constrained low-speed stabilization depends on world axes; relative coordinates cannot remove that physical difference.");
+            Assert.That(result.Differences.Single(), Does.Contain("world orientation"));
         }
 
         [Test]

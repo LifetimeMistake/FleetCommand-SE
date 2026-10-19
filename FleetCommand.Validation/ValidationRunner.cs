@@ -7,9 +7,11 @@ using VRageMath;
 namespace FleetCommand.Validation
 {
     /// <summary>All test behavior lives here. Both hosts supply only ingame services.</summary>
-    public sealed class ValidationRunner
+    public sealed class ValidationRunner : IValidationExperiment
     {
-        public const string Header = "FCVALIDATION|1|craft-v1|suite-v3";
+        public const string Header = "FCVALIDATION|1|craft-v1|suite-v5";
+        public const string LowSpeedHeader = "FCDIAGNOSTIC|1|craft-v1|low-speed-v5";
+        public const string WaypointColumns = "WPCOLUMNS|tick|waypoint_m|vx|vy|vz|thrust_px|thrust_nx|thrust_py|thrust_ny|thrust_pz|thrust_nz";
         public const string GateColumns = "GATECOLUMNS|case|settle_tick|stable_ticks|passive_ticks|reference_speed|cockpit_speed|position_speed|reference_angular_speed|orientation_speed|passive_drift|passive_rotation";
         public const string GatePolicy = "GATEPOLICY|brake_frames|15|passive_frames|60|speed_mps|0.010000|angular_rps|0.010000|drift_m|0.010000|rotation_rad|0.010000|passive_actuators|zero-thrust-disabled-gyros";
         public const string Columns = "COLUMNS|case|tick|seconds|dt|px|py|pz|vx|vy|vz|wx|wy|wz|qx|qy|qz|qw|thrust_px|thrust_nx|thrust_py|thrust_ny|thrust_pz|thrust_nz|battery_in|battery_out|battery_delta_mwh|reactor_mw|dampeners|autopilot|connector|waypoint_m";
@@ -25,7 +27,7 @@ namespace FleetCommand.Validation
         readonly IMyShipConnector _connector;
         readonly IMyThrust[] _thrusters = new IMyThrust[6];
         readonly IMyGyro[] _gyros = new IMyGyro[2];
-        readonly ValidationCase[] _cases = ValidationCase.CreateSuite();
+        ValidationCase[] _cases = ValidationCase.CreateSuite();
         readonly ValidationReport _report;
         readonly ValidationTrace _trace;
         readonly SettlingGate _settleGate = new SettlingGate();
@@ -41,6 +43,9 @@ namespace FleetCommand.Validation
         int _startupZeroCallbacks;
         bool _settling;
         bool _lcdBlocked;
+        bool _lowSpeedDiagnostic;
+        bool _warmingUp;
+        int _warmupTicks;
         double _mass;
         double _initialBattery;
         public bool IsRunning { get; private set; }
@@ -75,7 +80,7 @@ namespace FleetCommand.Validation
                     _report.Line("END|INTERRUPTED|RELOAD");
                 _report.Publish(true);
             }
-            _echo("FC validation ready. Commands: start, status, abort, export, dock.");
+            _echo("FC validation ready. Commands: start, restprobe, status, abort, export, dock.");
         }
 
         IMyTerminalBlock Find(string name)
@@ -99,6 +104,7 @@ namespace FleetCommand.Validation
                 if (command == "export") { _report.Publish(true); _echo("Complete report is in FC Report LCD. " + Report.Length + " characters."); return; }
                 if (command == "status") { _echo(IsRunning ? "Running " + _cases[_caseIndex].Name : "Idle. Report: " + Report.Length + " characters."); return; }
                 if (command == "start") { if (!IsRunning) Start(); return; }
+                if (command == "restprobe") { if (!IsRunning) Start(true); return; }
                 if (command == "dock") { if (!IsRunning) Dock(); return; }
                 if (command.Length != 0) { _echo("Unknown command: " + command); return; }
                 if (!IsRunning || (source & UpdateType.Update1) == 0) return;
@@ -126,6 +132,7 @@ namespace FleetCommand.Validation
                     _report.Line("CHECK|lcd_append_read|PASS");
                     _report.Line(Columns);
                     _report.Line(GateColumns); _report.Line(GatePolicy); _report.Line(ValidationTrace.Columns);
+                    _report.Line(WaypointColumns);
                     _lcdBlocked = !_report.Publish(true);
                     return;
                 }
@@ -135,10 +142,10 @@ namespace FleetCommand.Validation
                 if (_reference.GetNaturalGravity().Length() > 0.001) { Finish("ERROR", "GRAVITY_CHANGED"); return; }
                 if (_cockpit.IsUnderControl || _reference.IsUnderControl && !_reference.IsAutoPilotEnabled)
                 { Finish("ERROR", "PILOT_INPUT"); return; }
-                if (_settling) TickSettle(dt); else TickCase(dt);
+                if (_settling) TickSettle(dt); else if (_warmingUp) TickWarmup(); else TickCase(dt);
                 if (IsRunning)
-                    _echo((_settling ? (_passiveSettling ? "PASSIVE REST before " : "BRAKING before ") : "MEASURING ")
-                        + _cases[_caseIndex].Name + " | tick " + (_settling ? _settleTicks : _caseTick));
+                    _echo((_settling ? (_passiveSettling ? "PASSIVE REST before " : "BRAKING before ") : _warmingUp ? "GAINING SPEED for " : "MEASURING ")
+                        + _cases[_caseIndex].Name + " | tick " + (_settling ? _settleTicks : _warmingUp ? _warmupTicks : _caseTick));
                 if (_report.Overflow) { Cleanup(); IsRunning = false; _runtime.UpdateFrequency = UpdateFrequency.None; }
                 _lcdBlocked = !_report.Publish(false);
             }
@@ -148,15 +155,34 @@ namespace FleetCommand.Validation
             }
         }
 
-        void Start()
+        void Start(bool lowSpeedDiagnostic = false)
         {
+            _lowSpeedDiagnostic = lowSpeedDiagnostic;
+            _warmingUp = false; _warmupTicks = 0;
+            _cases = lowSpeedDiagnostic ? ValidationCase.CreateLowSpeedDiagnostic() : ValidationCase.CreateSuite();
             _report.Reset();
             _trace.Reset(null);
-            _report.Line(Header);
+            _report.Line(lowSpeedDiagnostic ? LowSpeedHeader : Header);
+            if (lowSpeedDiagnostic)
+            {
+                _report.Line("PROTOCOL|low_hold|battery-only|override-once|0.2|frames|300");
+                _report.Line("PROTOCOL|low_wake|battery-only|override-once|0.2|dampeners-true-false-each-callback|frames|300");
+                _report.Line("PROTOCOL|low_refresh|battery-only|override-zero-then-0.2-each-callback|frames|300");
+                _report.Line("PROTOCOL|low_moving|measured-thrust-direction-speed-at-least-1-mps|warmup-full-thrust-with-wake-and-refresh|timeout-600-frames|then-battery-only-0.2-for-300-frames");
+                _report.Line("PROTOCOL|low_gyro_zero|battery-only|override-once|0.2|gyro-override-zero|native-deactivation-allowed|frames|300");
+                _report.Line("PROTOCOL|low_gyro_spin|battery-only|override-once|0.2|gyro-override-0.01-rps-about-thrust-axis|native-deactivation-disabled-if-powered|frames|300");
+                _report.Line("GYCOLUMNS|case|tick|enabled|working|override|pitch|yaw|roll|power|thrust_axis_x|thrust_axis_y|thrust_axis_z");
+                _report.Line("SAMPLEPOLICY|measurement|initial-first-12-then-every-60-frames|gyro|initial-10-final");
+                _report.Line("UCOLUMNS|case|warmup_tick|seconds|vx|vy|vz|thrust_px|reactor_mw|dampeners");
+                _report.Line("LIMITATION|native-body-active-state-is-not-exposed-by-the-PB-API");
+            }
+            else
+            {
             _report.Line("COVERAGE|automated|discovery,lcd,thrust,coast,gyro,rotated-gyro,damping,power,battery,waypoint,unpaired-connector");
             _report.Line("COVERAGE|manual|paired-docking:load-dock-align-then-run-dock,pilot-input,save-reload");
             _report.Line("COVERAGE|uncovered|planetary-gravity,atmosphere,collisions,fuel-depletion,speed-cap,all-block-variants,IGC,instruction-budget");
             _report.Line("COVERAGE|limitations|waypoint-steering-and-docking-approach-require-measured-review");
+            }
             if (_reference == null || _cockpit == null || _lcd == null || _battery == null || _reactor == null || _reactorB == null || _reactorC == null || _connector == null)
             { Finish("ERROR", "MISSING_REQUIRED_BLOCK"); return; }
             for (int i = 0; i < 6; i++) if (_thrusters[i] == null) { Finish("ERROR", "MISSING_THRUSTER"); return; }
@@ -171,7 +197,9 @@ namespace FleetCommand.Validation
             { Finish("ERROR", "EXIT_COCKPIT_AND_REMOTE_CONTROL"); return; }
             if (_connector.Status != MyShipConnectorStatus.Unconnected)
             { Finish("ERROR", "DISCONNECT_AND_MOVE_AWAY_FROM_DOCK"); return; }
-            if (_battery.CurrentStoredPower < 0.02 || _battery.CurrentStoredPower > 0.04)
+            if (lowSpeedDiagnostic && _battery.CurrentStoredPower <= 0)
+            { Finish("ERROR", "BATTERY_EMPTY"); return; }
+            if (!lowSpeedDiagnostic && (_battery.CurrentStoredPower < 0.02 || _battery.CurrentStoredPower > 0.04))
             { Finish("ERROR", "BATTERY_MUST_BE_0.02_TO_0.04_MWH"); return; }
             _mass = _reference.CalculateShipMass().PhysicalMass;
             _initialBattery = _battery.CurrentStoredPower;
@@ -183,6 +211,15 @@ namespace FleetCommand.Validation
             _report.Line("META|battery_start_mwh|" + ValidationReport.Number(_battery.CurrentStoredPower));
             _report.Line("META|grid_size_m|" + ValidationReport.Number(_reference.CubeGrid.GridSize));
             _report.Line("META|terminal_blocks|" + _blocks.Count);
+            // Havok's constrained low-speed stabilization depends on world axes.
+            // Preserve the world orientation for replay; S/D/W data stay relative.
+            var initialAttitude = QuaternionD.CreateFromRotationMatrix(_reference.WorldMatrix.GetOrientation());
+            initialAttitude.Normalize();
+            if (initialAttitude.W < 0) initialAttitude = new QuaternionD(-initialAttitude.X, -initialAttitude.Y, -initialAttitude.Z, -initialAttitude.W);
+            _report.Line("META|initial_qx|" + ValidationReport.RoundTripNumber(initialAttitude.X));
+            _report.Line("META|initial_qy|" + ValidationReport.RoundTripNumber(initialAttitude.Y));
+            _report.Line("META|initial_qz|" + ValidationReport.RoundTripNumber(initialAttitude.Z));
+            _report.Line("META|initial_qw|" + ValidationReport.RoundTripNumber(initialAttitude.W));
             for (int i = 0; i < 6; i++)
             {
                 var t = _thrusters[i];
@@ -270,6 +307,52 @@ namespace FleetCommand.Validation
             _trace.Observe("case_pre", _runTicks, 0, 0, _settleGate.StableTicks);
             ResetCommands(); _settling = false; _caseTick = 0; _caseSamples = 0;
             var test = _cases[_caseIndex];
+            if (test.Kind == ProbeKind.LowSpeed && test.Axis == 3)
+            {
+                _warmingUp = true; _warmupTicks = 0;
+                _report.Line("WARMUP|low_moving|target_mps|1|timeout_frames|600");
+                ApplyWarmup();
+                return;
+            }
+            BeginMeasurement(test);
+        }
+
+        void ApplyWarmup()
+        {
+            EnableReactors(true); _battery.ChargeMode = ChargeMode.Auto;
+            _reference.DampenersOverride = true; _reference.DampenersOverride = false;
+            _thrusters[0].ThrustOverridePercentage = 0;
+            _thrusters[0].ThrustOverridePercentage = 1;
+        }
+
+        void TickWarmup()
+        {
+            _warmupTicks++;
+            var velocity = _reference.GetShipVelocities().LinearVelocity;
+            double alongThrust = Vector3D.Dot(velocity, _thrusters[0].WorldMatrix.Backward);
+            if (_warmupTicks <= 30 || _warmupTicks % 10 == 0 || alongThrust >= 1)
+            {
+                var v = _frame.Vector(velocity);
+                _row.Clear(); _row.Append("U|low_moving|").Append(_warmupTicks);
+                Number(_runTicks / 60.0); Number(v.X); Number(v.Y); Number(v.Z);
+                Number(_thrusters[0].CurrentThrust);
+                Number(_reactor.CurrentOutput + _reactorB.CurrentOutput + _reactorC.CurrentOutput);
+                Number(_reference.DampenersOverride ? 1 : 0);
+                _report.Line(_row.ToString());
+            }
+            if (alongThrust >= 1)
+            {
+                _warmingUp = false;
+                _report.Line("WARMUPEND|low_moving|frames|" + _warmupTicks + "|thrust_direction_mps|" + ValidationReport.CompactNumber(alongThrust));
+                BeginMeasurement(_cases[_caseIndex]);
+                return;
+            }
+            if (_warmupTicks >= 600) { Finish("ERROR", "WARMUP_TIMEOUT_LOW_MOVING"); return; }
+            ApplyWarmup();
+        }
+
+        void BeginMeasurement(ValidationCase test)
+        {
             _report.Line("CASE|" + test.Name + "|" + test.Ticks);
             if (test.Kind == ProbeKind.Autopilot)
             {
@@ -283,6 +366,7 @@ namespace FleetCommand.Validation
             ApplyCase(test);
             _trace.Observe("command", _runTicks, 0, 0, _settleGate.StableTicks);
             Sample(0);
+            if (test.Kind == ProbeKind.Autopilot) WaypointSample();
             _echo("Measuring " + test.Name + "; phase trace and full samples are on FC Report.");
         }
 
@@ -293,7 +377,11 @@ namespace FleetCommand.Validation
             if (_caseTick <= 12 || _caseTick == 15 || _caseTick % 10 == 0 || _caseTick == test.Ticks
                 || test.Kind == ProbeKind.Coast && _caseTick > 15 && _caseTick <= 27)
                 _trace.Observe("flight", _runTicks, _caseTick, dt, 0);
-            if (_caseTick % Math.Max(1, test.Ticks / 6) == 0 || _caseTick == test.Ticks) Sample(dt);
+            bool sample = _lowSpeedDiagnostic
+                ? _caseTick <= 12 || _caseTick % 60 == 0 || _caseTick == test.Ticks
+                : _caseTick % Math.Max(1, test.Ticks / 6) == 0 || _caseTick == test.Ticks;
+            if (sample) Sample(dt);
+            if (test.Kind == ProbeKind.Autopilot && (_caseTick <= 60 || _caseTick % 20 == 0)) WaypointSample();
             if (_caseTick >= test.Ticks)
             {
                 _report.Line("ENDCASE|" + test.Name + "|" + _caseSamples);
@@ -312,6 +400,33 @@ namespace FleetCommand.Validation
 
         void ApplyCase(ValidationCase test)
         {
+            if (test.Kind == ProbeKind.LowSpeed)
+            {
+                if (_caseTick == 0)
+                {
+                    EnableReactors(false);
+                    _battery.ChargeMode = ChargeMode.Discharge;
+                    if (test.Axis >= 4)
+                    {
+                        // MyGridGyroSystem.UpdateAutomaticDeactivation permits sleep for
+                        // a zero target and disables it for a powered nonzero target.
+                        // Spin about thrust so the translational force direction is retained.
+                        var worldRate = _thrusters[0].WorldMatrix.Backward * (test.Axis == 5 ? 0.01 : 0);
+                        var bodyRate = Vector3D.TransformNormal(worldRate, MatrixD.Transpose(_reference.WorldMatrix.GetOrientation()));
+                        SetGyros(bodyRate, 0);
+                    }
+                }
+                if (test.Axis == 1)
+                {
+                    // Both writes occur in one PB invocation. Physics observes
+                    // dampeners off, but EnableDampingInternal can wake the body.
+                    _reference.DampenersOverride = true;
+                    _reference.DampenersOverride = false;
+                }
+                if (test.Axis == 2) _thrusters[0].ThrustOverridePercentage = 0;
+                if (_caseTick == 0 || test.Axis == 2)
+                    _thrusters[0].ThrustOverridePercentage = 0.2f;
+            }
             if (test.Kind == ProbeKind.Thrust) _thrusters[test.Axis].ThrustOverridePercentage = 1;
             if (test.Kind == ProbeKind.Coast) _thrusters[0].ThrustOverridePercentage = _caseTick < 15 ? 1 : 0;
             if (test.Kind == ProbeKind.Gyro || test.Kind == ProbeKind.GyroDecay)
@@ -369,12 +484,33 @@ namespace FleetCommand.Validation
             Number(_reference.DampenersOverride ? 1 : 0); Number(_reference.IsAutoPilotEnabled ? 1 : 0); Number((int)_connector.Status);
             Number(_cases[_caseIndex].Kind == ProbeKind.Autopilot ? Vector3D.Distance(_reference.GetPosition(), _waypoint) : 0);
             _report.Line(_row.ToString()); _caseSamples++;
+            if (_lowSpeedDiagnostic && _cases[_caseIndex].Axis >= 4
+                && (_caseTick == 0 || _caseTick == 10 || _caseTick == _cases[_caseIndex].Ticks))
+            {
+                var gyro = _gyros[0];
+                var axis = _frame.Vector(_thrusters[0].WorldMatrix.Backward);
+                _row.Clear(); _row.Append("GY|").Append(_cases[_caseIndex].Name).Append('|').Append(_caseTick);
+                Number(gyro.Enabled ? 1 : 0); Number(gyro.IsWorking ? 1 : 0); Number(gyro.GyroOverride ? 1 : 0);
+                Number(gyro.Pitch); Number(gyro.Yaw); Number(gyro.Roll); Number(gyro.GyroPower);
+                Number(axis.X); Number(axis.Y); Number(axis.Z);
+                _report.Line(_row.ToString());
+            }
+        }
+
+        void WaypointSample()
+        {
+            var v = _frame.Vector(_reference.GetShipVelocities().LinearVelocity);
+            _row.Clear(); _row.Append("W|").Append(_caseTick);
+            Number(Vector3D.Distance(_reference.GetPosition(), _waypoint));
+            Number(v.X); Number(v.Y); Number(v.Z);
+            for (int i = 0; i < 6; i++) Number(_thrusters[i].CurrentThrust);
+            _report.Line(_row.ToString());
         }
 
         void Number(double value)
         {
             if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidOperationException("NONFINITE_TELEMETRY");
-            _row.Append('|').Append(ValidationReport.Number(value));
+            _row.Append('|').Append(ValidationReport.CompactNumber(value));
         }
 
         void ResetCommands()

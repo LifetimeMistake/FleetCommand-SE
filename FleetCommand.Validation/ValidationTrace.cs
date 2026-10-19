@@ -9,7 +9,7 @@ namespace FleetCommand.Validation
     /// <summary>Bounded transition evidence, exported on the same LCD as canonical samples.</summary>
     public sealed class ValidationTrace
     {
-        public const int Budget = 48000;
+        public const int Budget = 32000;
         public const string Columns = "DCOLUMNS|case|phase|run_tick|phase_tick|dt|com_px|com_py|com_pz|rc_px|rc_py|rc_pz|pb_px|pb_py|pb_pz|qx|qy|qz|qw|rc_vx|rc_vy|rc_vz|cockpit_vx|cockpit_vy|cockpit_vz|omega|position_speed|stable_ticks|dampeners|autopilot|pilot|remote_pilot|thrust_enabled_mask|thrust_working_mask|gyro_enabled_mask|gyro_override_mask|override_px|override_nx|override_py|override_ny|override_pz|override_nz|thrust_px|thrust_nx|thrust_py|thrust_ny|thrust_pz|thrust_nz";
         readonly ValidationReport _report;
         readonly IMyRemoteControl _reference;
@@ -91,7 +91,7 @@ namespace FleetCommand.Validation
         void Number(double value, bool compact = false)
         {
             if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidOperationException("NONFINITE_DIAGNOSTIC");
-            _row.Append('|').Append(compact ? value.ToString("0.000").Replace(',', '.') : ValidationReport.Number(value));
+            _row.Append('|').Append(compact ? value.ToString("0.000").Replace(',', '.').TrimEnd('0').TrimEnd('.') : ValidationReport.CompactNumber(value));
         }
         void Write(string line)
         {

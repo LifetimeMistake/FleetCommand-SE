@@ -21,6 +21,184 @@ namespace FleetCommand.Validation.Tests
 
     public class ValidationTests
     {
+        [TestCase(0, 0, 0, 1.86446, 0.009983)]
+        [TestCase(0.7, -0.3, 1.2, 0.011378, 0.006405)]
+        public void LowSpeedGyroInteraction_PreservesNativeWorldOrientationDependence(
+            double yaw, double pitch, double roll, double finalVelocity, double finalRate)
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero,
+                MatrixD.CreateFromYawPitchRoll(yaw, pitch, roll), command: "restprobe");
+            var sample = report.Split('\n').Single(l => l.StartsWith("S|low_gyro_spin|300|")).Split('|');
+            Assert.That(double.Parse(sample[8], System.Globalization.CultureInfo.InvariantCulture),
+                Is.EqualTo(finalVelocity).Within(0.00003));
+            Assert.That(double.Parse(sample[11], System.Globalization.CultureInfo.InvariantCulture),
+                Is.EqualTo(finalRate).Within(0.000003));
+        }
+
+        [Test]
+        public void InitialOrientation_IsExportedAndCanReplayTheReferenceFrame()
+        {
+            MatrixD orientation = MatrixD.CreateFromYawPitchRoll(0.7, -0.3, 1.2);
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero,
+                orientation, command: "restprobe");
+            foreach (string component in new[] { "qx", "qy", "qz", "qw" })
+                Assert.That(report, Does.Contain("META|initial_" + component + "|"));
+            MatrixD recorded = ReportInitialOrientation.Read(report);
+            Assert.That(Vector3D.Distance(recorded.Right, orientation.Right), Is.LessThan(0.000003));
+            Assert.That(Vector3D.Distance(recorded.Up, orientation.Up), Is.LessThan(0.000003));
+            string replay = SimulationRun.Execute(SimulationRun.DefaultBlueprint, new Vector3D(100, 200, 300),
+                MatrixD.Identity, command: "restprobe", referenceOrientation: recorded);
+            var originalFinal = report.Split('\n').Single(l => l.StartsWith("S|low_gyro_spin|300|")).Split('|');
+            var replayFinal = replay.Split('\n').Single(l => l.StartsWith("S|low_gyro_spin|300|")).Split('|');
+            Assert.That(double.Parse(replayFinal[8], System.Globalization.CultureInfo.InvariantCulture),
+                Is.EqualTo(double.Parse(originalFinal[8], System.Globalization.CultureInfo.InvariantCulture)).Within(0.00001));
+        }
+
+        [TestCase("")]
+        [TestCase("META|initial_qx|NaN\nMETA|initial_qy|0\nMETA|initial_qz|0\nMETA|initial_qw|1")]
+        [TestCase("META|initial_qx|0\nMETA|initial_qy|0\nMETA|initial_qz|0\nMETA|initial_qw|0")]
+        [TestCase("META|initial_qx|0\nMETA|initial_qx|0\nMETA|initial_qy|0\nMETA|initial_qz|0\nMETA|initial_qw|1")]
+        public void InitialOrientation_RejectsMissingOrMalformedTelemetry(string report)
+        {
+            Assert.Throws<FormatException>(new Action(() => { ReportInitialOrientation.Read(report); }));
+        }
+
+        [Test]
+        public void LowSpeedDiagnostic_ConnectorDetectorsReproduceStallAndTheirMovingMass()
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                command: "restprobe");
+            var lines = report.Split('\n');
+            var held = lines.Single(l => l.StartsWith("S|low_hold|300|")).Split('|');
+            Assert.That(double.Parse(held[8], System.Globalization.CultureInfo.InvariantCulture), Is.Zero);
+            var movingStart = lines.Single(l => l.StartsWith("S|low_moving|0|")).Split('|');
+            var movingEnd = lines.Single(l => l.StartsWith("S|low_moving|300|")).Split('|');
+            double mass = double.Parse(lines.Single(l => l.StartsWith("META|mass_kg|")).Split('|')[2], System.Globalization.CultureInfo.InvariantCulture);
+            double gain = double.Parse(movingEnd[8], System.Globalization.CultureInfo.InvariantCulture)
+                - double.Parse(movingStart[8], System.Globalization.CultureInfo.InvariantCulture);
+            Assert.That(gain, Is.EqualTo(2880 * 5 / (mass + 2)).Within(0.0001),
+                "The source creates two native default-mass (1kg) detector bodies not included in CalculateShipMass.");
+        }
+
+        [TestCase(0, 0, 0)]
+        [TestCase(0.6, -0.3, 0.4)]
+        public void LowSpeedDiagnostic_LeavesReportHeadroomWithArbitraryPlacement(double yaw, double pitch, double roll)
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint,
+                new Vector3D(2300, -4100, 700), MatrixD.CreateFromYawPitchRoll(yaw, pitch, roll), command: "restprobe");
+            Assert.That(report, Does.Contain("END|COMPLETE|"));
+            Assert.That(report.Length, Is.LessThan(35000), "Leave room for longer game numeric fields and warmup telemetry.");
+            // Stress continuous fields with signed six-digit integer parts and six
+            // decimals, plus the maximum warmup row count. Ticks and flags stay integers.
+            var padded = report.Split('\n').Select(line => {
+                var fields = line.Split('|');
+                if (fields[0] == "S" || fields[0] == "U" || fields[0] == "GY")
+                    for (int i = 3; i < fields.Length; i++)
+                    {
+                        bool flag = fields[0] == "S" && i >= 28 && i <= 30
+                            || fields[0] == "U" && i == 9
+                            || fields[0] == "GY" && i >= 3 && i <= 5;
+                        if (!flag) fields[i] = "-999999.999999";
+                    }
+                return string.Join("|", fields);
+            }).ToArray();
+            var warmup = padded.Where(line => line.StartsWith("U|")).ToArray();
+            int stressedLength = string.Join("\n", padded).Length + (88 - warmup.Length) * (warmup[0].Length + 1);
+            Assert.That(stressedLength, Is.LessThan(ValidationReport.Limit - 2000));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LowSpeedGyroControl_ChangesNativeDeactivationWithoutTurningThrust(bool spinning)
+        {
+            bool observed = false;
+            string caseName = spinning ? "low_gyro_spin" : "low_gyro_zero";
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint,
+                new Vector3D(2300, -4100, 700), MatrixD.CreateFromYawPitchRoll(0.6, -0.3, 0.4),
+                afterStart: (context, ship, runner) => context.EveryUpdate1(_ => {
+                    if (observed || !runner.Report.Contains("S|" + caseName + "|10|")) return;
+                    var gyro = (IMyGyro)ship.TerminalSystem.GetBlockWithName("FC Gyro A");
+                    var thrust = (IMyThrust)ship.TerminalSystem.GetBlockWithName("FC Thrust +X");
+                    var reference = (IMyRemoteControl)ship.TerminalSystem.GetBlockWithName("FC Reference");
+                    var native = (Havok.HkRigidBody)typeof(SimRigidBody).GetProperty("Body",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(ship.Grid.Body);
+                    Assert.That(gyro.Enabled && gyro.IsWorking && gyro.GyroOverride, Is.True);
+                    Assert.That(native.EnableDeactivation, Is.EqualTo(!spinning));
+                    var target = Vector3D.TransformNormal(new Vector3D(-gyro.Pitch, -gyro.Yaw, -gyro.Roll), gyro.WorldMatrix);
+                    Assert.That(target.Length(), Is.EqualTo(spinning ? 0.01 : 0).Within(1e-6));
+                    Assert.That(Vector3D.Cross(target, thrust.WorldMatrix.Backward).Length(), Is.LessThan(1e-6));
+                    Assert.That(thrust.ThrustOverridePercentage, Is.EqualTo(0.2f));
+                    Assert.That(thrust.CurrentThrust, Is.EqualTo(2880).Within(0.01));
+                    Assert.That(reference.DampenersOverride, Is.False);
+                    observed = true;
+                }), command: "restprobe");
+            Assert.That(observed, Is.True, "The native deactivation control must actually execute.");
+            Assert.That(report, Does.Contain("ENDCASE|" + caseName + "|18"));
+        }
+
+        [Test]
+        public void LowMoving_BeginsMeasurementOnlyAfterMeasuredSpeedReachesOneMetrePerSecond()
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                command: "restprobe");
+            var initial = report.Split('\n').Single(l => l.StartsWith("S|low_moving|0|")).Split('|');
+            Assert.That(double.Parse(initial[8], System.Globalization.CultureInfo.InvariantCulture), Is.GreaterThanOrEqualTo(1));
+            Assert.That(report, Does.Contain("WARMUPEND|low_moving|"));
+        }
+
+        [Test]
+        public void LowMoving_FailsExplicitlyIfWarmupCannotReachMeasuredSpeed()
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                afterStart: (context, ship, runner) => context.EveryUpdate1(_ => {
+                    if (!runner.Report.Contains("WARMUP|low_moving|") || runner.Report.Contains("WARMUPEND|low_moving|")) return;
+                    var state = ship.Grid.Body.GetState();
+                    state.LinearVelocity = Vector3D.Zero;
+                    state.AngularVelocity = Vector3.Zero;
+                    ship.Grid.Body.SetState(state);
+                }), command: "restprobe");
+            Assert.That(report, Does.Contain("END|ERROR|WARMUP_TIMEOUT_LOW_MOVING|"));
+            Assert.That(report, Does.Not.Contain("CASE|low_moving|"));
+        }
+
+        [Test]
+        public void LowSpeedDiagnostic_AcceptsFullBatteryWithoutChangingCanonicalPreflight()
+        {
+            Action<FleetCommand.Test.Framework.FleetTestContext, SimShip> fill = (context, ship) => {
+                var battery = (SimBatteryBlock)ship.TerminalSystem.GetBlockWithName("FC Battery");
+                battery.CurrentStoredPower = battery.MaxStoredPower;
+            };
+            string diagnostic = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                beforeStart: fill, command: "restprobe");
+            Assert.That(diagnostic, Does.Contain("END|COMPLETE|6|108"));
+            string canonical = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                beforeStart: fill);
+            Assert.That(canonical, Does.Contain("END|ERROR|BATTERY_MUST_BE_0.02_TO_0.04_MWH|"));
+        }
+
+        [Test]
+        public void LowSpeedDiagnostic_ExportsAllSixCasesAndTransitionSamplesUnderLcdCap()
+        {
+            string report = SimulationRun.Execute(SimulationRun.DefaultBlueprint, Vector3D.Zero, MatrixD.Identity,
+                command: "restprobe");
+            Assert.That(report, Does.StartWith("FCDIAGNOSTIC|1|craft-v1|low-speed-v5\n"));
+            Assert.That(report, Does.Contain("END|COMPLETE|6|108"));
+            Assert.That(report.Length, Is.LessThan(64000));
+            var lines = report.Split('\n');
+            foreach (var name in new[] {"low_hold", "low_wake", "low_refresh", "low_moving", "low_gyro_zero", "low_gyro_spin"})
+            {
+                Assert.That(lines.Any(l => l.StartsWith("S|" + name + "|1|")), Is.True);
+                foreach (var row in lines.Where(l => l.StartsWith("S|" + name + "|")))
+                    Assert.That(row.Split('|')[28], Is.EqualTo("0"), "Every measured interval has dampeners off.");
+            }
+            Assert.That(lines.Count(l => l.StartsWith("GY|")), Is.EqualTo(6));
+            foreach (var name in new[] { "low_gyro_zero", "low_gyro_spin" })
+                foreach (int tick in new[] { 0, 10, 300 })
+                    Assert.That(lines.Any(l => l.StartsWith("GY|" + name + "|" + tick + "|")), Is.True);
+            for (int tick = 1; tick <= 12; tick++)
+                Assert.That(lines.Any(l => l.StartsWith("S|low_moving|" + tick + "|")), Is.True);
+        }
+
         [Test]
         public void FullRun_LogsPassiveGateAndFrameTransitionsWithinOneLcd()
         {
@@ -173,9 +351,15 @@ namespace FleetCommand.Validation.Tests
             TestContext.AddTestAttachment(WriteArtifact("validation-report.txt", report));
             Assert.That(report, Does.Contain("END|COMPLETE|19|"), report.Substring(Math.Max(0, report.Length - 1000)));
             Assert.That(report.Length, Is.LessThan(ValidationReport.Limit));
+            Assert.That(report.Length, Is.LessThan(65000), "Complete report must survive the game's LCD publication cap.");
             Assert.That(report.Split('\n').Count(l => l.StartsWith("ENDCASE|")), Is.EqualTo(19));
             Assert.That(report, Does.Contain("COVERAGE|manual|"));
             Assert.That(report, Does.Contain("COVERAGE|uncovered|"));
+            var waypoint = report.Split('\n').Where(l => l.StartsWith("W|")).ToArray();
+            Assert.That(waypoint.Length, Is.EqualTo(88), "Initial state, every frame in the first second, then 20-frame checkpoints.");
+            for (int tick = 0; tick <= 60; tick++)
+                Assert.That(waypoint.Any(l => l.StartsWith("W|" + tick + "|")), Is.True);
+            Assert.That(waypoint.Last(), Does.StartWith("W|600|"));
         }
 
         [Test]

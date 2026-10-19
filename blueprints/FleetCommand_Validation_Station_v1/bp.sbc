@@ -1,0 +1,2284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ShipBlueprints>
+    <ShipBlueprint xsi:type="MyObjectBuilder_ShipBlueprintDefinition">
+      <Id Type="MyObjectBuilder_ShipBlueprintDefinition" Subtype="FleetCommand_Validation_Station_v1" />
+      <DisplayName>FleetCommand_Validation_Station_v1</DisplayName>
+      <CubeGrids>
+        <CubeGrid>
+          <SubtypeName />
+          <EntityId>7100000000001</EntityId>
+          <PositionAndOrientation>
+            <Position x="0" y="-1" z="8.08224887" />
+            <Forward x="0" y="0" z="-1" />
+            <Up x="0" y="1" z="0" />
+          </PositionAndOrientation>
+          <GridSizeEnum>Small</GridSizeEnum>
+          <CubeBlocks>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000100</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000101</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000102</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000103</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000104</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000105</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000106</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000107</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000108</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000109</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000110</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000111</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000112</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000113</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-5" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -5 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000114</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000115</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000116</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000117</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000118</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000119</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000120</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000121</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000122</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000123</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000124</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000125</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000126</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000127</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000128</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-4" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -4 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000129</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000130</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000131</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000132</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000133</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000134</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000135</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000136</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000137</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000138</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000139</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000140</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000141</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000142</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000143</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-3" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -3 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000144</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000145</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000146</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000147</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000148</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000149</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000150</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000151</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000152</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000153</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000154</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000155</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000156</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000157</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000158</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -2 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000159</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000160</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000161</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000162</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000163</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000164</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000165</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000166</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000167</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000168</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000169</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000170</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000171</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000172</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000173</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor -1 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000174</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000175</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000176</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000177</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000178</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000179</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000180</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000181</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000182</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000183</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000184</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000185</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000186</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000187</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000188</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 0 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000189</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000190</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000191</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000192</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000193</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000194</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000195</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000196</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000197</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000198</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000199</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000200</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000201</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000202</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000203</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 1 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000204</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000205</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000206</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000207</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000208</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000209</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000210</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000211</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000212</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000213</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000214</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000215</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000216</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000217</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000218</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 2 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000219</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000220</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000221</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000222</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000223</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000224</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000225</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000226</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000227</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000228</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000229</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000230</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000231</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000232</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000233</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 3 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000234</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000235</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000236</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000237</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000238</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000239</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000240</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000241</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000242</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000243</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000244</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000245</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000246</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000247</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000248</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="4" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 4 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000249</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 -7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000250</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="-6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 -6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000251</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="-5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 -5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000252</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 -4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000253</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 -3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000254</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 -2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000255</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 -1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000256</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 0</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000257</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 1</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000258</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 2</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000259</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 3</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000260</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 4</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000261</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="5" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 5</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000262</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="6" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 6</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000263</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="5" y="0" z="7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Armor 5 7</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000264</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_RemoteControl">
+              <SubtypeName>SmallBlockRemoteControl</SubtypeName>
+              <Min x="0" y="1" z="-4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Reference</CustomName>
+              <Enabled>true</Enabled>
+              <DampenersEnabled>false</DampenersEnabled>
+              <EntityId>7100000000265</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Cockpit">
+              <SubtypeName>SmallBlockCockpit</SubtypeName>
+              <Min x="-1" y="1" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Cockpit</CustomName>
+              <Enabled>true</Enabled>
+              <DampenersEnabled>false</DampenersEnabled>
+              <EntityId>7100000000266</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_MyProgrammableBlock">
+              <SubtypeName>SmallProgrammableBlock</SubtypeName>
+              <Min x="-3" y="1" z="2" />
+              <BlockOrientation Forward="Down" Up="Forward" />
+              <CustomName>FC Validation</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000267</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_BatteryBlock">
+              <SubtypeName>SmallBlockSmallBatteryBlock</SubtypeName>
+              <Min x="-3" y="1" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Battery</CustomName>
+              <Enabled>true</Enabled>
+              <CurrentStoredPower>0.025</CurrentStoredPower>
+              <ChargeMode>0</ChargeMode>
+              <EntityId>7100000000268</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Reactor">
+              <SubtypeName>SmallBlockSmallGenerator</SubtypeName>
+              <Min x="-3" y="1" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Reactor</CustomName>
+              <Enabled>true</Enabled>
+              <Inventory>
+                <Items>
+                  <MyObjectBuilder_InventoryItem>
+                    <Amount>10</Amount>
+                    <PhysicalContent xsi:type="MyObjectBuilder_Ingot">
+                      <SubtypeName>Uranium</SubtypeName>
+                    </PhysicalContent>
+                    <ItemId>0</ItemId>
+                  </MyObjectBuilder_InventoryItem>
+                </Items>
+                <nextItemId>1</nextItemId>
+              </Inventory>
+              <EntityId>7100000000269</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Reactor">
+              <SubtypeName>SmallBlockSmallGenerator</SubtypeName>
+              <Min x="-4" y="1" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Reactor B</CustomName>
+              <Enabled>true</Enabled>
+              <Inventory>
+                <Items>
+                  <MyObjectBuilder_InventoryItem>
+                    <Amount>10</Amount>
+                    <PhysicalContent xsi:type="MyObjectBuilder_Ingot">
+                      <SubtypeName>Uranium</SubtypeName>
+                    </PhysicalContent>
+                    <ItemId>0</ItemId>
+                  </MyObjectBuilder_InventoryItem>
+                </Items>
+                <nextItemId>1</nextItemId>
+              </Inventory>
+              <EntityId>7100000000270</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Reactor">
+              <SubtypeName>SmallBlockSmallGenerator</SubtypeName>
+              <Min x="-5" y="1" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Reactor C</CustomName>
+              <Enabled>true</Enabled>
+              <Inventory>
+                <Items>
+                  <MyObjectBuilder_InventoryItem>
+                    <Amount>10</Amount>
+                    <PhysicalContent xsi:type="MyObjectBuilder_Ingot">
+                      <SubtypeName>Uranium</SubtypeName>
+                    </PhysicalContent>
+                    <ItemId>0</ItemId>
+                  </MyObjectBuilder_InventoryItem>
+                </Items>
+                <nextItemId>1</nextItemId>
+              </Inventory>
+              <EntityId>7100000000271</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Gyro">
+              <SubtypeName>SmallBlockGyro</SubtypeName>
+              <Min x="3" y="1" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Gyro A</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000272</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="1" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>Gyro support</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000273</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Gyro">
+              <SubtypeName>SmallBlockGyro</SubtypeName>
+              <Min x="3" y="1" z="2" />
+              <BlockOrientation Forward="Forward" Up="Right" />
+              <CustomName>FC Gyro B</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000274</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_TextPanel">
+              <SubtypeName>SmallLCDPanel</SubtypeName>
+              <Min x="0" y="1" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Report</CustomName>
+              <Enabled>true</Enabled>
+              <ContentType>TEXT_AND_IMAGE</ContentType>
+              <FontSize>0.5</FontSize>
+              <EntityId>7100000000275</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_ShipConnector">
+              <SubtypeName>ConnectorMedium</SubtypeName>
+              <Min x="-1" y="1" z="-13" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Connector</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000500</EntityId>
+              <ConnectedEntityId>7100000001200</ConnectedEntityId>
+              <Connected>true</Connected>
+              <IsConnecting>true</IsConnecting>
+              <IsApproaching>false</IsApproaching>
+              <IsMaster>true</IsMaster>
+              <Strength>0.1</Strength>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallThrust</SubtypeName>
+              <Min x="6" y="0" z="0" />
+              <BlockOrientation Forward="Right" Up="Up" />
+              <CustomName>FC Thrust -X</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000277</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallThrust</SubtypeName>
+              <Min x="-7" y="0" z="0" />
+              <BlockOrientation Forward="Left" Up="Up" />
+              <CustomName>FC Thrust +X</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000278</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallThrust</SubtypeName>
+              <Min x="0" y="0" z="8" />
+              <BlockOrientation Forward="Backward" Up="Up" />
+              <CustomName>FC Thrust -Z</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000279</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallThrust</SubtypeName>
+              <Min x="0" y="0" z="-9" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CustomName>FC Thrust +Z</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000280</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallThrust</SubtypeName>
+              <Min x="4" y="1" z="5" />
+              <BlockOrientation Forward="Up" Up="Forward" />
+              <CustomName>FC Thrust -Y</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000281</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallThrust</SubtypeName>
+              <Min x="4" y="-2" z="-5" />
+              <BlockOrientation Forward="Down" Up="Forward" />
+              <CustomName>FC Thrust +Y</CustomName>
+              <Enabled>true</Enabled>
+              <EntityId>7100000000282</EntityId>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <EntityId>7100000000283</EntityId>
+              <CustomName>Dock nose -7</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="1" z="-7" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <EntityId>7100000000284</EntityId>
+              <CustomName>Dock nose -8</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="1" z="-8" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <EntityId>7100000000285</EntityId>
+              <CustomName>Dock nose -9</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="1" z="-9" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <EntityId>7100000000286</EntityId>
+              <CustomName>Dock nose -10</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="1" z="-10" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <EntityId>7100000000287</EntityId>
+              <CustomName>Dock nose -11</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="1" z="-11" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_TextPanel">
+              <SubtypeName>SmallLCDPanel</SubtypeName>
+              <EntityId>7100000000288</EntityId>
+              <CustomName>FC Dock Report</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-5" y="1" z="4" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ContentType>TEXT_AND_IMAGE</ContentType>
+              <FontSize>0.5</FontSize>
+            </MyObjectBuilder_CubeBlock>
+          </CubeBlocks>
+          <IsStatic>false</IsStatic>
+          <DisplayName>FC Validation Craft</DisplayName>
+          <DestructibleBlocks>false</DestructibleBlocks>
+          <CreatePhysics>true</CreatePhysics>
+        </CubeGrid>
+        <CubeGrid>
+          <CubeBlocks>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001300</EntityId>
+              <CustomName>Station armor -4 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001301</EntityId>
+              <CustomName>Station armor -4 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001302</EntityId>
+              <CustomName>Station armor -4 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001303</EntityId>
+              <CustomName>Station armor -4 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001304</EntityId>
+              <CustomName>Station armor -4 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001305</EntityId>
+              <CustomName>Station armor -4 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001306</EntityId>
+              <CustomName>Station armor -4 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001307</EntityId>
+              <CustomName>Station armor -4 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001308</EntityId>
+              <CustomName>Station armor -4 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-4" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001309</EntityId>
+              <CustomName>Station armor -3 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001310</EntityId>
+              <CustomName>Station armor -3 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001311</EntityId>
+              <CustomName>Station armor -3 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001312</EntityId>
+              <CustomName>Station armor -3 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001313</EntityId>
+              <CustomName>Station armor -3 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001314</EntityId>
+              <CustomName>Station armor -3 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001315</EntityId>
+              <CustomName>Station armor -3 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001316</EntityId>
+              <CustomName>Station armor -3 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001317</EntityId>
+              <CustomName>Station armor -3 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-3" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001318</EntityId>
+              <CustomName>Station armor -2 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001319</EntityId>
+              <CustomName>Station armor -2 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001320</EntityId>
+              <CustomName>Station armor -2 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001321</EntityId>
+              <CustomName>Station armor -2 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001322</EntityId>
+              <CustomName>Station armor -2 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001323</EntityId>
+              <CustomName>Station armor -2 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001324</EntityId>
+              <CustomName>Station armor -2 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001325</EntityId>
+              <CustomName>Station armor -2 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001326</EntityId>
+              <CustomName>Station armor -2 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-2" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001327</EntityId>
+              <CustomName>Station armor -1 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001328</EntityId>
+              <CustomName>Station armor -1 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001329</EntityId>
+              <CustomName>Station armor -1 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001330</EntityId>
+              <CustomName>Station armor -1 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001331</EntityId>
+              <CustomName>Station armor -1 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001332</EntityId>
+              <CustomName>Station armor -1 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001333</EntityId>
+              <CustomName>Station armor -1 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001334</EntityId>
+              <CustomName>Station armor -1 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001335</EntityId>
+              <CustomName>Station armor -1 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="-1" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001336</EntityId>
+              <CustomName>Station armor 0 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001337</EntityId>
+              <CustomName>Station armor 0 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001338</EntityId>
+              <CustomName>Station armor 0 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001339</EntityId>
+              <CustomName>Station armor 0 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001340</EntityId>
+              <CustomName>Station armor 0 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001341</EntityId>
+              <CustomName>Station armor 0 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001342</EntityId>
+              <CustomName>Station armor 0 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001343</EntityId>
+              <CustomName>Station armor 0 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001344</EntityId>
+              <CustomName>Station armor 0 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001345</EntityId>
+              <CustomName>Station armor 1 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001346</EntityId>
+              <CustomName>Station armor 1 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001347</EntityId>
+              <CustomName>Station armor 1 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001348</EntityId>
+              <CustomName>Station armor 1 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001349</EntityId>
+              <CustomName>Station armor 1 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001350</EntityId>
+              <CustomName>Station armor 1 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001351</EntityId>
+              <CustomName>Station armor 1 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001352</EntityId>
+              <CustomName>Station armor 1 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001353</EntityId>
+              <CustomName>Station armor 1 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001354</EntityId>
+              <CustomName>Station armor 2 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001355</EntityId>
+              <CustomName>Station armor 2 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001356</EntityId>
+              <CustomName>Station armor 2 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001357</EntityId>
+              <CustomName>Station armor 2 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001358</EntityId>
+              <CustomName>Station armor 2 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001359</EntityId>
+              <CustomName>Station armor 2 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001360</EntityId>
+              <CustomName>Station armor 2 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001361</EntityId>
+              <CustomName>Station armor 2 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001362</EntityId>
+              <CustomName>Station armor 2 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="2" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001363</EntityId>
+              <CustomName>Station armor 3 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001364</EntityId>
+              <CustomName>Station armor 3 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001365</EntityId>
+              <CustomName>Station armor 3 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001366</EntityId>
+              <CustomName>Station armor 3 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001367</EntityId>
+              <CustomName>Station armor 3 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001368</EntityId>
+              <CustomName>Station armor 3 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001369</EntityId>
+              <CustomName>Station armor 3 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001370</EntityId>
+              <CustomName>Station armor 3 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001371</EntityId>
+              <CustomName>Station armor 3 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="3" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001372</EntityId>
+              <CustomName>Station armor 4 -4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="-4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001373</EntityId>
+              <CustomName>Station armor 4 -3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="-3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001374</EntityId>
+              <CustomName>Station armor 4 -2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="-2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001375</EntityId>
+              <CustomName>Station armor 4 -1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="-1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001376</EntityId>
+              <CustomName>Station armor 4 0</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="0" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001377</EntityId>
+              <CustomName>Station armor 4 1</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="1" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001378</EntityId>
+              <CustomName>Station armor 4 2</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="2" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001379</EntityId>
+              <CustomName>Station armor 4 3</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001380</EntityId>
+              <CustomName>Station armor 4 4</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="4" y="4" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>LargeBlockArmorBlock</SubtypeName>
+              <EntityId>7100000001381</EntityId>
+              <CustomName>Port support</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_ShipConnector">
+              <SubtypeName>Connector</SubtypeName>
+              <EntityId>7100000001200</EntityId>
+              <CustomName>FC Station Connector</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="0" y="0" z="0" />
+              <BlockOrientation Forward="Backward" Up="Up" />
+              <ConnectedEntityId>7100000000500</ConnectedEntityId>
+              <Connected>true</Connected>
+              <IsConnecting>true</IsConnecting>
+              <IsApproaching>false</IsApproaching>
+              <IsMaster>false</IsMaster>
+              <Strength>0.1</Strength>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_BatteryBlock">
+              <SubtypeName>LargeBlockBatteryBlock</SubtypeName>
+              <EntityId>7100000001382</EntityId>
+              <CustomName>FC Station Battery</CustomName>
+              <Enabled>true</Enabled>
+              <Min x="1" y="0" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <CurrentStoredPower>1.5</CurrentStoredPower>
+              <ChargeMode>0</ChargeMode>
+            </MyObjectBuilder_CubeBlock>
+          </CubeBlocks>
+          <EntityId>7100000001001</EntityId>
+          <GridSizeEnum>Large</GridSizeEnum>
+          <IsStatic>true</IsStatic>
+          <DisplayName>FC Validation Station</DisplayName>
+          <DestructibleBlocks>false</DestructibleBlocks>
+          <CreatePhysics>true</CreatePhysics>
+          <PositionAndOrientation>
+            <Position x="0" y="0" z="0" />
+            <Forward x="0" y="0" z="-1" />
+            <Up x="0" y="1" z="0" />
+          </PositionAndOrientation>
+        </CubeGrid>
+      </CubeGrids>
+    </ShipBlueprint>
+  </ShipBlueprints>
+</Definitions>

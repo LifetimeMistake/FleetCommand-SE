@@ -17,7 +17,7 @@ function Copy-Verified($source, $destination) {
     if ((Get-FileHash -LiteralPath $source).Hash -ne (Get-FileHash -LiteralPath $destination).Hash) { throw "Copy verification failed: $destination" }
     Write-Output "Deployed: $destination"
 }
-foreach ($name in @('FleetCommand_Validation_v1', 'FleetCommand_Validation_Dock_v1')) {
+foreach ($name in @('FleetCommand_Validation_v1', 'FleetCommand_Validation_Dock_v1', 'FleetCommand_Validation_Station_v1')) {
     $source = Join-Path $PSScriptRoot "../blueprints/$name/bp.sbc"
     $destination = Join-Path $GameData "Blueprints/local/$name/bp.sbc"
     Copy-Verified $source $destination
